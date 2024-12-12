@@ -3,6 +3,7 @@ name = "test-chlen"
 version = "0.1.0"
 description = "Created with Anchor"
 edition = "2021"
+#rust-version = "1.75.0"
 
 [lib]
 crate-type = ["cdylib", "lib"]
@@ -19,22 +20,27 @@ devnet = []
 client = []
 
 [dependencies]
-anchor-lang = { version = "0.29.0", features = ["init-if-needed"] }
-anchor-spl = { version = "0.29.0", features = ["metadata"] }
-spl-token = { version = "4.0.0", features = ["no-entrypoint"] }
+
+anchor-lang = "=0.29.0"
+anchor-spl = "=0.29.0"
+raydium-cp-swap = { git = "https://github.com/raydium-io/raydium-cp-swap", features = ["no-entrypoint", "cpi"]}
+solana-program = ">=1.16, <1.18"
+spl-token = "=4.0.0"
+spl-memo = "=4.0.0"
+num_enum = "=0.7.0"
+ahash = "=0.8.6"
 spl-math = { version = "0.2", features = ["no-entrypoint"] }
-spl-memo = "4.0.0"
+
 uint = "0.9.1"
-solana-security-txt = "1.1.1"
+solana-security-txt = "=1.1.1"
 bytemuck = { version = "1.4.0", features = ["derive", "min_const_generics"] }
 arrayref = { version = "0.3.6" }
+
+
 
 [dev-dependencies]
 quickcheck = "0.9"
 proptest = "1.0"
 rand = "0.8.5"
 
-raydium-cp-swap = { git = "https://github.com/raydium-io/raydium-cp-swap", features = [
-    "no-entrypoint",
-    "cpi",
-] }
+raydium-cp-swap = { git = "https://github.com/raydium-io/raydium-cp-swap", features = ["no-entrypoint", "cpi"]}
