@@ -15,6 +15,7 @@ import {
   TOKEN_PROGRAM_ID,
   TOKEN_2022_PROGRAM_ID,
   getAssociatedTokenAddressSync,
+  getAccount
 } from "@solana/spl-token";
 import {
   getAuthAddress,
@@ -174,8 +175,8 @@ export async function initialize(
   token1Program: PublicKey,
   confirmOptions?: ConfirmOptions,
   initAmount: { initAmount0: BN; initAmount1: BN } = {
-    initAmount0: new BN(10000000000),
-    initAmount1: new BN(20000000000),
+    initAmount0: new BN(100000000000000),
+    initAmount1: new BN(200000000000000),
   },
   createPoolFee = createPoolFeeReceive
 ) {
@@ -260,14 +261,22 @@ export async function initialize(
   );
   const poolState = CpmmPoolInfoLayout.decode(accountInfo.data);
   const cpSwapPoolState = {
+    get_pool_state: async () => {
+      const accountInfo = await program.provider.connection.getAccountInfo(
+        poolAddress
+      );
+      const poolState = CpmmPoolInfoLayout.decode(accountInfo.data);
+      return poolState;
+    },
     ammConfig: poolState.configId,
     token0Mint: poolState.mintA,
     token0Program: poolState.mintProgramA,
     token1Mint: poolState.mintB,
     token1Program: poolState.mintProgramB,
   };
-  return { poolAddress, cpSwapPoolState, tx };
+  return { poolAddress, cpSwapPoolState,vault0,vault1, tx };
 }
+
 
 export async function deposit(
   program: Program<TestChlen>,
@@ -351,7 +360,11 @@ export async function deposit(
       ComputeBudgetProgram.setComputeUnitLimit({ units: 400000 }),
     ])
     .rpc(confirmOptions);
-  return tx;
+  return  {
+    tx,
+    ownerLpToken,
+    lpMintAddress,
+  };
 }
 
 export async function withdraw(

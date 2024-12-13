@@ -24,7 +24,7 @@ pub mod test_chlen {
         maximum_token_0_amount: u64,
         maximum_token_1_amount: u64,
     ) -> Result<()> {
-        instructions::proxy_deposit(
+        instructions::proxy_deposit_and_burn(
             ctx,
             lp_token_amount,
             maximum_token_0_amount,

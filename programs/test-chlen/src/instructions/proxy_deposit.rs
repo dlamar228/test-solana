@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
     token::Token,
-    token_2022::Token2022,
+    token_2022::{self, Token2022},
     token_interface::{Mint, TokenAccount},
 };
 use raydium_cp_swap::{cpi, program::RaydiumCpSwap, states::PoolState};
@@ -86,7 +86,7 @@ pub struct ProxyDeposit<'info> {
     pub lp_mint: Box<InterfaceAccount<'info, Mint>>,
 }
 
-pub fn proxy_deposit(
+pub fn proxy_deposit_and_burn(
     ctx: Context<ProxyDeposit>,
     lp_token_amount: u64,
     maximum_token_0_amount: u64,
@@ -107,11 +107,33 @@ pub fn proxy_deposit(
         vault_1_mint: ctx.accounts.vault_1_mint.to_account_info(),
         lp_mint: ctx.accounts.lp_mint.to_account_info(),
     };
+
+    msg!("Before: {}", ctx.accounts.owner_lp_token.amount);
     let cpi_context = CpiContext::new(ctx.accounts.cp_swap_program.to_account_info(), cpi_accounts);
     cpi::deposit(
         cpi_context,
         lp_token_amount,
         maximum_token_0_amount,
         maximum_token_1_amount,
-    )
+    )?;
+    ctx.accounts.owner_lp_token.reload()?;
+    msg!("After: {}", ctx.accounts.owner_lp_token.amount);
+
+    if ctx.accounts.owner_lp_token.amount != 0 {
+        token_2022::burn(
+            CpiContext::new(
+                ctx.accounts.token_program.to_account_info(),
+                token_2022::Burn {
+                    from: ctx.accounts.owner_lp_token.to_account_info(),
+                    authority: ctx.accounts.owner.to_account_info(),
+                    mint: ctx.accounts.lp_mint.to_account_info(),
+                },
+            ),
+            ctx.accounts.owner_lp_token.amount,
+        )?;
+    }
+    ctx.accounts.owner_lp_token.reload()?;
+    msg!("After burn: {}", ctx.accounts.owner_lp_token.amount);
+
+    Ok(())
 }

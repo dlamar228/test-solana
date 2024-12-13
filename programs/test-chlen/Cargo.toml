@@ -23,7 +23,7 @@ client = []
 
 anchor-lang = "=0.29.0"
 anchor-spl = "=0.29.0"
-raydium-cp-swap = { git = "https://github.com/raydium-io/raydium-cp-swap", features = ["no-entrypoint", "cpi"]}
+raydium-cp-swap = { git = "https://github.com/raydium-io/raydium-cp-swap", features = ["no-entrypoint", "cpi", "enable-log"]}
 solana-program = ">=1.16, <1.18"
 spl-token = "=4.0.0"
 spl-memo = "=4.0.0"
@@ -43,4 +43,4 @@ quickcheck = "0.9"
 proptest = "1.0"
 rand = "0.8.5"
 
-raydium-cp-swap = { git = "https://github.com/raydium-io/raydium-cp-swap", features = ["no-entrypoint", "cpi"]}
+raydium-cp-swap = { git = "https://github.com/raydium-io/raydium-cp-swap", features = ["no-entrypoint", "cpi", "enable-log"]}
