@@ -58,11 +58,14 @@ pub struct Initialize<'info> {
     )]
     pub token_1_mint: Box<InterfaceAccount<'info, Mint>>,
 
-    /// lp mint
+    /// raydium lp mint
     #[account(
         mint::token_program = token_program,
     )]
     pub lp_mint: Box<InterfaceAccount<'info, Mint>>,
+
+    /// raydium pool
+    pub raydium: UncheckedAccount<'info>,
 
     /// payer token0 account
     #[account(
@@ -251,6 +254,7 @@ pub fn initialize(
         &ctx.accounts.token_0_mint,
         &ctx.accounts.token_1_mint,
         &ctx.accounts.lp_mint,
+        ctx.accounts.raydium.key(),
         ctx.accounts.observation_state.key(),
     );
 

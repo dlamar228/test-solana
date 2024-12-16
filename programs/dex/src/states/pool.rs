@@ -19,9 +19,9 @@ pub struct PoolState {
     /// Token B
     pub token_1_vault: Pubkey,
 
-    /// Pool tokens are issued when A or B tokens are deposited.
-    /// Pool tokens can be withdrawn back to the original A or B token.
+    /// raydium lp mint
     pub lp_mint: Pubkey,
+    pub raydium: Pubkey,
     /// Mint information for token A
     pub token_0_mint: Pubkey,
     /// Mint information for token B
@@ -70,6 +70,7 @@ impl PoolState {
         token_0_mint: &InterfaceAccount<Mint>,
         token_1_mint: &InterfaceAccount<Mint>,
         lp_mint: &InterfaceAccount<Mint>,
+        raydium: Pubkey,
         observation_key: Pubkey,
     ) {
         self.amm_config = amm_config.key();
@@ -77,6 +78,7 @@ impl PoolState {
         self.token_0_vault = token_0_vault;
         self.token_1_vault = token_1_vault;
         self.lp_mint = lp_mint.key();
+        self.raydium = raydium;
         self.token_0_mint = token_0_mint.key();
         self.token_1_mint = token_1_mint.key();
         self.token_0_program = *token_0_mint.to_account_info().owner;
