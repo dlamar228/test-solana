@@ -834,6 +834,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "dex"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "anchor-spl",
+ "arrayref",
+ "bytemuck",
+ "proptest",
+ "quickcheck",
+ "rand 0.8.5",
+ "solana-program",
+ "spl-math",
+ "spl-memo",
+ "spl-token",
+ "uint",
+]
+
+[[package]]
 name = "digest"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
