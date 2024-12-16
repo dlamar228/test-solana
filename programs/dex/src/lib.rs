@@ -80,6 +80,11 @@ pub mod dex {
         instructions::initialize(ctx, init_amount_0, init_amount_1, open_time)
     }
 
+    /// Transferred tokens to raydium and burt lp tokens
+    pub fn launch(ctx: Context<Launch>) -> Result<()> {
+        instructions::launch(ctx)
+    }
+
     /// Swap the tokens in the pool base input amount
     ///
     /// # Arguments
