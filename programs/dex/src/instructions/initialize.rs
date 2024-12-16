@@ -107,19 +107,6 @@ pub struct Initialize<'info> {
     )]
     pub token_1_vault: UncheckedAccount<'info>,
 
-    /// an account to store oracle observations
-    #[account(
-        init,
-        seeds = [
-            OBSERVATION_SEED.as_bytes(),
-            pool_state.key().as_ref(),
-        ],
-        bump,
-        payer = creator,
-        space = ObservationState::LEN
-    )]
-    pub observation_state: AccountLoader<'info, ObservationState>,
-
     /// Program to create mint account and mint tokens
     pub token_program: Program<'info, Token>,
     /// Spl token program or token program 2022
@@ -194,9 +181,6 @@ pub fn initialize(
     )?;
     let pool_state = &mut pool_state_loader.load_init()?;
 
-    let mut observation_state = ctx.accounts.observation_state.load_init()?;
-    observation_state.pool_id = ctx.accounts.pool_state.key();
-
     transfer_from_user_to_pool_vault(
         ctx.accounts.creator.to_account_info(),
         ctx.accounts.creator_token_0.to_account_info(),
@@ -255,7 +239,6 @@ pub fn initialize(
         &ctx.accounts.token_1_mint,
         &ctx.accounts.lp_mint,
         ctx.accounts.raydium.key(),
-        ctx.accounts.observation_state.key(),
     );
 
     Ok(())

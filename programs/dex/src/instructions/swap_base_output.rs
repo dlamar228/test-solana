@@ -28,8 +28,8 @@ pub fn swap_base_output(
         trade_direction,
         total_input_token_amount,
         total_output_token_amount,
-        token_0_price_x64,
-        token_1_price_x64,
+        _token_0_price_x64,
+        _token_1_price_x64,
     ) = if ctx.accounts.input_vault.key() == pool_state.token_0_vault
         && ctx.accounts.output_vault.key() == pool_state.token_1_vault
     {
@@ -181,12 +181,6 @@ pub fn swap_base_output(
         &[&[crate::AUTH_SEED.as_bytes(), &[pool_state.auth_bump]]],
     )?;
 
-    // update the previous price to the observation
-    ctx.accounts.observation_state.load_mut()?.update(
-        oracle::block_timestamp(),
-        token_0_price_x64,
-        token_1_price_x64,
-    );
     pool_state.recent_epoch = Clock::get()?.epoch;
 
     Ok(())

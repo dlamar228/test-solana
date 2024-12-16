@@ -71,7 +71,6 @@ impl PoolState {
         token_1_mint: &InterfaceAccount<Mint>,
         lp_mint: &InterfaceAccount<Mint>,
         raydium: Pubkey,
-        observation_key: Pubkey,
     ) {
         self.amm_config = amm_config.key();
         self.pool_creator = pool_creator.key();
@@ -83,7 +82,6 @@ impl PoolState {
         self.token_1_mint = token_1_mint.key();
         self.token_0_program = *token_0_mint.to_account_info().owner;
         self.token_1_program = *token_1_mint.to_account_info().owner;
-        self.observation_key = observation_key;
         self.auth_bump = auth_bump;
         self.protocol_fees_token_0 = 0;
         self.protocol_fees_token_1 = 0;
