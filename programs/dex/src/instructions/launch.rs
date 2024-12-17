@@ -99,8 +99,8 @@ pub fn launch(ctx: Context<Launch>) -> Result<()> {
     // todo add validation
     let state = ctx.accounts.pool_state.load()?;
     let cpi_accounts = raydium_cp_swap::cpi::accounts::Deposit {
-        owner: ctx.accounts.owner.to_account_info(),
-        owner_lp_token: ctx.accounts.authority.to_account_info(),
+        owner: ctx.accounts.authority.to_account_info(),
+        owner_lp_token: ctx.accounts.authority_lp_token.to_account_info(),
         token_0_account: ctx.accounts.token_0_vault.to_account_info(),
         token_1_account: ctx.accounts.token_1_vault.to_account_info(),
         // raydium accounts

@@ -3,6 +3,7 @@ use anchor_spl::token_interface::Mint;
 /// Seed to derive account address and signature
 pub const POOL_SEED: &str = "pool";
 pub const POOL_VAULT_SEED: &str = "pool_vault";
+pub const POOL_LP_VAULT_SEED: &str = "pool_lp_vault";
 
 pub const Q32: u128 = (u32::MAX as u128) + 1; // 2^32
 
@@ -18,6 +19,8 @@ pub struct PoolState {
     pub token_0_vault: Pubkey,
     /// Token B
     pub token_1_vault: Pubkey,
+    /// Token lp
+    pub token_lp_vault: Pubkey,
 
     /// raydium lp mint
     pub lp_mint: Pubkey,
@@ -67,6 +70,7 @@ impl PoolState {
         amm_config: Pubkey,
         token_0_vault: Pubkey,
         token_1_vault: Pubkey,
+        token_lp_vault: Pubkey,
         token_0_mint: &InterfaceAccount<Mint>,
         token_1_mint: &InterfaceAccount<Mint>,
         lp_mint: &InterfaceAccount<Mint>,
@@ -76,6 +80,7 @@ impl PoolState {
         self.pool_creator = pool_creator.key();
         self.token_0_vault = token_0_vault;
         self.token_1_vault = token_1_vault;
+        self.token_lp_vault = token_lp_vault;
         self.lp_mint = lp_mint.key();
         self.raydium = raydium;
         self.token_0_mint = token_0_mint.key();

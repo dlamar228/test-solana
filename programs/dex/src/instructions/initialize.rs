@@ -62,7 +62,7 @@ pub struct Initialize<'info> {
     #[account(
         mint::token_program = token_program,
     )]
-    pub lp_mint: Box<InterfaceAccount<'info, Mint>>,
+    pub token_lp_mint: Box<InterfaceAccount<'info, Mint>>,
 
     /// CHECK: raydium pool
     pub raydium: UncheckedAccount<'info>,
@@ -106,6 +106,18 @@ pub struct Initialize<'info> {
         bump,
     )]
     pub token_1_vault: UncheckedAccount<'info>,
+
+    /// CHECK: Token_1 vault for the pool, create by contract
+    #[account(
+        mut,
+        seeds = [
+            POOL_LP_VAULT_SEED.as_bytes(),
+            pool_state.key().as_ref(),
+            token_lp_mint.key().as_ref()
+        ],
+        bump,
+    )]
+    pub token_lp_vault: UncheckedAccount<'info>,
 
     /// Program to create mint account and mint tokens
     pub token_program: Program<'info, Token>,
@@ -168,6 +180,21 @@ pub fn initialize(
             ctx.accounts.pool_state.key().as_ref(),
             ctx.accounts.token_1_mint.key().as_ref(),
             &[ctx.bumps.token_1_vault][..],
+        ][..]],
+    )?;
+
+    create_token_account(
+        &ctx.accounts.authority.to_account_info(),
+        &ctx.accounts.creator.to_account_info(),
+        &ctx.accounts.token_lp_vault.to_account_info(),
+        &ctx.accounts.token_lp_mint.to_account_info(),
+        &ctx.accounts.system_program.to_account_info(),
+        &ctx.accounts.token_program.to_account_info(),
+        &[&[
+            POOL_LP_VAULT_SEED.as_bytes(),
+            ctx.accounts.pool_state.key().as_ref(),
+            ctx.accounts.token_lp_mint.key().as_ref(),
+            &[ctx.bumps.token_lp_vault][..],
         ][..]],
     )?;
 
@@ -235,9 +262,10 @@ pub fn initialize(
         ctx.accounts.amm_config.key(),
         ctx.accounts.token_0_vault.key(),
         ctx.accounts.token_1_vault.key(),
+        ctx.accounts.token_lp_vault.key(),
         &ctx.accounts.token_0_mint,
         &ctx.accounts.token_1_mint,
-        &ctx.accounts.lp_mint,
+        &ctx.accounts.token_lp_mint,
         ctx.accounts.raydium.key(),
     );
 

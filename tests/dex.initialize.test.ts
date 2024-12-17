@@ -4,7 +4,7 @@ import { TestChlen } from "../target/types/test_chlen";
 import { Dex } from "../target/types/dex";
 import { createDexAmmConfig, initialize, initializeDex, setupInitializeTest, setupInitializeTokens } from "./utils";
 
-describe("dex initialize test", () => {
+describe("dex.initialize.test", () => {
   anchor.setProvider(anchor.AnchorProvider.env());
   const owner = anchor.Wallet.local().payer;
   console.log("owner: ", owner.publicKey.toString());
@@ -16,7 +16,7 @@ describe("dex initialize test", () => {
     skipPreflight: true,
   };
 
-  it("create dex", async () => {
+  it("dex.initialize.test", async () => {
     const { configAddress, token0, token0Program, token1, token1Program } =
       await setupInitializeTest(
         anchor.getProvider().connection,
@@ -70,7 +70,7 @@ describe("dex initialize test", () => {
       { initAmount0, initAmount1 }
     );
 
-    console.log("dex address: ", dex.poolAddress.toString(), " tx:", dex.tx);
+    console.log("dex address: ", dex.poolStateAddress.toString(), " tx:", dex.tx);
     console.log("dex state: ", dex.state);
     
 

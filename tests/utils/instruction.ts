@@ -26,11 +26,13 @@ import {
   createTokenMintAndAssociatedTokenAccount,
   getOrcleAccountAddress,
   getAmmConfigAddress,
+  getPoolLpVaultAddress,
 } from "./index";
 
 import { cpSwapProgram, configAddress, createPoolFeeReceive } from "../config";
 import { ASSOCIATED_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/utils/token";
 import { CpmmPoolInfoLayout } from "@raydium-io/raydium-sdk-v2";
+import { Test } from "mocha";
 
 
 export async function setupInitializeTokens(
@@ -56,7 +58,6 @@ export async function setupInitializeTokens(
     token1Program,
   };
 }
-
 
 export async function setupInitializeTest(
   connection: Connection,
@@ -145,68 +146,6 @@ export async function setupDepositTest(
   }
 }
 
-export async function setupLaunchTest(
-  program: Program<Dex>,
-  connection: Connection,
-  owner: Signer,
-  transferFeeConfig: { transferFeeBasisPoints: number; MaxFee: number } = {
-    transferFeeBasisPoints: 0,
-    MaxFee: 0,
-  },
-  confirmOptions?: ConfirmOptions,
-  initAmount: { initAmount0: BN; initAmount1: BN } = {
-    initAmount0: new BN(10000000000),
-    initAmount1: new BN(20000000000),
-  },
-  tokenProgramRequired?: {
-    token0Program: PublicKey;
-    token1Program: PublicKey;
-  }
-) {
-  while (1) {
-    const [{ token0, token0Program }, { token1, token1Program }] =
-      await createTokenMintAndAssociatedTokenAccount(
-        connection,
-        owner,
-        new Keypair(),
-        transferFeeConfig
-      );
-
-    if (tokenProgramRequired != undefined) {
-      if (
-        token0Program.equals(tokenProgramRequired.token0Program) &&
-        token1Program.equals(tokenProgramRequired.token1Program)
-      ) {
-        const { cpSwapPoolState } = await initialize(
-          program,
-          owner,
-          configAddress,
-          token0,
-          token0Program,
-          token1,
-          token1Program,
-          confirmOptions,
-          initAmount
-        );
-        return cpSwapPoolState;
-      }
-    } else {
-      const { cpSwapPoolState } = await initialize(
-        program,
-        owner,
-        configAddress,
-        token0,
-        token0Program,
-        token1,
-        token1Program,
-        confirmOptions,
-        initAmount
-      );
-      return cpSwapPoolState;
-    }
-  }
-}
-
 export async function createDexAmmConfig(
   program: Program<Dex>,
   creator: Signer,
@@ -227,6 +166,130 @@ export async function createDexAmmConfig(
   return {
     signature, amm, state
   }
+}
+
+export async function setupDexLaunch(
+  dex_program: Program<Dex>,
+  proxy_program: Program<TestChlen>,
+  creator: Signer,
+) {
+    const confirmOptions = {
+      skipPreflight: true,
+    };
+
+    const { configAddress, token0, token0Program, token1, token1Program } =
+      await setupInitializeTest(
+        dex_program.provider.connection,
+        creator,
+        { transferFeeBasisPoints: 0, MaxFee: 0 },
+        confirmOptions
+      );
+
+    const initAmount0 = new BN(10000000000);
+    const initAmount1 = new BN(10000000000);
+
+    const raydium = await initialize(
+      proxy_program,
+      creator,
+      configAddress,
+      token0,
+      token0Program,
+      token1,
+      token1Program,
+      confirmOptions,
+      { initAmount0, initAmount1 }
+    );
+
+    let amm = await createDexAmmConfig(
+      dex_program,
+      creator,
+      {
+        index: 1,
+        fund_fee_rate: new BN(0),
+        protocol_fee_rate: new BN(0),
+        trade_fee_rate: new BN(0),
+      }
+    );
+
+    let dex = await initializeDex(
+      dex_program,
+      creator,
+      amm.amm,
+      token0,
+      token0Program,
+      token1,
+      token1Program,
+      {
+        pool: raydium.poolAddress,
+        lpMint: raydium.lpMint,
+      },
+      confirmOptions,
+      { initAmount0, initAmount1 }
+    );
+
+    
+
+    return {
+      dex,
+      raydium,
+    }
+}
+
+
+export async function launch(
+  signer: Signer,
+  dex: {
+    program: Program<Dex>,
+    vault0: PublicKey,
+    vault1: PublicKey,
+    lp_vault: PublicKey,
+    authority: PublicKey,
+    state: PublicKey,
+    amm: PublicKey,
+  },
+  raydium: {
+    program: PublicKey,
+    vault0: PublicKey,
+    vault1: PublicKey,
+    mint0: PublicKey,
+    mint1: PublicKey,
+    lp_mint: PublicKey,
+    authority: PublicKey,
+    state: PublicKey,
+    amm: PublicKey,
+  },
+  confirmOptions?: ConfirmOptions
+) {
+  
+  const tx = await dex.program.methods
+    .launch()
+    .accounts({
+      owner: signer.publicKey,
+      // dex
+      authority: dex.authority,
+      poolState: dex.state,
+      token0Vault: dex.vault0,
+      token1Vault: dex.vault1,
+      authorityLpToken: dex.lp_vault,
+      // raydium
+      raydiumProgram: raydium.program,
+      raydiumPoolState: raydium.state,
+      raydiumAuthority: raydium.authority,
+      raydiumToken0Vault: raydium.vault0,
+      raydiumToken1Vault: raydium.vault1,
+      raydiumToken0Mint: raydium.mint0,
+      raydiumToken1Mint: raydium.mint1,
+      raydiumLpMint: raydium.lp_mint,
+      // system programs
+      tokenProgram: TOKEN_PROGRAM_ID,
+      tokenProgram2022: TOKEN_2022_PROGRAM_ID,
+    })
+    .preInstructions([
+      ComputeBudgetProgram.setComputeUnitLimit({ units: 400000 }),
+    ])
+    .rpc(confirmOptions);
+
+  return { tx };
 }
 
 export async function setupSwapTest(
@@ -294,20 +357,24 @@ export async function initializeDex(
   createPoolFee = createPoolFeeReceive
 ) {
   const [auth] = await getAuthAddress(program.programId);
-  const [poolAddress] = await getPoolAddress(
+  const [poolStateAddress] = await getPoolAddress(
     amm,
     token0,
     token1,
     program.programId
   );
-
+  const [lpVault0] = await getPoolLpVaultAddress(
+    poolStateAddress,
+    raydium.lpMint,
+    program.programId
+  );
   const [vault0] = await getPoolVaultAddress(
-    poolAddress,
+    poolStateAddress,
     token0,
     program.programId
   );
   const [vault1] = await getPoolVaultAddress(
-    poolAddress,
+    poolStateAddress,
     token1,
     program.programId
   );
@@ -327,18 +394,20 @@ export async function initializeDex(
   const tx = await program.methods
     .initialize(initAmount.initAmount0, initAmount.initAmount1, new BN(0))
     .accounts({
-      lpMint: raydium.lpMint,
+
+      tokenLpMint: raydium.lpMint,
       raydium: raydium.pool, 
       creator: creator.publicKey,
       ammConfig: amm,
       authority: auth,
-      poolState: poolAddress,
+      poolState: poolStateAddress,
       token0Mint: token0,
       token1Mint: token1,
       creatorToken0,
       creatorToken1,
       token0Vault: vault0,
       token1Vault: vault1,
+      tokenLpVault: lpVault0,
       tokenProgram: TOKEN_PROGRAM_ID,
       token0Program: token0Program,
       token1Program: token1Program,
@@ -351,25 +420,15 @@ export async function initializeDex(
     ])
     .rpc(confirmOptions);
 
-  const accountInfo = await program.provider.connection.getAccountInfo(
-    poolAddress
-  );
-  const poolState = CpmmPoolInfoLayout.decode(accountInfo.data);
+  let poolState = await program.account.poolState.fetchNullable(poolStateAddress);
   const state = {
     get_pool_state: async () => {
-      const accountInfo = await program.provider.connection.getAccountInfo(
-        poolAddress
-      );
-      const poolState = CpmmPoolInfoLayout.decode(accountInfo.data);
-      return poolState;
+      await program.account.poolState.fetchNullable(poolStateAddress)
     },
-    ammConfig: poolState.configId,
-    token0Mint: poolState.mintA,
-    token0Program: poolState.mintProgramA,
-    token1Mint: poolState.mintB,
-    token1Program: poolState.mintProgramB,
+    state: poolState,
+    authority: auth,
   };
-  return { poolAddress, state, vault0, vault1, tx };
+  return { poolStateAddress, state, tx };
 }
 
 export async function initialize(
@@ -481,7 +540,7 @@ export async function initialize(
     token1Mint: poolState.mintB,
     token1Program: poolState.mintProgramB,
   };
-  return {tx, poolAddress, cpSwapPoolState,vault0,vault1, lpMint: lpMintAddress, };
+  return {tx, poolAddress, cpSwapPoolState, vault0, vault1, lpMint: lpMintAddress, authority: auth, };
 }
 
 export async function deposit(
