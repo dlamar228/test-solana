@@ -1,5 +1,6 @@
 import { Program, BN } from "@coral-xyz/anchor";
 import { TestChlen } from "../../target/types/test_chlen";
+import { Dex } from "../../target/types/dex";
 import {
   Connection,
   ConfirmOptions,
@@ -24,11 +25,38 @@ import {
   getPoolVaultAddress,
   createTokenMintAndAssociatedTokenAccount,
   getOrcleAccountAddress,
+  getAmmConfigAddress,
 } from "./index";
 
 import { cpSwapProgram, configAddress, createPoolFeeReceive } from "../config";
 import { ASSOCIATED_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/utils/token";
 import { CpmmPoolInfoLayout } from "@raydium-io/raydium-sdk-v2";
+
+
+export async function setupInitializeTokens(
+  connection: Connection,
+  owner: Signer,
+  transferFeeConfig: { transferFeeBasisPoints: number; MaxFee: number } = {
+    transferFeeBasisPoints: 0,
+    MaxFee: 0,
+  },
+  confirmOptions?: ConfirmOptions
+) {
+  const [{ token0, token0Program }, { token1, token1Program }] =
+    await createTokenMintAndAssociatedTokenAccount(
+      connection,
+      owner,
+      new Keypair(),
+      transferFeeConfig
+    );
+  return {
+    token0,
+    token0Program,
+    token1,
+    token1Program,
+  };
+}
+
 
 export async function setupInitializeTest(
   connection: Connection,
@@ -117,8 +145,89 @@ export async function setupDepositTest(
   }
 }
 
+export async function setupLaunchTest(
+  program: Program<Dex>,
+  connection: Connection,
+  owner: Signer,
+  transferFeeConfig: { transferFeeBasisPoints: number; MaxFee: number } = {
+    transferFeeBasisPoints: 0,
+    MaxFee: 0,
+  },
+  confirmOptions?: ConfirmOptions,
+  initAmount: { initAmount0: BN; initAmount1: BN } = {
+    initAmount0: new BN(10000000000),
+    initAmount1: new BN(20000000000),
+  },
+  tokenProgramRequired?: {
+    token0Program: PublicKey;
+    token1Program: PublicKey;
+  }
+) {
+  while (1) {
+    const [{ token0, token0Program }, { token1, token1Program }] =
+      await createTokenMintAndAssociatedTokenAccount(
+        connection,
+        owner,
+        new Keypair(),
+        transferFeeConfig
+      );
 
+    if (tokenProgramRequired != undefined) {
+      if (
+        token0Program.equals(tokenProgramRequired.token0Program) &&
+        token1Program.equals(tokenProgramRequired.token1Program)
+      ) {
+        const { cpSwapPoolState } = await initialize(
+          program,
+          owner,
+          configAddress,
+          token0,
+          token0Program,
+          token1,
+          token1Program,
+          confirmOptions,
+          initAmount
+        );
+        return cpSwapPoolState;
+      }
+    } else {
+      const { cpSwapPoolState } = await initialize(
+        program,
+        owner,
+        configAddress,
+        token0,
+        token0Program,
+        token1,
+        token1Program,
+        confirmOptions,
+        initAmount
+      );
+      return cpSwapPoolState;
+    }
+  }
+}
 
+export async function createDexAmmConfig(
+  program: Program<Dex>,
+  creator: Signer,
+  params: {
+    index: number,
+    trade_fee_rate: BN,
+    protocol_fee_rate: BN,
+    fund_fee_rate: BN,
+  },
+) {
+  let [amm] = await getAmmConfigAddress(params.index, program.programId);
+  let signature = await program.methods.createAmmConfig(params.index, params.trade_fee_rate, params.protocol_fee_rate, params.fund_fee_rate).accounts({
+    owner: creator.publicKey,
+    ammConfig: amm,
+  }).rpc();
+
+  let state = await program.account.ammConfig.fetchNullable(amm);
+  return {
+    signature, amm, state
+  }
+}
 
 export async function setupSwapTest(
   program: Program<TestChlen>,
@@ -163,6 +272,104 @@ export async function setupSwapTest(
     confirmOptions
   );
   return cpSwapPoolState;
+}
+
+export async function initializeDex(
+  program: Program<Dex>,
+  creator: Signer,
+  amm: PublicKey,
+  token0: PublicKey,
+  token0Program: PublicKey,
+  token1: PublicKey,
+  token1Program: PublicKey,
+  raydium: {
+    pool: PublicKey,
+    lpMint: PublicKey,
+  },
+  confirmOptions?: ConfirmOptions,
+  initAmount: { initAmount0: BN; initAmount1: BN } = {
+    initAmount0: new BN(100000000000000),
+    initAmount1: new BN(200000000000000),
+  },
+  createPoolFee = createPoolFeeReceive
+) {
+  const [auth] = await getAuthAddress(program.programId);
+  const [poolAddress] = await getPoolAddress(
+    amm,
+    token0,
+    token1,
+    program.programId
+  );
+
+  const [vault0] = await getPoolVaultAddress(
+    poolAddress,
+    token0,
+    program.programId
+  );
+  const [vault1] = await getPoolVaultAddress(
+    poolAddress,
+    token1,
+    program.programId
+  );
+
+  const creatorToken0 = getAssociatedTokenAddressSync(
+    token0,
+    creator.publicKey,
+    false,
+    token0Program
+  );
+  const creatorToken1 = getAssociatedTokenAddressSync(
+    token1,
+    creator.publicKey,
+    false,
+    token1Program
+  );
+  const tx = await program.methods
+    .initialize(initAmount.initAmount0, initAmount.initAmount1, new BN(0))
+    .accounts({
+      lpMint: raydium.lpMint,
+      raydium: raydium.pool, 
+      creator: creator.publicKey,
+      ammConfig: amm,
+      authority: auth,
+      poolState: poolAddress,
+      token0Mint: token0,
+      token1Mint: token1,
+      creatorToken0,
+      creatorToken1,
+      token0Vault: vault0,
+      token1Vault: vault1,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      token0Program: token0Program,
+      token1Program: token1Program,
+      associatedTokenProgram: ASSOCIATED_PROGRAM_ID,
+      systemProgram: SystemProgram.programId,
+      rent: SYSVAR_RENT_PUBKEY,
+    })
+    .preInstructions([
+      ComputeBudgetProgram.setComputeUnitLimit({ units: 400000 }),
+    ])
+    .rpc(confirmOptions);
+
+  const accountInfo = await program.provider.connection.getAccountInfo(
+    poolAddress
+  );
+  const poolState = CpmmPoolInfoLayout.decode(accountInfo.data);
+  const state = {
+    get_pool_state: async () => {
+      const accountInfo = await program.provider.connection.getAccountInfo(
+        poolAddress
+      );
+      const poolState = CpmmPoolInfoLayout.decode(accountInfo.data);
+      return poolState;
+    },
+    ammConfig: poolState.configId,
+    token0Mint: poolState.mintA,
+    token0Program: poolState.mintProgramA,
+    token1Mint: poolState.mintB,
+    token1Program: poolState.mintProgramB,
+  };
+  return { poolAddress, state, vault0, vault1, tx };
 }
 
 export async function initialize(
@@ -274,9 +481,8 @@ export async function initialize(
     token1Mint: poolState.mintB,
     token1Program: poolState.mintProgramB,
   };
-  return { poolAddress, cpSwapPoolState,vault0,vault1, tx };
+  return {tx, poolAddress, cpSwapPoolState,vault0,vault1, lpMint: lpMintAddress, };
 }
-
 
 export async function deposit(
   program: Program<TestChlen>,

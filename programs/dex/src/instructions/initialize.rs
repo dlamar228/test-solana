@@ -64,7 +64,7 @@ pub struct Initialize<'info> {
     )]
     pub lp_mint: Box<InterfaceAccount<'info, Mint>>,
 
-    /// raydium pool
+    /// CHECK: raydium pool
     pub raydium: UncheckedAccount<'info>,
 
     /// payer token0 account
