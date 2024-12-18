@@ -79,12 +79,10 @@ pub struct CurveCalculator {}
 
 impl CurveCalculator {
     pub fn validate_supply(token_0_amount: u64, token_1_amount: u64) -> Result<()> {
-        if token_0_amount == 0 {
+        if token_0_amount == 0 || token_1_amount == 0 {
             return Err(ErrorCode::EmptySupply.into());
         }
-        if token_1_amount == 0 {
-            return Err(ErrorCode::EmptySupply.into());
-        }
+
         Ok(())
     }
 
@@ -124,7 +122,7 @@ impl CurveCalculator {
     }
 
     pub fn swap_base_output(
-        destinsation_amount: u128,
+        destination_amount: u128,
         swap_source_amount: u128,
         swap_destination_amount: u128,
         trade_fee_rate: u64,
@@ -132,7 +130,7 @@ impl CurveCalculator {
         fund_fee_rate: u64,
     ) -> Option<SwapResult> {
         let source_amount_swapped = ConstantProductCurve::swap_base_output_without_fees(
-            destinsation_amount,
+            destination_amount,
             swap_source_amount,
             swap_destination_amount,
         );
@@ -145,10 +143,9 @@ impl CurveCalculator {
 
         Some(SwapResult {
             new_swap_source_amount: swap_source_amount.checked_add(source_amount)?,
-            new_swap_destination_amount: swap_destination_amount
-                .checked_sub(destinsation_amount)?,
+            new_swap_destination_amount: swap_destination_amount.checked_sub(destination_amount)?,
             source_amount_swapped: source_amount,
-            destination_amount_swapped: destinsation_amount,
+            destination_amount_swapped: destination_amount,
             trade_fee,
             protocol_fee,
             fund_fee,

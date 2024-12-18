@@ -29,15 +29,15 @@ impl ConstantProductCurve {
     }
 
     pub fn swap_base_output_without_fees(
-        destinsation_amount: u128,
+        destination_amount: u128,
         swap_source_amount: u128,
         swap_destination_amount: u128,
     ) -> u128 {
         // (x + delta_x) * (y - delta_y) = x * y
         // delta_x = (x * delta_y) / (y - delta_y)
-        let numerator = swap_source_amount.checked_mul(destinsation_amount).unwrap();
+        let numerator = swap_source_amount.checked_mul(destination_amount).unwrap();
         let denominator = swap_destination_amount
-            .checked_sub(destinsation_amount)
+            .checked_sub(destination_amount)
             .unwrap();
         let (source_amount_swapped, _) = numerator.checked_ceil_div(denominator).unwrap();
         source_amount_swapped

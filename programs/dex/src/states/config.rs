@@ -18,7 +18,7 @@ pub struct AmmConfig {
     pub protocol_fee_rate: u64,
     /// The fund fee, denominated in hundredths of a bip (10^-6)
     pub fund_fee_rate: u64,
-    /// Address of the protocol fee owner
+    /// Address of the protocol
     pub protocol_owner: Pubkey,
     /// padding
     pub padding: [u64; 16],
