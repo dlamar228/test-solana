@@ -16,8 +16,8 @@ use std::ops::Deref;
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
-    /// Address paying to create the pool. Can be anyone
-    #[account(mut)]
+    /// Address paying to create the pool
+    #[account(mut ,address = amm_config.protocol_owner @ ErrorCode::InvalidProtocolOwner)]
     pub creator: Signer<'info>,
 
     /// Which config the pool belongs to.
