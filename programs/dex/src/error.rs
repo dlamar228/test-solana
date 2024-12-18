@@ -26,4 +26,14 @@ pub enum ErrorCode {
     NotSupportMint,
     #[msg("Invalid vault")]
     InvalidVault,
+    #[msg("lp token amount is zero")]
+    LpIsZero,
+    #[msg("Invalid cast to u64")]
+    InvalidU64Cast,
+    #[msg("Calculation overflow")]
+    Overflow,
+    #[msg("Calculation underflow")]
+    Underflow,
+    #[msg("Calculation div by zero")]
+    DivZero,
 }

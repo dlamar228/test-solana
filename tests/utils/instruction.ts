@@ -185,8 +185,8 @@ export async function setupDexLaunch(
         confirmOptions
       );
 
-    const initAmount0 = new BN(10000000000);
-    const initAmount1 = new BN(10000000000);
+    const initAmount0 = new BN(100000000);
+    const initAmount1 = new BN(2000000000);
 
     const raydium = await initialize(
       proxy_program,
@@ -522,9 +522,7 @@ export async function initialize(
       ComputeBudgetProgram.setComputeUnitLimit({ units: 400000 }),
     ])
     .rpc(confirmOptions);
-  const accountInfo = await program.provider.connection.getAccountInfo(
-    poolAddress
-  );
+  const accountInfo = await program.provider.connection.getAccountInfo(poolAddress);
   const poolState = CpmmPoolInfoLayout.decode(accountInfo.data);
   const cpSwapPoolState = {
     get_pool_state: async () => {
@@ -540,6 +538,7 @@ export async function initialize(
     token1Mint: poolState.mintB,
     token1Program: poolState.mintProgramB,
   };
+
   return {tx, poolAddress, cpSwapPoolState, vault0, vault1, lpMint: lpMintAddress, authority: auth, };
 }
 
