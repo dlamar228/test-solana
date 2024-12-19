@@ -533,21 +533,31 @@ impl<'info> SwapAndLaunch<'info> {
         };
 
         let taxed_amount_0 = {
-            let taxed = vault_0
+            let clean_vault_0 = vault_0
                 .amount
                 .checked_sub(state.protocol_fees_token_0)
                 .ok_or(ErrorCode::Underflow)?;
-            let to_send = Fees::protocol_fee(taxed as u128, launch_fee_rates).unwrap();
-            u64::try_from(to_send).map_err(|_| ErrorCode::InvalidU64Cast)?
+            let launch_tax =
+                u64::try_from(Fees::protocol_fee(clean_vault_0 as u128, launch_fee_rates).unwrap())
+                    .map_err(|_| ErrorCode::InvalidU64Cast)?;
+            clean_vault_0
+                .checked_sub(launch_tax)
+                .ok_or(ErrorCode::Underflow)?
         };
 
         let taxed_amount_1 = {
-            let taxed = vault_1
+            let clean_vault_1 = vault_1
                 .amount
                 .checked_sub(state.protocol_fees_token_1)
                 .ok_or(ErrorCode::Underflow)?;
-            let to_send = Fees::protocol_fee(taxed as u128, launch_fee_rates).unwrap();
-            u64::try_from(to_send).map_err(|_| ErrorCode::InvalidU64Cast)?
+
+            let launch_tax =
+                u64::try_from(Fees::protocol_fee(clean_vault_1 as u128, launch_fee_rates).unwrap())
+                    .map_err(|_| ErrorCode::InvalidU64Cast)?;
+
+            clean_vault_1
+                .checked_sub(launch_tax)
+                .ok_or(ErrorCode::Underflow)?
         };
 
         let seeds = [crate::AUTH_SEED.as_bytes(), &[state.auth_bump]];
