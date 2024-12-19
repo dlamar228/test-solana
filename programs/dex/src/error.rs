@@ -36,4 +36,6 @@ pub enum ErrorCode {
     Underflow,
     #[msg("Calculation div by zero")]
     DivZero,
+    #[msg("Pool launched")]
+    PoolLaunched,
 }

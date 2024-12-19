@@ -18,7 +18,10 @@ pub struct Launch<'info> {
     )]
     pub raydium_authority: UncheckedAccount<'info>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        address = pool_state.load()?.raydium
+    )]
     pub raydium_pool_state: AccountLoader<'info, raydium_cp_swap::states::pool::PoolState>,
 
     /// The address that holds pool tokens for token_0
@@ -250,14 +253,14 @@ impl<'a> LpCalculator<'a> {
 
         let lp = if vault_0 > vault_1 {
             Self::calculate_lp_tokens(
-                vault_0 as u128,
-                self.vault_supply_0 as u128,
+                vault_1 as u128,
+                self.vault_supply_1 as u128,
                 self.lp_supply as u128,
             )
         } else {
             Self::calculate_lp_tokens(
-                vault_1 as u128,
-                self.vault_supply_1 as u128,
+                vault_0 as u128,
+                self.vault_supply_0 as u128,
                 self.lp_supply as u128,
             )
         }?;

@@ -14,6 +14,8 @@ pub const AUTH_SEED: &str = "vault_and_lp_mint_auth_seed";
 
 #[program]
 pub mod dex {
+    use curve::MAX_FEE_RATE_VALUE;
+
     use super::*;
 
     // The configuation of AMM protocol, include trade fee and protocol fee
@@ -21,28 +23,18 @@ pub mod dex {
     ///
     /// * `ctx`- The accounts needed by instruction.
     /// * `index` - The index of amm config, there may be multiple config.
-    /// * `trade_fee_rate` - Trade fee rate, can be changed.
-    /// * `protocol_fee_rate` - The rate of protocol fee within tarde fee.
-    /// * `fund_fee_rate` - The rate of fund fee within tarde fee.
+    /// * `protocol_fee_rate` - The rate of protocol fee.
     ///
     pub fn create_amm_config(
         ctx: Context<CreateAmmConfig>,
         index: u16,
-        trade_fee_rate: u64,
         protocol_fee_rate: u64,
-        fund_fee_rate: u64,
+        launch_fee_rate: u64,
     ) -> Result<()> {
-        assert!(trade_fee_rate < FEE_RATE_DENOMINATOR_VALUE);
-        assert!(protocol_fee_rate <= FEE_RATE_DENOMINATOR_VALUE);
-        assert!(fund_fee_rate <= FEE_RATE_DENOMINATOR_VALUE);
-        assert!(fund_fee_rate + protocol_fee_rate <= FEE_RATE_DENOMINATOR_VALUE);
-        instructions::create_amm_config(
-            ctx,
-            index,
-            trade_fee_rate,
-            protocol_fee_rate,
-            fund_fee_rate,
-        )
+        assert!(protocol_fee_rate + launch_fee_rate <= FEE_RATE_DENOMINATOR_VALUE);
+        assert!(protocol_fee_rate <= MAX_FEE_RATE_VALUE);
+        assert!(launch_fee_rate <= MAX_FEE_RATE_VALUE);
+        instructions::create_amm_config(ctx, index, protocol_fee_rate, launch_fee_rate)
     }
 
     /// Updates the owner of the amm config
@@ -51,12 +43,11 @@ pub mod dex {
     /// # Arguments
     ///
     /// * `ctx`- The context of accounts
-    /// * `trade_fee_rate`- The new trade fee rate of amm config, be set when `param` is 0
-    /// * `protocol_fee_rate`- The new protocol fee rate of amm config, be set when `param` is 1
-    /// * `fund_fee_rate`- The new fund fee rate of amm config, be set when `param` is 2
-    /// * `new_owner`- The config's new owner, be set when `param` is 3
-    /// * `new_fund_owner`- The config's new fund owner, be set when `param` is 4
-    /// * `param`- The vaule can be 0 | 1 | 2 | 3 | 4, otherwise will report a error
+    /// * `protocol_fee_rate`- The new protocol fee rate of amm config, be set when `param` is 0
+    /// * `launch_fee_rate`- The new launch fee rate of amm config, be set when `param` is 1
+    /// * `new_owner`- The config's new owner, be set when `param` is 2
+    /// * `disable_create_pool`- Disable pool creation, be set when `param` is 3
+    /// * `param`- The vaule can be 0 | 1 | 2 | 3, otherwise will report a error
     ///
     pub fn update_amm_config(ctx: Context<UpdateAmmConfig>, param: u8, value: u64) -> Result<()> {
         instructions::update_amm_config(ctx, param, value)
@@ -76,14 +67,37 @@ pub mod dex {
         init_amount_0: u64,
         init_amount_1: u64,
         open_time: u64,
+        vault_0_reserve_bound: u64,
     ) -> Result<()> {
-        instructions::initialize(ctx, init_amount_0, init_amount_1, open_time)
+        instructions::initialize(
+            ctx,
+            init_amount_0,
+            init_amount_1,
+            open_time,
+            vault_0_reserve_bound,
+        )
     }
 
-    /// Transferred tokens to raydium and burt lp tokens
+    /// Collect the protocol fee
+    ///
+    /// # Arguments
+    ///
+    /// * `ctx` - The context of accounts
+    /// * `amount_0_requested` - The maximum amount of token_0 to send, can be 0 to collect fees in only token_1
+    /// * `amount_1_requested` - The maximum amount of token_1 to send, can be 0 to collect fees in only token_0
+    ///
+    pub fn collect_protocol_fee(
+        ctx: Context<CollectProtocolFee>,
+        amount_0_requested: u64,
+        amount_1_requested: u64,
+    ) -> Result<()> {
+        instructions::collect_protocol_fee(ctx, amount_0_requested, amount_1_requested)
+    }
+
+    /*     /// Transferred tokens to raydium and burt lp tokens
     pub fn launch(ctx: Context<Launch>) -> Result<()> {
         instructions::launch(ctx)
-    }
+    } */
 
     /// Swap the tokens in the pool base input amount
     ///
@@ -93,12 +107,12 @@ pub mod dex {
     /// * `amount_in` -  input amount to transfer, output to DESTINATION is based on the exchange rate
     /// * `minimum_amount_out` -  Minimum amount of output token, prevents excessive slippage
     ///
-    pub fn swap_base_input(
-        ctx: Context<Swap>,
+    pub fn swap_base_input<'info>(
+        ctx: Context<'_, '_, '_, 'info, Swap<'info>>,
         amount_in: u64,
         minimum_amount_out: u64,
     ) -> Result<()> {
-        instructions::swap_base_input(ctx, amount_in, minimum_amount_out)
+        instructions::swap_base_input(&ctx, amount_in, minimum_amount_out)
     }
 
     /// Swap the tokens in the pool base output amount
@@ -109,7 +123,11 @@ pub mod dex {
     /// * `max_amount_in` -  input amount prevents excessive slippage
     /// * `amount_out` -  amount of output token
     ///
-    pub fn swap_base_output(ctx: Context<Swap>, max_amount_in: u64, amount_out: u64) -> Result<()> {
-        instructions::swap_base_output(ctx, max_amount_in, amount_out)
+    pub fn swap_base_output<'info>(
+        ctx: Context<'_, '_, '_, 'info, Swap<'info>>,
+        max_amount_in: u64,
+        amount_out: u64,
+    ) -> Result<()> {
+        instructions::swap_base_output(&ctx, max_amount_in, amount_out)
     }
 }

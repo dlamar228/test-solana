@@ -22,8 +22,12 @@ pub struct PoolState {
     /// Token lp
     pub token_lp_vault: Pubkey,
 
+    pub is_launched: bool,
+    pub vault_0_reserve_bound: u64,
+
     /// raydium lp mint
     pub lp_mint: Pubkey,
+    /// raydium pool state
     pub raydium: Pubkey,
     /// Mint information for token A
     pub token_0_mint: Pubkey,
@@ -35,9 +39,6 @@ pub struct PoolState {
     /// token_1 program
     pub token_1_program: Pubkey,
 
-    /// observation account to store oracle data
-    pub observation_key: Pubkey,
-
     pub auth_bump: u8,
 
     /// mint0 and mint1 decimals
@@ -47,9 +48,6 @@ pub struct PoolState {
     /// The amounts of token_0 and token_1 that are owed to the liquidity provider.
     pub protocol_fees_token_0: u64,
     pub protocol_fees_token_1: u64,
-
-    pub fund_fees_token_0: u64,
-    pub fund_fees_token_1: u64,
 
     /// The timestamp allowed for swap in the pool.
     pub open_time: u64,
@@ -75,11 +73,14 @@ impl PoolState {
         token_1_mint: &InterfaceAccount<Mint>,
         lp_mint: &InterfaceAccount<Mint>,
         raydium: Pubkey,
+        vault_0_reserve_bound: u64,
     ) {
         self.amm_config = amm_config.key();
         self.pool_creator = pool_creator.key();
         self.token_0_vault = token_0_vault;
         self.token_1_vault = token_1_vault;
+        self.is_launched = false;
+        self.vault_0_reserve_bound = vault_0_reserve_bound;
         self.token_lp_vault = token_lp_vault;
         self.lp_mint = lp_mint.key();
         self.raydium = raydium;
@@ -90,8 +91,6 @@ impl PoolState {
         self.auth_bump = auth_bump;
         self.protocol_fees_token_0 = 0;
         self.protocol_fees_token_1 = 0;
-        self.fund_fees_token_0 = 0;
-        self.fund_fees_token_1 = 0;
         self.open_time = open_time;
         self.recent_epoch = Clock::get().unwrap().epoch;
         self.padding = [0u64; 31];
@@ -99,12 +98,8 @@ impl PoolState {
 
     pub fn vault_amount_without_fee(&self, vault_0: u64, vault_1: u64) -> (u64, u64) {
         (
-            vault_0
-                .checked_sub(self.protocol_fees_token_0 + self.fund_fees_token_0)
-                .unwrap(),
-            vault_1
-                .checked_sub(self.protocol_fees_token_1 + self.fund_fees_token_1)
-                .unwrap(),
+            vault_0.checked_sub(self.protocol_fees_token_0).unwrap(),
+            vault_1.checked_sub(self.protocol_fees_token_1).unwrap(),
         )
     }
 

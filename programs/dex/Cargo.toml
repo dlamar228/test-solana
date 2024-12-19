@@ -13,10 +13,10 @@ no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
 cpi = ["no-entrypoint"]
-default = []
 enable-log = []
 devnet = []
 client = []
+default = ["enable-log"]
 
 [dependencies]
 raydium-cp-swap = { git = "https://github.com/raydium-io/raydium-cp-swap", features = ["no-entrypoint", "cpi", "enable-log"]}

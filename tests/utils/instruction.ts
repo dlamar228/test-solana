@@ -151,13 +151,12 @@ export async function createDexAmmConfig(
   creator: Signer,
   params: {
     index: number,
-    trade_fee_rate: BN,
     protocol_fee_rate: BN,
-    fund_fee_rate: BN,
+    launch_fee_rate: BN,
   },
 ) {
   let [amm] = await getAmmConfigAddress(params.index, program.programId);
-  let signature = await program.methods.createAmmConfig(params.index, params.trade_fee_rate, params.protocol_fee_rate, params.fund_fee_rate).accounts({
+  let signature = await program.methods.createAmmConfig(params.index,  params.protocol_fee_rate, params.launch_fee_rate).accounts({
     owner: creator.publicKey,
     ammConfig: amm,
   }).rpc();
@@ -168,7 +167,7 @@ export async function createDexAmmConfig(
   }
 }
 
-export async function setupDexLaunch(
+export async function setupDex(
   dex_program: Program<Dex>,
   proxy_program: Program<TestChlen>,
   creator: Signer,
@@ -185,8 +184,10 @@ export async function setupDexLaunch(
         confirmOptions
       );
 
-    const initAmount0 = new BN(100000000);
-    const initAmount1 = new BN(2000000000);
+    let raydium_deposit = {
+      initAmount0: new BN(15000),
+      initAmount1: new BN(72000),
+    }
 
     const raydium = await initialize(
       proxy_program,
@@ -197,7 +198,7 @@ export async function setupDexLaunch(
       token1,
       token1Program,
       confirmOptions,
-      { initAmount0, initAmount1 }
+      raydium_deposit
     );
 
     let amm = await createDexAmmConfig(
@@ -205,11 +206,15 @@ export async function setupDexLaunch(
       creator,
       {
         index: 1,
-        fund_fee_rate: new BN(0),
-        protocol_fee_rate: new BN(0),
-        trade_fee_rate: new BN(0),
+        protocol_fee_rate: new BN(30_000),
+        launch_fee_rate: new BN(30_000),
       }
     );
+
+    let dex_deposit = {
+      initAmount0: new BN(1000),
+      initAmount1: new BN(2000),
+    }
 
     let dex = await initializeDex(
       dex_program,
@@ -224,10 +229,8 @@ export async function setupDexLaunch(
         lpMint: raydium.lpMint,
       },
       confirmOptions,
-      { initAmount0, initAmount1 }
+      dex_deposit
     );
-
-    
 
     return {
       dex,
@@ -236,7 +239,7 @@ export async function setupDexLaunch(
 }
 
 
-export async function launch(
+/* export async function launch(
   signer: Signer,
   dex: {
     program: Program<Dex>,
@@ -290,7 +293,7 @@ export async function launch(
     .rpc(confirmOptions);
 
   return { tx };
-}
+} */
 
 export async function setupSwapTest(
   program: Program<TestChlen>,
@@ -391,10 +394,10 @@ export async function initializeDex(
     false,
     token1Program
   );
+  
   const tx = await program.methods
-    .initialize(initAmount.initAmount0, initAmount.initAmount1, new BN(0))
+    .initialize(initAmount.initAmount0, initAmount.initAmount1, new BN(0), new BN(initAmount.initAmount0.toNumber() * 1.2))
     .accounts({
-
       tokenLpMint: raydium.lpMint,
       raydium: raydium.pool, 
       creator: creator.publicKey,
@@ -423,7 +426,7 @@ export async function initializeDex(
   let poolState = await program.account.poolState.fetchNullable(poolStateAddress);
   const state = {
     get_pool_state: async () => {
-      await program.account.poolState.fetchNullable(poolStateAddress)
+      return await program.account.poolState.fetchNullable(poolStateAddress);
     },
     state: poolState,
     authority: auth,
@@ -716,6 +719,155 @@ export async function withdraw(
     ])
     .rpc(confirmOptions)
     .catch();
+
+  return tx;
+}
+
+export async function dex_swap_base_input(
+  program: Program<Dex>,
+  owner: Signer,
+  amm: PublicKey,
+  inputToken: PublicKey,
+  inputTokenProgram: PublicKey,
+  outputToken: PublicKey,
+  outputTokenProgram: PublicKey,
+  amount_in: BN,
+  minimum_amount_out: BN,
+  raydium_pool: PublicKey,
+  raydium_vault0: PublicKey,
+  raydium_vault1: PublicKey,
+  confirmOptions?: ConfirmOptions
+) {
+  const [auth] = await getAuthAddress(program.programId);
+  const [poolAddress] = await getPoolAddress(
+    amm,
+    inputToken,
+    outputToken,
+    program.programId
+  );
+
+  const [inputVault] = await getPoolVaultAddress(
+    poolAddress,
+    inputToken,
+    program.programId
+  );
+  const [outputVault] = await getPoolVaultAddress(
+    poolAddress,
+    outputToken,
+    program.programId
+  );
+
+  const inputTokenAccount = getAssociatedTokenAddressSync(
+    inputToken,
+    owner.publicKey,
+    false,
+    inputTokenProgram
+  );
+  const outputTokenAccount = getAssociatedTokenAddressSync(
+    outputToken,
+    owner.publicKey,
+    false,
+    outputTokenProgram
+  );
+
+
+  const tx = await program.methods.swapBaseInput(amount_in, minimum_amount_out)
+    .accounts({
+      payer: owner.publicKey,
+      authority: auth,
+      ammConfig: amm,
+      poolState: poolAddress,
+      inputTokenAccount,
+      outputTokenAccount,
+      inputVault,
+      outputVault,
+      inputTokenProgram: inputTokenProgram,
+      outputTokenProgram: outputTokenProgram,
+      inputTokenMint: inputToken,
+      outputTokenMint: outputToken,
+      raydiumPoolState: raydium_pool,
+      raydiumToken0Vault: raydium_vault0,
+      raydiumToken1Vault: raydium_vault1,
+    })
+    .preInstructions([
+      ComputeBudgetProgram.setComputeUnitLimit({ units: 400000 }),
+    ])
+    .rpc(confirmOptions);
+
+  return tx;
+}
+
+export async function dex_swap_base_output(
+  program: Program<Dex>,
+  owner: Signer,
+  amm: PublicKey,
+  inputToken: PublicKey,
+  inputTokenProgram: PublicKey,
+  outputToken: PublicKey,
+  outputTokenProgram: PublicKey,
+  amount_out_less_fee: BN,
+  max_amount_in: BN,
+  raydium_pool: PublicKey,
+  raydium_vault0: PublicKey,
+  raydium_vault1: PublicKey,
+  confirmOptions?: ConfirmOptions
+) {
+  const [auth] = await getAuthAddress( program.programId);
+  const [poolAddress] = await getPoolAddress(
+    amm,
+    inputToken,
+    outputToken,
+    program.programId
+  );
+
+  const [inputVault] = await getPoolVaultAddress(
+    poolAddress,
+    inputToken,
+     program.programId
+  );
+  const [outputVault] = await getPoolVaultAddress(
+    poolAddress,
+    outputToken,
+    program.programId
+  );
+
+  const inputTokenAccount = getAssociatedTokenAddressSync(
+    inputToken,
+    owner.publicKey,
+    false,
+    inputTokenProgram
+  );
+  const outputTokenAccount = getAssociatedTokenAddressSync(
+    outputToken,
+    owner.publicKey,
+    false,
+    outputTokenProgram
+  );
+
+
+  const tx = await program.methods
+    .swapBaseOutput(max_amount_in, amount_out_less_fee)
+    .accounts({
+      payer: owner.publicKey,
+      authority: auth,
+      ammConfig: amm,
+      poolState: poolAddress,
+      inputTokenAccount,
+      outputTokenAccount,
+      inputVault,
+      outputVault,
+      inputTokenProgram: inputTokenProgram,
+      outputTokenProgram: outputTokenProgram,
+      inputTokenMint: inputToken,
+      outputTokenMint: outputToken,
+      raydiumPoolState: raydium_pool,
+      raydiumToken0Vault: raydium_vault0,
+      raydiumToken1Vault: raydium_vault1,
+    })
+    .preInstructions([
+      ComputeBudgetProgram.setComputeUnitLimit({ units: 400000 }),
+    ])
+    .rpc(confirmOptions);
 
   return tx;
 }

@@ -138,6 +138,7 @@ pub fn initialize(
     init_amount_0: u64,
     init_amount_1: u64,
     mut open_time: u64,
+    vault_0_reserve_bound: u64,
 ) -> Result<()> {
     if !(is_supported_mint(&ctx.accounts.token_0_mint).unwrap()
         && is_supported_mint(&ctx.accounts.token_1_mint).unwrap())
@@ -249,12 +250,6 @@ pub fn initialize(
 
     CurveCalculator::validate_supply(token_0_vault.amount, token_1_vault.amount)?;
 
-    msg!(
-        "vault_0_amount:{},vault_1_amount:{}",
-        token_0_vault.amount,
-        token_1_vault.amount
-    );
-
     pool_state.initialize(
         ctx.bumps.authority,
         open_time,
@@ -267,6 +262,7 @@ pub fn initialize(
         &ctx.accounts.token_1_mint,
         &ctx.accounts.token_lp_mint,
         ctx.accounts.raydium.key(),
+        vault_0_reserve_bound,
     );
 
     Ok(())

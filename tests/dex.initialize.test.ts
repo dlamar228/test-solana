@@ -47,9 +47,8 @@ describe("dex.initialize.test", () => {
       owner,
       {
         index: 1,
-        fund_fee_rate: new BN(0),
         protocol_fee_rate: new BN(0),
-        trade_fee_rate: new BN(0),
+        launch_fee_rate: new BN(0),
       }
     );
     console.log("amm: ", amm);
