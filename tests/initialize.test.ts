@@ -1,6 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program, BN } from "@coral-xyz/anchor";
-import { TestChlen } from "../target/types/test_chlen";
+import { CpProxy } from "../target/types/cp_proxy";
 import { setupInitializeTest, initialize } from "./utils";
 
 describe("initialize test", () => {
@@ -8,7 +8,7 @@ describe("initialize test", () => {
   const owner = anchor.Wallet.local().payer;
   console.log("owner: ", owner.publicKey.toString());
 
-  const program = anchor.workspace.TestChlen as Program<TestChlen>;
+  const program = anchor.workspace.CpProxy as Program<CpProxy>;
 
   const confirmOptions = {
     skipPreflight: true,

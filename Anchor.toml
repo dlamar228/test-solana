@@ -7,7 +7,7 @@ skip-lint = false
 
 [programs.localnet]
 dex = "7E65apY9nbnCLvhfjCPc4V1veuPriHrp8kD3c76tTr4U"
-test_chlen = "3ksKj17cGKP7oZ8YtexAEbvxqNQaBfSB3F5ZCLjBX79X"
+cp_proxy = "3ksKj17cGKP7oZ8YtexAEbvxqNQaBfSB3F5ZCLjBX79X"
 
 [registry]
 url = "https://api.apr.dev"

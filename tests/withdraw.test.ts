@@ -1,12 +1,12 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program, BN } from "@coral-xyz/anchor";
-import { TestChlen } from "../target/types/test_chlen";
+import { CpProxy } from "../target/types/cp_proxy";
 import { deposit, setupDepositTest, withdraw } from "./utils";
 
 describe("withdraw test", () => {
   anchor.setProvider(anchor.AnchorProvider.env());
   const owner = anchor.Wallet.local().payer;
-  const program = anchor.workspace.TestChlen as Program<TestChlen>;
+  const program = anchor.workspace.CpProxy as Program<CpProxy>;
 
   const confirmOptions = {
     skipPreflight: true,

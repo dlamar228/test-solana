@@ -6,7 +6,7 @@ use instructions::*;
 declare_id!("3ksKj17cGKP7oZ8YtexAEbvxqNQaBfSB3F5ZCLjBX79X");
 
 #[program]
-pub mod test_chlen {
+pub mod cp_proxy {
     use super::*;
 
     pub fn proxy_initialize(

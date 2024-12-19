@@ -1,6 +1,6 @@
 // import * as anchor from "@coral-xyz/anchor";
 // import { Program, BN } from "@coral-xyz/anchor";
-// import { TestChlen } from "../target/types/test_chlen";
+// import { CpProxy } from "../target/types/cp_proxy";
 // import { Dex } from "../target/types/dex";
 // import { setupDex} from "./utils";
 // import { cpSwapProgram } from "./config";
@@ -11,7 +11,7 @@
 //   console.log("owner: ", owner.publicKey.toString());
 
 //   const dex_program = anchor.workspace.Dex as Program<Dex>;
-//   const proxy_program = anchor.workspace.TestChlen as Program<TestChlen>;
+//   const proxy_program = anchor.workspace.CpProxy as Program<CpProxy>;
 
 //   const confirmOptions = {
 //     skipPreflight: true,

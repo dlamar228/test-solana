@@ -1,5 +1,5 @@
 [package]
-name = "test-chlen"
+name = "cp-proxy"
 version = "0.1.0"
 description = "Created with Anchor"
 edition = "2021"
@@ -7,7 +7,7 @@ edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "test_chlen"
+name = "cp_proxy"
 
 [features]
 no-entrypoint = []

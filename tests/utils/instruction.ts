@@ -1,5 +1,5 @@
 import { Program, BN } from "@coral-xyz/anchor";
-import { TestChlen } from "../../target/types/test_chlen";
+import { CpProxy } from "../../target/types/cp_proxy";
 import { Dex } from "../../target/types/dex";
 import {
   Connection,
@@ -85,7 +85,7 @@ export async function setupInitializeTest(
 }
 
 export async function setupDepositTest(
-  program: Program<TestChlen>,
+  program: Program<CpProxy>,
   connection: Connection,
   owner: Signer,
   transferFeeConfig: { transferFeeBasisPoints: number; MaxFee: number } = {
@@ -169,7 +169,7 @@ export async function createDexAmmConfig(
 
 export async function setupDex(
   dex_program: Program<Dex>,
-  proxy_program: Program<TestChlen>,
+  proxy_program: Program<CpProxy>,
   creator: Signer,
 ) {
     const confirmOptions = {
@@ -296,7 +296,7 @@ export async function setupDex(
 } */
 
 export async function setupSwapTest(
-  program: Program<TestChlen>,
+  program: Program<CpProxy>,
   connection: Connection,
   owner: Signer,
   transferFeeConfig: { transferFeeBasisPoints: number; MaxFee: number } = {
@@ -435,7 +435,7 @@ export async function initializeDex(
 }
 
 export async function initialize(
-  program: Program<TestChlen>,
+  program: Program<CpProxy>,
   creator: Signer,
   configAddress: PublicKey,
   token0: PublicKey,
@@ -546,7 +546,7 @@ export async function initialize(
 }
 
 export async function deposit(
-  program: Program<TestChlen>,
+  program: Program<CpProxy>,
   owner: Signer,
   configAddress: PublicKey,
   token0: PublicKey,
@@ -635,7 +635,7 @@ export async function deposit(
 }
 
 export async function withdraw(
-  program: Program<TestChlen>,
+  program: Program<CpProxy>,
   owner: Signer,
   configAddress: PublicKey,
   token0: PublicKey,
@@ -873,7 +873,7 @@ export async function dex_swap_base_output(
 }
 
 export async function swap_base_input(
-  program: Program<TestChlen>,
+  program: Program<CpProxy>,
   owner: Signer,
   configAddress: PublicKey,
   inputToken: PublicKey,
@@ -947,7 +947,7 @@ export async function swap_base_input(
 }
 
 export async function swap_base_output(
-  program: Program<TestChlen>,
+  program: Program<CpProxy>,
   owner: Signer,
   configAddress: PublicKey,
   inputToken: PublicKey,
