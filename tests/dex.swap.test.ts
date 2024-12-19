@@ -11,7 +11,6 @@ describe("dex.swap.test", () => {
   const owner = anchor.Wallet.local().payer;
   console.log("owner: ", owner.publicKey.toString());
   const dex_program = anchor.workspace.Dex as Program<Dex>;
-  console.log("asd: ",  anchor.workspace);
   const proxy_program = anchor.workspace.CpProxy as Program<CpProxy>;
 
   const confirmOptions = {
