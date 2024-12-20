@@ -53,6 +53,21 @@ pub mod dex {
         instructions::update_amm_config(ctx, param, value)
     }
 
+    /// Update the reserve bound for pool state
+    /// Must be called by the current owner
+    ///
+    /// # Arguments
+    ///
+    /// * `ctx`- The context of accounts
+    /// * `reserve_bound`- The new reserve bound for launch
+    ///
+    pub fn update_reserve_bound(
+        ctx: Context<UpdateReserveBound>,
+        reserve_bound: u64,
+    ) -> Result<()> {
+        instructions::update_reserve_bound(ctx, reserve_bound)
+    }
+
     /// Creates a pool for the given token pair and the initial price
     ///
     /// # Arguments
