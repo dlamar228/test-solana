@@ -13,9 +13,10 @@ import {
   mintTo,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
+import { BN } from "@coral-xyz/anchor";
 
 export interface TokenVault {
-  vault: PublicKey;
+  address: PublicKey;
   mint: Mint;
 }
 
@@ -40,6 +41,11 @@ export class TokenUtils {
   constructor(connection: Connection, confirmOptions: ConfirmOptions) {
     this.connection = connection;
     this.confirmOptions = confirmOptions;
+  }
+
+  async balance(address: PublicKey) {
+    let balance = (await this.connection.getTokenAccountBalance(address)).value;
+    return new BN(balance.amount);
   }
 
   async createSplMint(signer: Signer, decimals: number) {
@@ -87,7 +93,7 @@ export class TokenUtils {
     mint: PublicKey,
     destination: PublicKey,
     amount: number
-  ) {
+  ): Promise<TransactionSignature> {
     return await mintTo(
       this.connection,
       payer,
@@ -125,7 +131,7 @@ export class TokenUtils {
     signer: Signer,
     amount0: number,
     amount1: number
-  ) {
+  ): Promise<MintPair> {
     let [mint0, mint1] = this.sortMintPair(
       await this.createSplMint(signer, 9),
       await this.createSplMint(signer, 9)

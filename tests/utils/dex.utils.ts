@@ -136,11 +136,11 @@ export class DexUtils {
       state,
       vault0: {
         mint: args.mint0,
-        vault: vault0,
+        address: vault0,
       },
       vault1: {
         mint: args.mint1,
-        vault: vault1,
+        address: vault1,
       },
     };
   }
@@ -167,8 +167,8 @@ export class DexUtils {
         outputTokenMint: args.outputToken,
         // raydium accounts
         raydiumPoolState: args.raydiumAccounts.state,
-        raydiumToken0Vault: args.raydiumAccounts.vault0.vault,
-        raydiumToken1Vault: args.raydiumAccounts.vault1.vault,
+        raydiumToken0Vault: args.raydiumAccounts.vault0.address,
+        raydiumToken1Vault: args.raydiumAccounts.vault1.address,
       })
       .preInstructions([
         ComputeBudgetProgram.setComputeUnitLimit({ units: 400000 }),
@@ -198,8 +198,8 @@ export class DexUtils {
         outputTokenMint: args.outputToken,
         // raydium accounts
         raydiumPoolState: args.raydiumAccounts.state,
-        raydiumToken0Vault: args.raydiumAccounts.vault0.vault,
-        raydiumToken1Vault: args.raydiumAccounts.vault1.vault,
+        raydiumToken0Vault: args.raydiumAccounts.vault0.address,
+        raydiumToken1Vault: args.raydiumAccounts.vault1.address,
       })
       .preInstructions([
         ComputeBudgetProgram.setComputeUnitLimit({ units: 400000 }),
@@ -210,6 +210,9 @@ export class DexUtils {
   async is_launched(state: PublicKey) {
     return (await this.program.account.dexState.fetchNullable(state))
       .isLaunched;
+  }
+  async get_state(state: PublicKey) {
+    return await this.program.account.dexState.fetchNullable(state);
   }
 }
 

@@ -523,9 +523,17 @@ impl<'info> SwapAndLaunch<'info> {
                 .amount
                 .checked_sub(state.protocol_fees_token_0)
                 .ok_or(ErrorCode::Underflow)?;
+
             let launch_tax =
                 u64::try_from(Fees::protocol_fee(clean_vault_0 as u128, launch_fee_rates).unwrap())
                     .map_err(|_| ErrorCode::InvalidU64Cast)?;
+            #[cfg(feature = "enable-log")]
+            msg!(
+                "vault_0: {}, clean_vault_0: {}, launch_tax_0: {}",
+                vault_0.amount,
+                clean_vault_0,
+                launch_tax
+            );
             clean_vault_0
                 .checked_sub(launch_tax)
                 .ok_or(ErrorCode::Underflow)?
@@ -540,6 +548,14 @@ impl<'info> SwapAndLaunch<'info> {
             let launch_tax =
                 u64::try_from(Fees::protocol_fee(clean_vault_1 as u128, launch_fee_rates).unwrap())
                     .map_err(|_| ErrorCode::InvalidU64Cast)?;
+
+            #[cfg(feature = "enable-log")]
+            msg!(
+                "vault_1: {}, clean_vault_1: {}, launch_tax_1: {}",
+                vault_1.amount,
+                clean_vault_1,
+                launch_tax
+            );
 
             clean_vault_1
                 .checked_sub(launch_tax)

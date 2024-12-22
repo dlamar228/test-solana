@@ -95,11 +95,11 @@ export class RaydiumUtils {
       state,
       vault0: {
         mint: args.mint0,
-        vault: vault0,
+        address: vault0,
       },
       vault1: {
         mint: args.mint1,
-        vault: vault1,
+        address: vault1,
       },
       lpMint: {
         authority: state,
