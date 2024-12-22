@@ -1,85 +1,296 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program, BN } from "@coral-xyz/anchor";
-import { CpProxy } from "../target/types/cp_proxy";
 import { Dex } from "../target/types/dex";
-import { dex_swap_base_input, dex_swap_base_output, setupDex } from "./utils";
-import { assert } from "chai";
-
+import {
+  DexUtils,
+  TokenUtils,
+  createRaydiumProgram,
+  RaydiumUtils,
+  ammConfigAddress,
+  sleep,
+} from "./utils";
+import { expect } from "chai";
 
 describe("dex.swap.test", () => {
   anchor.setProvider(anchor.AnchorProvider.env());
-  const owner = anchor.Wallet.local().payer;
-  console.log("owner: ", owner.publicKey.toString());
-  const dex_program = anchor.workspace.Dex as Program<Dex>;
-  const proxy_program = anchor.workspace.CpProxy as Program<CpProxy>;
+  var index = 0;
+  const nextIndex = () => {
+    index += 1;
+    return index;
+  };
+  const signer = anchor.Wallet.local().payer;
+  const dexProgram = anchor.workspace.Dex as Program<Dex>;
+  const raydiumProgram = createRaydiumProgram(anchor.getProvider());
 
   const confirmOptions = {
     skipPreflight: true,
   };
+  const dexUtils = new DexUtils(dexProgram, confirmOptions);
+  const raydiumUtils = new RaydiumUtils(raydiumProgram, confirmOptions);
+  const tokenUtils = new TokenUtils(
+    anchor.getProvider().connection,
+    confirmOptions
+  );
 
-  var pools;
+  describe("Spl token", () => {
+    it("Should swap base input", async () => {
+      let { mint0, mint1, ata0, ata1 } = await tokenUtils.initializeSplMintPair(
+        signer,
+        100_000_000,
+        100_000_000
+      );
 
-  it("initialize dex", async () => {
-    pools = await setupDex(dex_program, proxy_program, owner);
-    await sleep(1000);
-    console.log("initialize tx:", pools.dex.tx);
-  });
+      let raydiumPoolArgs = {
+        amm: ammConfigAddress,
+        initAmount0: new BN(2000),
+        initAmount1: new BN(4555),
+        openTime: new BN(0),
+        mint0,
+        mint1,
+        signerAta0: ata0,
+        signerAta1: ata1,
+      };
+      let raydiumAccounts = await raydiumUtils.initializePool(
+        signer,
+        raydiumPoolArgs
+      );
 
-  it("swap base input", async () => {
-    const inputToken = pools.dex.state.state.token0Mint;
-    const inputTokenProgram = pools.dex.state.state.token0Program;
-    
-    await sleep(1000);
-    let amount_in = new BN(100);
-    const baseInTx = await dex_swap_base_input(
-      dex_program,
-      owner,
-      pools.dex.state.state.ammConfig,
-      inputToken,
-      inputTokenProgram,
-      pools.dex.state.state.token1Mint,
-      pools.dex.state.state.token1Program,
-      amount_in,
-      new BN(0),
-      pools.raydium.poolAddress,
-      pools.raydium.vault0,
-      pools.raydium.vault1,
-    );
-    console.log("baseInputTx:", baseInTx);
-  });
+      let dexAmmArgs = {
+        index: nextIndex(),
+        protocol_fee_rate: new BN(0),
+        launch_fee_rate: new BN(0),
+      };
+      let dexAmm = await dexUtils.initializeAmm(signer, dexAmmArgs);
 
-  it("swap base output ", async () => {
-    const inputToken = pools.dex.state.state.token0Mint;
-    const inputTokenProgram = pools.dex.state.state.token0Program;
+      let dexArgs = {
+        amm: dexAmm,
+        initAmount0: new BN(2000),
+        initAmount1: new BN(4555),
+        reserveBound: new BN(5000),
+        openTime: new BN(0),
+        raydium: raydiumAccounts.state,
+        mint0,
+        mint1,
+        signerAta0: ata0,
+        signerAta1: ata1,
+      };
+      let dexAccounts = await dexUtils.initialize(signer, dexArgs);
 
-    await sleep(1000);
-    let amount_out = new BN(222);
-    const baseOutTx = await dex_swap_base_output(
-      dex_program,
-      owner,
-      pools.dex.state.state.ammConfig,
-      inputToken,
-      inputTokenProgram,
-      pools.dex.state.state.token1Mint,
-      pools.dex.state.state.token1Program,
-      amount_out,
-      new BN(10000000000000),
-      pools.raydium.poolAddress,
-      pools.raydium.vault0,
-      pools.raydium.vault1,
-      confirmOptions
-    );
-    console.log("baseOutputTx:", baseOutTx);
-  });
+      await sleep(1000);
 
-  it("is launched", async () => {
-    let state = await pools.dex.state.get_pool_state();
-    console.log("state: ", state);
-    let isLaunched: boolean =  state.isLaunched;
-    assert(isLaunched, "Not launched")
+      let swapArgs = {
+        inputToken: dexAccounts.vault0.mint.address,
+        inputTokenProgram: dexAccounts.vault0.mint.program,
+        outputToken: dexAccounts.vault1.mint.address,
+        outputTokenProgram: dexAccounts.vault1.mint.program,
+        inputAta: ata0,
+        outputAta: ata1,
+        inputVault: dexAccounts.vault0.vault,
+        outputVault: dexAccounts.vault1.vault,
+        amountIn: new BN(1000),
+        minimumAmountOut: new BN(100),
+        raydiumAccounts,
+        dexAccounts,
+      };
+      let swap_tx = await dexUtils.swap_base_input(signer, swapArgs);
+    });
+
+    it("Should swap base input and launch", async () => {
+      let { mint0, mint1, ata0, ata1 } = await tokenUtils.initializeSplMintPair(
+        signer,
+        100_000_000,
+        100_000_000
+      );
+
+      let raydiumPoolArgs = {
+        amm: ammConfigAddress,
+        initAmount0: new BN(2000),
+        initAmount1: new BN(4555),
+        openTime: new BN(0),
+        mint0,
+        mint1,
+        signerAta0: ata0,
+        signerAta1: ata1,
+      };
+      let raydiumAccounts = await raydiumUtils.initializePool(
+        signer,
+        raydiumPoolArgs
+      );
+
+      let dexAmmArgs = {
+        index: nextIndex(),
+        protocol_fee_rate: new BN(0),
+        launch_fee_rate: new BN(0),
+      };
+      let dexAmm = await dexUtils.initializeAmm(signer, dexAmmArgs);
+
+      let dexArgs = {
+        amm: dexAmm,
+        initAmount0: new BN(2000),
+        initAmount1: new BN(4555),
+        reserveBound: new BN(2100),
+        openTime: new BN(0),
+        raydium: raydiumAccounts.state,
+        mint0,
+        mint1,
+        signerAta0: ata0,
+        signerAta1: ata1,
+      };
+      let dexAccounts = await dexUtils.initialize(signer, dexArgs);
+
+      await sleep(1000);
+
+      let before = await dexUtils.is_launched(dexAccounts.state);
+      expect(before, "Dex already launched!").not.equal(true);
+
+      let swapArgs = {
+        inputToken: dexAccounts.vault0.mint.address,
+        inputTokenProgram: dexAccounts.vault0.mint.program,
+        outputToken: dexAccounts.vault1.mint.address,
+        outputTokenProgram: dexAccounts.vault1.mint.program,
+        inputAta: ata0,
+        outputAta: ata1,
+        inputVault: dexAccounts.vault0.vault,
+        outputVault: dexAccounts.vault1.vault,
+        amountIn: new BN(1000),
+        minimumAmountOut: new BN(100),
+        raydiumAccounts,
+        dexAccounts,
+      };
+      let swap_tx = await dexUtils.swap_base_input(signer, swapArgs);
+
+      let after = await dexUtils.is_launched(dexAccounts.state);
+      expect(after, "Dex not launched!").equal(true);
+    });
+
+    it("Should swap base output", async () => {
+      let { mint0, mint1, ata0, ata1 } = await tokenUtils.initializeSplMintPair(
+        signer,
+        100_000_000,
+        100_000_000
+      );
+
+      let raydiumPoolArgs = {
+        amm: ammConfigAddress,
+        initAmount0: new BN(2000),
+        initAmount1: new BN(4555),
+        openTime: new BN(0),
+        mint0,
+        mint1,
+        signerAta0: ata0,
+        signerAta1: ata1,
+      };
+      let raydiumAccounts = await raydiumUtils.initializePool(
+        signer,
+        raydiumPoolArgs
+      );
+
+      let dexAmmArgs = {
+        index: nextIndex(),
+        protocol_fee_rate: new BN(0),
+        launch_fee_rate: new BN(0),
+      };
+      let dexAmm = await dexUtils.initializeAmm(signer, dexAmmArgs);
+
+      let dexArgs = {
+        amm: dexAmm,
+        initAmount0: new BN(2000),
+        initAmount1: new BN(4555),
+        reserveBound: new BN(5000),
+        openTime: new BN(0),
+        raydium: raydiumAccounts.state,
+        mint0,
+        mint1,
+        signerAta0: ata0,
+        signerAta1: ata1,
+      };
+      let dexAccounts = await dexUtils.initialize(signer, dexArgs);
+
+      await sleep(1000);
+
+      let swapArgs = {
+        inputToken: dexAccounts.vault0.mint.address,
+        inputTokenProgram: dexAccounts.vault0.mint.program,
+        outputToken: dexAccounts.vault1.mint.address,
+        outputTokenProgram: dexAccounts.vault1.mint.program,
+        inputAta: ata0,
+        outputAta: ata1,
+        inputVault: dexAccounts.vault0.vault,
+        outputVault: dexAccounts.vault1.vault,
+        maxAmountIn: new BN(1000),
+        amountOutLessFee: new BN(1250),
+        raydiumAccounts,
+        dexAccounts,
+      };
+      let swap_tx = await dexUtils.swap_base_output(signer, swapArgs);
+    });
+
+    it("Should swap base output and launch", async () => {
+      let { mint0, mint1, ata0, ata1 } = await tokenUtils.initializeSplMintPair(
+        signer,
+        100_000_000,
+        100_000_000
+      );
+
+      let raydiumPoolArgs = {
+        amm: ammConfigAddress,
+        initAmount0: new BN(2000),
+        initAmount1: new BN(4555),
+        openTime: new BN(0),
+        mint0,
+        mint1,
+        signerAta0: ata0,
+        signerAta1: ata1,
+      };
+      let raydiumAccounts = await raydiumUtils.initializePool(
+        signer,
+        raydiumPoolArgs
+      );
+
+      let dexAmmArgs = {
+        index: nextIndex(),
+        protocol_fee_rate: new BN(0),
+        launch_fee_rate: new BN(0),
+      };
+      let dexAmm = await dexUtils.initializeAmm(signer, dexAmmArgs);
+
+      let dexArgs = {
+        amm: dexAmm,
+        initAmount0: new BN(2000),
+        initAmount1: new BN(4555),
+        reserveBound: new BN(2100),
+        openTime: new BN(0),
+        raydium: raydiumAccounts.state,
+        mint0,
+        mint1,
+        signerAta0: ata0,
+        signerAta1: ata1,
+      };
+      let dexAccounts = await dexUtils.initialize(signer, dexArgs);
+
+      await sleep(1000);
+
+      let before = await dexUtils.is_launched(dexAccounts.state);
+      expect(before, "Dex already launched!").not.equal(true);
+
+      let swapArgs = {
+        inputToken: dexAccounts.vault0.mint.address,
+        inputTokenProgram: dexAccounts.vault0.mint.program,
+        outputToken: dexAccounts.vault1.mint.address,
+        outputTokenProgram: dexAccounts.vault1.mint.program,
+        inputAta: ata0,
+        outputAta: ata1,
+        inputVault: dexAccounts.vault0.vault,
+        outputVault: dexAccounts.vault1.vault,
+        maxAmountIn: new BN(1000),
+        amountOutLessFee: new BN(1250),
+        raydiumAccounts,
+        dexAccounts,
+      };
+      let swap_tx = await dexUtils.swap_base_output(signer, swapArgs);
+
+      let after = await dexUtils.is_launched(dexAccounts.state);
+      expect(after, "Dex not launched!").equal(true);
+    });
   });
 });
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}

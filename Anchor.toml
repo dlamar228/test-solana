@@ -33,6 +33,5 @@ address = "D4FPEruKEHrG5TenZ2mpDGEfu1iUvTiqBxvpU8HLBvC2"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/dex.swap.test.ts"
-#test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/dex.initialize.test.ts"
 #test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/deposit.test.ts"
 #test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"

@@ -1,77 +1,73 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program, BN } from "@coral-xyz/anchor";
-import { CpProxy } from "../target/types/cp_proxy";
 import { Dex } from "../target/types/dex";
-import { createDexAmmConfig, initialize, initializeDex, setupInitializeTest, setupInitializeTokens } from "./utils";
+import {
+  DexUtils,
+  TokenUtils,
+  createRaydiumProgram,
+  RaydiumUtils,
+  ammConfigAddress,
+} from "./utils";
 
 describe("dex.initialize.test", () => {
   anchor.setProvider(anchor.AnchorProvider.env());
-  const owner = anchor.Wallet.local().payer;
-  console.log("owner: ", owner.publicKey.toString());
-
-  const dex_program = anchor.workspace.Dex as Program<Dex>;
-  const proxy_program = anchor.workspace.CpProxy as Program<CpProxy>;
+  const signer = anchor.Wallet.local().payer;
+  const dexProgram = anchor.workspace.Dex as Program<Dex>;
+  const raydiumProgram = createRaydiumProgram(anchor.getProvider());
 
   const confirmOptions = {
     skipPreflight: true,
   };
+  const dexUtils = new DexUtils(dexProgram, confirmOptions);
+  const raydiumUtils = new RaydiumUtils(raydiumProgram, confirmOptions);
+  const tokenUtils = new TokenUtils(
+    anchor.getProvider().connection,
+    confirmOptions
+  );
 
-  it("dex.initialize.test", async () => {
-    const { configAddress, token0, token0Program, token1, token1Program } =
-      await setupInitializeTest(
-        anchor.getProvider().connection,
-        owner,
-        { transferFeeBasisPoints: 0, MaxFee: 0 },
-        confirmOptions
-      );
-
-    const initAmount0 = new BN(10000000000);
-    const initAmount1 = new BN(10000000000);
-
-    const raydium = await initialize(
-      proxy_program,
-      owner,
-      configAddress,
-      token0,
-      token0Program,
-      token1,
-      token1Program,
-      confirmOptions,
-      { initAmount0, initAmount1 }
+  it("initialize with spl mints", async () => {
+    let { mint0, mint1, ata0, ata1 } = await tokenUtils.initializeSplMintPair(
+      signer,
+      100_000_000,
+      100_000_000
     );
 
-    console.log("raydium pool address: ", raydium.poolAddress.toString(), "raydium tx:", raydium.tx);
-
-    let amm = await createDexAmmConfig(
-      dex_program,
-      owner,
-      {
-        index: 1,
-        protocol_fee_rate: new BN(0),
-        launch_fee_rate: new BN(0),
-      }
-    );
-    console.log("amm: ", amm);
-
-    let dex = await initializeDex(
-      dex_program,
-      owner,
-      amm.amm,
-      token0,
-      token0Program,
-      token1,
-      token1Program,
-      {
-        pool: raydium.poolAddress,
-        lpMint: raydium.lpMint,
-      },
-      confirmOptions,
-      { initAmount0, initAmount1 }
+    let raydiumPoolArgs = {
+      amm: ammConfigAddress,
+      initAmount0: new BN(2000),
+      initAmount1: new BN(4555),
+      openTime: new BN(0),
+      mint0,
+      mint1,
+      signerAta0: ata0,
+      signerAta1: ata1,
+    };
+    let raydiumAccounts = await raydiumUtils.initializePool(
+      signer,
+      raydiumPoolArgs
     );
 
-    console.log("dex address: ", dex.poolStateAddress.toString(), " tx:", dex.tx);
-    console.log("dex state: ", dex.state);
-    
+    let dexAmmArgs = {
+      index: 1,
+      protocol_fee_rate: new BN(0),
+      launch_fee_rate: new BN(0),
+    };
 
+    let dexAmm = await dexUtils.initializeAmm(signer, dexAmmArgs);
+
+    let dexArgs = {
+      amm: dexAmm,
+      initAmount0: new BN(2000),
+      initAmount1: new BN(4555),
+      reserveBound: new BN(3000),
+      openTime: new BN(0),
+      raydium: raydiumAccounts.state,
+      mint0,
+      mint1,
+      signerAta0: ata0,
+      signerAta1: ata1,
+    };
+
+    await dexUtils.initialize(signer, dexArgs);
   });
 });
