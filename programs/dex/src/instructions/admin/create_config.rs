@@ -8,7 +8,6 @@ pub struct CreateAmmConfig<'info> {
     /// Address to be set as protocol owner.
     #[account(mut)]
     pub owner: Signer<'info>,
-
     /// Initialize config state account to store protocol owner address and fee rates.
     #[account(
         init,
@@ -21,7 +20,6 @@ pub struct CreateAmmConfig<'info> {
         space = AmmConfig::LEN
     )]
     pub amm_config: Account<'info, AmmConfig>,
-
     pub system_program: Program<'info, System>,
 }
 
@@ -34,7 +32,7 @@ pub fn create_amm_config(
     let amm_config = ctx.accounts.amm_config.deref_mut();
     amm_config.protocol_owner = ctx.accounts.owner.key();
     amm_config.bump = ctx.bumps.amm_config;
-    amm_config.disable_create_pool = false;
+    amm_config.disable_create_dex = false;
     amm_config.index = index;
     amm_config.protocol_fee_rate = protocol_fee_rate;
     amm_config.launch_fee_rate = launch_fee_rate;

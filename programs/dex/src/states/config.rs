@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-pub const AMM_CONFIG_SEED: &str = "amm_config";
+pub const AMM_CONFIG_SEED: &str = "dex_amm_config";
 
 /// Holds the current owner of the factory
 #[account]
@@ -9,7 +9,7 @@ pub struct AmmConfig {
     /// Bump to identify PDA
     pub bump: u8,
     /// Status to control if new pool can be create
-    pub disable_create_pool: bool,
+    pub disable_create_dex: bool,
     /// Config index
     pub index: u16,
     /// The protocol fee

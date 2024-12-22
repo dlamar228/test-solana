@@ -13,9 +13,6 @@ pub enum ErrorCode {
     /// The input token is invalid for swap.
     #[msg("InvalidInput")]
     InvalidInput,
-    /// Address of the provided pool token mint is incorrect
-    #[msg("Address of the provided lp token mint is incorrect")]
-    IncorrectLpMint,
     /// Exceeds desired slippage limit
     #[msg("Exceeds desired slippage limit")]
     ExceededSlippage,
@@ -36,6 +33,6 @@ pub enum ErrorCode {
     Underflow,
     #[msg("Calculation div by zero")]
     DivZero,
-    #[msg("Pool launched")]
-    PoolLaunched,
+    #[msg("Dex launched")]
+    DexLaunched,
 }

@@ -13,8 +13,7 @@ use std::cell::RefMut;
 pub struct Swap<'info> {
     /// The user performing the swap
     pub payer: Signer<'info>,
-
-    /// CHECK: pool vault authority
+    /// CHECK: dex vault authority
     #[account(
         seeds = [
             crate::AUTH_SEED.as_bytes(),
@@ -22,67 +21,54 @@ pub struct Swap<'info> {
         bump,
     )]
     pub authority: UncheckedAccount<'info>,
-
     /// The factory state to read protocol fees
-    #[account(address = pool_state.load()?.amm_config)]
+    #[account(address = dex_state.load()?.amm_config)]
     pub amm_config: Box<Account<'info, AmmConfig>>,
-
-    /// The program account of the pool in which the swap will be performed
+    /// The program account of the dex in which the swap will be performed
     #[account(mut)]
-    pub pool_state: AccountLoader<'info, PoolState>,
-
+    pub dex_state: AccountLoader<'info, DexState>,
     /// The user token account for input token
     #[account(mut)]
     pub input_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
-
     /// The user token account for output token
     #[account(mut)]
     pub output_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
-
     /// The vault token account for input token
     #[account(
         mut,
-        constraint = input_vault.key() == pool_state.load()?.token_0_vault || input_vault.key() == pool_state.load()?.token_1_vault
+        constraint = input_vault.key() == dex_state.load()?.token_0_vault || input_vault.key() == dex_state.load()?.token_1_vault
     )]
     pub input_vault: Box<InterfaceAccount<'info, TokenAccount>>,
-
     /// The vault token account for output token
     #[account(
         mut,
-        constraint = output_vault.key() == pool_state.load()?.token_0_vault || output_vault.key() == pool_state.load()?.token_1_vault
+        constraint = output_vault.key() == dex_state.load()?.token_0_vault || output_vault.key() == dex_state.load()?.token_1_vault
     )]
     pub output_vault: Box<InterfaceAccount<'info, TokenAccount>>,
-
     /// SPL program for input token transfers
     pub input_token_program: Interface<'info, TokenInterface>,
-
     /// SPL program for output token transfers
     pub output_token_program: Interface<'info, TokenInterface>,
-
     /// The mint of input token
     #[account(
         address = input_vault.mint
     )]
     pub input_token_mint: Box<InterfaceAccount<'info, Mint>>,
-
     /// The mint of output token
     #[account(
         address = output_vault.mint
     )]
     pub output_token_mint: Box<InterfaceAccount<'info, Mint>>,
-
     #[account(
-        address = pool_state.load()?.raydium
+        address = dex_state.load()?.raydium
     )]
     pub raydium_pool_state: AccountLoader<'info, raydium_cp_swap::states::pool::PoolState>,
-
     /// The address that holds pool tokens for token_0
     #[account(
         mut,
         constraint = raydium_token_0_vault.key() == raydium_pool_state.load()?.token_0_vault
     )]
     pub raydium_token_0_vault: Box<InterfaceAccount<'info, TokenAccount>>,
-
     /// The address that holds pool tokens for token_1
     #[account(
         mut,
@@ -111,7 +97,7 @@ pub struct SwapCalculation {
 
 pub struct SwapAndLaunch<'info> {
     authority: UncheckedAccount<'info>,
-    pool_state: AccountLoader<'info, PoolState>,
+    dex_state: AccountLoader<'info, DexState>,
     amm_config: Box<Account<'info, AmmConfig>>,
     input_vault: Box<InterfaceAccount<'info, TokenAccount>>,
     output_vault: Box<InterfaceAccount<'info, TokenAccount>>,
@@ -131,7 +117,7 @@ impl<'info> SwapAndLaunch<'info> {
     pub fn from_ctx(ctx: &Context<'_, '_, '_, 'info, Swap<'info>>) -> Self {
         Self {
             authority: ctx.accounts.authority.clone(),
-            pool_state: ctx.accounts.pool_state.clone(),
+            dex_state: ctx.accounts.dex_state.clone(),
             amm_config: ctx.accounts.amm_config.clone(),
             input_vault: ctx.accounts.input_vault.clone(),
             output_vault: ctx.accounts.output_vault.clone(),
@@ -149,7 +135,7 @@ impl<'info> SwapAndLaunch<'info> {
     }
     fn calculate_trade_amounts_and_price_before_swap(
         &self,
-        pool_state: &mut RefMut<'_, PoolState>,
+        dex_state: &mut RefMut<'_, DexState>,
     ) -> Result<SwapCalculation> {
         let (
             trade_direction,
@@ -159,12 +145,12 @@ impl<'info> SwapAndLaunch<'info> {
             token_1_price_x64,
         ) = match (self.input_vault.key(), self.output_vault.key()) {
             (input, output)
-                if input == pool_state.token_0_vault && output == pool_state.token_1_vault =>
+                if input == dex_state.token_0_vault && output == dex_state.token_1_vault =>
             {
-                let (total_input_token_amount, total_output_token_amount) = pool_state
+                let (total_input_token_amount, total_output_token_amount) = dex_state
                     .vault_amount_without_fee(self.input_vault.amount, self.output_vault.amount);
                 let (token_0_price_x64, token_1_price_x64) =
-                    pool_state.token_price_x32(self.input_vault.amount, self.output_vault.amount);
+                    dex_state.token_price_x32(self.input_vault.amount, self.output_vault.amount);
 
                 (
                     TradeDirection::ZeroForOne,
@@ -175,12 +161,12 @@ impl<'info> SwapAndLaunch<'info> {
                 )
             }
             (input, output)
-                if input == pool_state.token_1_vault && output == pool_state.token_0_vault =>
+                if input == dex_state.token_1_vault && output == dex_state.token_0_vault =>
             {
-                let (total_output_token_amount, total_input_token_amount) = pool_state
+                let (total_output_token_amount, total_input_token_amount) = dex_state
                     .vault_amount_without_fee(self.output_vault.amount, self.input_vault.amount);
                 let (token_0_price_x64, token_1_price_x64) =
-                    pool_state.token_price_x32(self.output_vault.amount, self.input_vault.amount);
+                    dex_state.token_price_x32(self.output_vault.amount, self.input_vault.amount);
 
                 (
                     TradeDirection::OneForZero,
@@ -209,15 +195,15 @@ impl<'info> SwapAndLaunch<'info> {
         minimum_amount_out: u64,
     ) -> Result<TradeDirection> {
         let block_timestamp = solana_program::clock::Clock::get()?.unix_timestamp as u64;
-        let pool_id = self.pool_state.key();
-        let pool_state = &mut self.pool_state.load_mut()?;
+        let dex_id = self.dex_state.key();
+        let dex_state = &mut self.dex_state.load_mut()?;
 
-        if block_timestamp < pool_state.open_time {
+        if block_timestamp < dex_state.open_time {
             return err!(ErrorCode::NotApproved);
         }
 
-        if pool_state.is_launched {
-            return err!(ErrorCode::PoolLaunched);
+        if dex_state.is_launched {
+            return err!(ErrorCode::DexLaunched);
         }
 
         let transfer_fee = get_transfer_fee(&self.input_token_mint.to_account_info(), amount_in)?;
@@ -231,7 +217,7 @@ impl<'info> SwapAndLaunch<'info> {
             total_output_token_amount,
             token_0_price_x64,
             token_1_price_x64,
-        } = self.calculate_trade_amounts_and_price_before_swap(pool_state)?;
+        } = self.calculate_trade_amounts_and_price_before_swap(dex_state)?;
 
         let constant_before = u128::from(total_input_token_amount)
             .checked_mul(u128::from(total_output_token_amount))
@@ -286,13 +272,13 @@ impl<'info> SwapAndLaunch<'info> {
 
         match trade_direction {
             TradeDirection::ZeroForOne => {
-                pool_state.protocol_fees_token_0 = pool_state
+                dex_state.protocol_fees_token_0 = dex_state
                     .protocol_fees_token_0
                     .checked_add(protocol_fee)
                     .unwrap();
             }
             TradeDirection::OneForZero => {
-                pool_state.protocol_fees_token_1 = pool_state
+                dex_state.protocol_fees_token_1 = dex_state
                     .protocol_fees_token_1
                     .checked_add(protocol_fee)
                     .unwrap();
@@ -300,7 +286,7 @@ impl<'info> SwapAndLaunch<'info> {
         };
 
         emit!(SwapEvent {
-            pool_id,
+            dex_id,
             input_vault_before: total_input_token_amount,
             output_vault_before: total_output_token_amount,
             input_amount: u64::try_from(result.source_amount_swapped).unwrap(),
@@ -312,12 +298,12 @@ impl<'info> SwapAndLaunch<'info> {
         require_gte!(constant_after, constant_before);
 
         emit!(MarketCapEvent {
-            pool_id,
+            dex_id,
             price_0: u64::try_from(token_0_price_x64).unwrap(),
             price_1: u64::try_from(token_1_price_x64).unwrap(),
         });
 
-        transfer_from_user_to_pool_vault(
+        transfer_from_user_to_dex_vault(
             self.payer.to_account_info(),
             self.input_token_account.to_account_info(),
             self.input_vault.to_account_info(),
@@ -327,11 +313,11 @@ impl<'info> SwapAndLaunch<'info> {
             self.input_token_mint.decimals,
         )?;
 
-        // pool authority pda signer seeds
-        let seeds = [crate::AUTH_SEED.as_bytes(), &[pool_state.auth_bump]];
+        // dex authority pda signer seeds
+        let seeds = [crate::AUTH_SEED.as_bytes(), &[dex_state.auth_bump]];
         let signer_seeds = &[seeds.as_slice()];
 
-        transfer_from_pool_vault_to_user(
+        transfer_from_dex_vault_to_user(
             self.authority.to_account_info(),
             self.output_vault.to_account_info(),
             self.output_token_account.to_account_info(),
@@ -342,7 +328,7 @@ impl<'info> SwapAndLaunch<'info> {
             signer_seeds,
         )?;
 
-        pool_state.recent_epoch = Clock::get()?.epoch;
+        dex_state.recent_epoch = Clock::get()?.epoch;
 
         Ok(trade_direction)
     }
@@ -352,14 +338,14 @@ impl<'info> SwapAndLaunch<'info> {
         amount_out_less_fee: u64,
     ) -> Result<TradeDirection> {
         let block_timestamp = solana_program::clock::Clock::get()?.unix_timestamp as u64;
-        let pool_id = self.pool_state.key();
-        let pool_state = &mut self.pool_state.load_mut()?;
-        if block_timestamp < pool_state.open_time {
+        let dex_id = self.dex_state.key();
+        let dex_state = &mut self.dex_state.load_mut()?;
+        if block_timestamp < dex_state.open_time {
             return err!(ErrorCode::NotApproved);
         }
 
-        if pool_state.is_launched {
-            return err!(ErrorCode::PoolLaunched);
+        if dex_state.is_launched {
+            return err!(ErrorCode::DexLaunched);
         }
 
         let out_transfer_fee = get_transfer_inverse_fee(
@@ -374,7 +360,7 @@ impl<'info> SwapAndLaunch<'info> {
             total_output_token_amount,
             token_0_price_x64,
             token_1_price_x64,
-        } = self.calculate_trade_amounts_and_price_before_swap(pool_state)?;
+        } = self.calculate_trade_amounts_and_price_before_swap(dex_state)?;
 
         let constant_before = u128::from(total_input_token_amount)
             .checked_mul(u128::from(total_output_token_amount))
@@ -431,13 +417,13 @@ impl<'info> SwapAndLaunch<'info> {
 
         match trade_direction {
             TradeDirection::ZeroForOne => {
-                pool_state.protocol_fees_token_0 = pool_state
+                dex_state.protocol_fees_token_0 = dex_state
                     .protocol_fees_token_0
                     .checked_add(protocol_fee)
                     .unwrap();
             }
             TradeDirection::OneForZero => {
-                pool_state.protocol_fees_token_1 = pool_state
+                dex_state.protocol_fees_token_1 = dex_state
                     .protocol_fees_token_1
                     .checked_add(protocol_fee)
                     .unwrap();
@@ -445,7 +431,7 @@ impl<'info> SwapAndLaunch<'info> {
         };
 
         emit!(SwapEvent {
-            pool_id,
+            dex_id,
             input_vault_before: total_input_token_amount,
             output_vault_before: total_output_token_amount,
             input_amount: u64::try_from(result.source_amount_swapped).unwrap(),
@@ -457,12 +443,12 @@ impl<'info> SwapAndLaunch<'info> {
         require_gte!(constant_after, constant_before);
 
         emit!(MarketCapEvent {
-            pool_id,
+            dex_id,
             price_0: u64::try_from(token_0_price_x64).unwrap(),
             price_1: u64::try_from(token_1_price_x64).unwrap(),
         });
 
-        transfer_from_user_to_pool_vault(
+        transfer_from_user_to_dex_vault(
             self.payer.to_account_info(),
             self.input_token_account.to_account_info(),
             self.input_vault.to_account_info(),
@@ -472,11 +458,11 @@ impl<'info> SwapAndLaunch<'info> {
             self.input_token_mint.decimals,
         )?;
 
-        // pool authority pda signer seeds
-        let seeds = [crate::AUTH_SEED.as_bytes(), &[pool_state.auth_bump]];
+        // dex authority pda signer seeds
+        let seeds = [crate::AUTH_SEED.as_bytes(), &[dex_state.auth_bump]];
         let signer_seeds = &[seeds.as_slice()];
 
-        transfer_from_pool_vault_to_user(
+        transfer_from_dex_vault_to_user(
             self.authority.to_account_info(),
             self.output_vault.to_account_info(),
             self.output_token_account.to_account_info(),
@@ -487,7 +473,7 @@ impl<'info> SwapAndLaunch<'info> {
             signer_seeds,
         )?;
 
-        pool_state.recent_epoch = Clock::get()?.epoch;
+        dex_state.recent_epoch = Clock::get()?.epoch;
 
         Ok(trade_direction)
     }
@@ -500,11 +486,11 @@ impl<'info> SwapAndLaunch<'info> {
             TradeDirection::OneForZero => self.output_vault.amount,
         };
 
-        let state = &mut self.pool_state.load_mut()?;
+        let state = &mut self.dex_state.load_mut()?;
 
         if state.vault_0_reserve_bound > current_reserve {
             emit!(RemainingTokensAvailableEvent {
-                pool_id: self.pool_state.key(),
+                dex_id: self.dex_state.key(),
                 remaining_tokens: state.vault_0_reserve_bound - current_reserve,
             });
             return Ok(());
@@ -563,7 +549,7 @@ impl<'info> SwapAndLaunch<'info> {
         let seeds = [crate::AUTH_SEED.as_bytes(), &[state.auth_bump]];
         let signer_seeds = &[seeds.as_slice()];
 
-        transfer_from_pool_vault_to_user(
+        transfer_from_dex_vault_to_user(
             self.authority.to_account_info(),
             vault_0.to_account_info(),
             self.raydium_token_0_vault.to_account_info(),
@@ -574,7 +560,7 @@ impl<'info> SwapAndLaunch<'info> {
             signer_seeds,
         )?;
 
-        transfer_from_pool_vault_to_user(
+        transfer_from_dex_vault_to_user(
             self.authority.to_account_info(),
             vault_1.to_account_info(),
             self.raydium_token_1_vault.to_account_info(),
@@ -586,7 +572,7 @@ impl<'info> SwapAndLaunch<'info> {
         )?;
 
         emit!(TokenLaunchedEvent {
-            pool_id: self.pool_state.key(),
+            dex_id: self.dex_state.key(),
             raydium_id: self.raydium_pool_state.key(),
             amount_0: taxed_amount_0,
             amount_1: taxed_amount_1

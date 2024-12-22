@@ -18,7 +18,7 @@ use anchor_spl::{
     },
 };
 
-pub fn transfer_from_user_to_pool_vault<'a>(
+pub fn transfer_from_user_to_dex_vault<'a>(
     authority: AccountInfo<'a>,
     from: AccountInfo<'a>,
     to_vault: AccountInfo<'a>,
@@ -45,7 +45,7 @@ pub fn transfer_from_user_to_pool_vault<'a>(
     )
 }
 
-pub fn transfer_from_pool_vault_to_user<'a>(
+pub fn transfer_from_dex_vault_to_user<'a>(
     authority: AccountInfo<'a>,
     from_vault: AccountInfo<'a>,
     to: AccountInfo<'a>,
@@ -174,15 +174,17 @@ pub fn is_supported_mint(mint_account: &InterfaceAccount<Mint>) -> Result<bool> 
     let mint_data = mint_info.try_borrow_data()?;
     let mint = StateWithExtensions::<spl_token_2022::state::Mint>::unpack(&mint_data)?;
     let extensions = mint.get_extension_types()?;
-    for e in extensions {
-        if e != ExtensionType::TransferFeeConfig
-            && e != ExtensionType::MetadataPointer
-            && e != ExtensionType::TokenMetadata
-        {
-            return Ok(false);
-        }
-    }
-    Ok(true)
+
+    let result = extensions.iter().all(|e| {
+        matches!(
+            e,
+            ExtensionType::TransferFeeConfig
+                | ExtensionType::MetadataPointer
+                | ExtensionType::TokenMetadata
+        )
+    });
+
+    Ok(result)
 }
 
 pub fn create_token_account<'a>(

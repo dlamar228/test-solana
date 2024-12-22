@@ -23,7 +23,7 @@ pub fn update_amm_config(ctx: Context<UpdateAmmConfig>, param: u8, value: u64) -
             let new_protocol_owner = *ctx.remaining_accounts.iter().next().unwrap().key;
             set_new_protocol_owner(amm_config, new_protocol_owner)?;
         }
-        3 => amm_config.disable_create_pool = value != 0,
+        3 => amm_config.disable_create_dex = value != 0,
         _ => return err!(ErrorCode::InvalidInput),
     }
 

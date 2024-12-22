@@ -1,16 +1,15 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::Mint;
 /// Seed to derive account address and signature
-pub const POOL_SEED: &str = "pool";
-pub const POOL_VAULT_SEED: &str = "pool_vault";
-pub const POOL_LP_VAULT_SEED: &str = "pool_lp_vault";
+pub const DEX_SEED: &str = "dex_state";
+pub const DEX_VAULT_SEED: &str = "dex_vault";
 
 pub const Q32: u128 = (u32::MAX as u128) + 1; // 2^32
 
 #[account(zero_copy(unsafe))]
 #[repr(packed)]
 #[derive(Default, Debug)]
-pub struct PoolState {
+pub struct DexState {
     /// Which config the pool belongs
     pub amm_config: Pubkey,
     /// pool creator
@@ -19,8 +18,6 @@ pub struct PoolState {
     pub token_0_vault: Pubkey,
     /// Token B
     pub token_1_vault: Pubkey,
-    /// Token lp
-    pub token_lp_vault: Pubkey,
 
     pub is_launched: bool,
     pub vault_0_reserve_bound: u64,
@@ -57,8 +54,8 @@ pub struct PoolState {
     pub padding: [u64; 31],
 }
 
-impl PoolState {
-    pub const LEN: usize = 8 + std::mem::size_of::<PoolState>();
+impl DexState {
+    pub const LEN: usize = 8 + std::mem::size_of::<DexState>();
 
     pub fn initialize(
         &mut self,
@@ -68,10 +65,8 @@ impl PoolState {
         amm_config: Pubkey,
         token_0_vault: Pubkey,
         token_1_vault: Pubkey,
-        token_lp_vault: Pubkey,
         token_0_mint: &InterfaceAccount<Mint>,
         token_1_mint: &InterfaceAccount<Mint>,
-        lp_mint: &InterfaceAccount<Mint>,
         raydium: Pubkey,
         vault_0_reserve_bound: u64,
     ) {
@@ -81,8 +76,6 @@ impl PoolState {
         self.token_1_vault = token_1_vault;
         self.is_launched = false;
         self.vault_0_reserve_bound = vault_0_reserve_bound;
-        self.token_lp_vault = token_lp_vault;
-        self.lp_mint = lp_mint.key();
         self.raydium = raydium;
         self.token_0_mint = token_0_mint.key();
         self.token_1_mint = token_1_mint.key();

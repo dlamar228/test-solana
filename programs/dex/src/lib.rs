@@ -10,7 +10,7 @@ use instructions::*;
 
 declare_id!("7E65apY9nbnCLvhfjCPc4V1veuPriHrp8kD3c76tTr4U");
 
-pub const AUTH_SEED: &str = "vault_and_lp_mint_auth_seed";
+pub const AUTH_SEED: &str = "dex_auth";
 
 #[program]
 pub mod dex {
