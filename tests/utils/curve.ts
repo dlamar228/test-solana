@@ -1,12 +1,15 @@
 import { BN } from "@coral-xyz/anchor";
 import {
   calculateEpochFee,
+  calculateFee,
+  getEpochFee,
   MAX_FEE_BASIS_POINTS,
+  ONE_IN_BASIS_POINTS,
   TOKEN_PROGRAM_ID,
+  TransferFee,
   TransferFeeConfig,
 } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
-import { TokenUtils } from "./token.utils";
 
 export interface SwapResult {
   newSwapSourceAmount: BN;
@@ -66,10 +69,6 @@ export class Curve {
       swapDestinationAmount
     );
 
-    if (!BN.isBN(sourceAmountSwapped)) {
-      throw Error("sourceAmountSwapped is null");
-    }
-
     let sourceAmount = this.calculatePreFeeAmount(
       sourceAmountSwapped,
       protocolFeeRate
@@ -101,21 +100,17 @@ export class Curve {
     destinationAmount: BN,
     swapSourceAmount: BN,
     swapDestinationAmount: BN
-  ): BN | null {
+  ): BN {
     // (x + delta_x) * (y - delta_y) = x * y
     // delta_x = (x * delta_y) / (y - delta_y)
     let numerator = swapSourceAmount.mul(destinationAmount);
-    let denominator = swapDestinationAmount.sub(swapDestinationAmount);
+    let denominator = swapDestinationAmount.sub(destinationAmount);
     let result = this.checkedCeilDiv(numerator, denominator);
 
-    if (Array.isArray(result)) {
-      return result[0];
-    }
-
-    return null;
+    return result[0];
   }
 
-  ceilDiv(tokenAmount: BN, feeNumerator: BN, feeDenominator: BN): BN {
+  feeCeilDiv(tokenAmount: BN, feeNumerator: BN, feeDenominator: BN): BN {
     return tokenAmount
       .mul(feeNumerator)
       .add(feeDenominator)
@@ -123,15 +118,24 @@ export class Curve {
       .div(feeDenominator);
   }
 
-  checkedCeilDiv(lhs: BN, rhs: BN): [BN, BN] | null {
-    if (rhs.eq(this.ZERO)) {
-      return null; // Division by zero
+  ceilDiv(numerator: BN, denominator: BN): BN {
+    const quotient = numerator.div(denominator);
+    const remainder = numerator.mod(denominator);
+    if (remainder.gt(this.ZERO)) {
+      return quotient.add(this.ONE);
+    }
+    return quotient;
+  }
+
+  checkedCeilDiv(lhs: BN, rhs: BN): [BN, BN] {
+    if (rhs.isZero()) {
+      throw Error("Div by zero");
     }
 
     let quotient = lhs.div(rhs);
 
     // Avoid dividing a small number by a big one and returning 1, and instead fail.
-    if (quotient.eq(this.ZERO)) {
+    if (quotient.isZero()) {
       if (lhs.mul(this.TWO).gte(rhs)) {
         return [this.ONE, this.ZERO];
       } else {
@@ -164,22 +168,22 @@ export class Curve {
     );
   }
 
-  calculatePreFeeAmount(postFeeAmount: BN, tradeFeeRate: BN): BN | null {
+  calculatePreFeeAmount(postFeeAmount: BN, tradeFeeRate: BN): BN {
     if (tradeFeeRate.isZero()) {
       return postFeeAmount;
     }
 
     const numerator = postFeeAmount.mul(this.FEE_RATE_DENOMINATOR_VALUE);
 
+    if (tradeFeeRate.gt(this.FEE_RATE_DENOMINATOR_VALUE)) {
+      throw Error("Sub underflow");
+    }
     const denominator =
       this.FEE_RATE_DENOMINATOR_VALUE.clone().sub(tradeFeeRate);
-    if (denominator.isZero()) {
-      return null; // Avoid division by zero
-    }
 
     let result = numerator.add(denominator).sub(this.ONE).div(denominator);
 
-    return result; // Return the calculated pre-fee amount
+    return result;
   }
 
   getTransferFeeAmount(
@@ -260,6 +264,19 @@ export interface SwapBaseInputArgs {
   epoch: bigint;
 }
 
+export interface SwapBaseOutputArgs {
+  protocolFeeRate: BN;
+  inputProtocolFee: BN;
+  outputProtocolFee: BN;
+  inputMintConfig: TransferFeeConfig | null;
+  outputMintConfig: TransferFeeConfig | null;
+  inputVault: BN;
+  outputVault: BN;
+  maxAmountIn: BN;
+  amountOutLessFee: BN;
+  epoch: bigint;
+}
+
 export class SwapCalculator {
   curve = new Curve();
   Q32 = new BN(4294967296);
@@ -314,18 +331,87 @@ export class SwapCalculator {
       };
     }
 
-    let transferFee = new BN(
+    let epochFee = new BN(
       calculateEpochFee(config, epoch, BigInt(amount.toNumber())).toString()
     );
 
-    if (transferFee.gt(amount)) {
+    if (epochFee.gt(amount)) {
       throw Error("Sub overflow");
     }
     return {
       amount,
-      actualAmount: amount.sub(transferFee),
-      fee: transferFee,
+      actualAmount: amount.sub(epochFee),
+      fee: epochFee,
     };
+  }
+
+  calculatePreFeeAmount(transferFee: TransferFee, postFeeAmount: BN) {
+    if (transferFee.transferFeeBasisPoints == 0) {
+      return postFeeAmount;
+    } else if (
+      BigInt(transferFee.transferFeeBasisPoints) == ONE_IN_BASIS_POINTS ||
+      postFeeAmount.eq(this.curve.ZERO)
+    ) {
+      return this.curve.ZERO;
+    } else {
+      const numerator = BigInt(postFeeAmount.toNumber()) * ONE_IN_BASIS_POINTS;
+      const denominator =
+        ONE_IN_BASIS_POINTS - BigInt(transferFee.transferFeeBasisPoints);
+      const rawPreFeeAmount = this.curve.ceilDiv(
+        new BN(numerator.toString()),
+        new BN(denominator.toString())
+      );
+
+      if (
+        rawPreFeeAmount
+          .sub(postFeeAmount)
+          .gte(new BN(transferFee.maximumFee.toString()))
+      ) {
+        return postFeeAmount.add(new BN(transferFee.maximumFee.toString()));
+      } else {
+        return rawPreFeeAmount;
+      }
+    }
+  }
+
+  calculateTransferInverseFee(
+    config: TransferFeeConfig | null,
+    epoch: bigint,
+    postFeeAmount: BN
+  ) {
+    if (config === null) {
+      return {
+        amount: postFeeAmount,
+        actualAmount: postFeeAmount,
+        fee: this.curve.ZERO,
+      };
+    }
+
+    if (postFeeAmount.isZero()) {
+      throw Error("Inverse fee amount is zero");
+    }
+
+    let transferFee = getEpochFee(config, epoch);
+
+    if (transferFee.transferFeeBasisPoints == MAX_FEE_BASIS_POINTS) {
+      let fee = new BN(transferFee.maximumFee.toString());
+      return {
+        amount: postFeeAmount,
+        actualAmount: postFeeAmount.add(fee),
+        fee,
+      };
+    } else {
+      let preFeeAmount = this.calculatePreFeeAmount(transferFee, postFeeAmount);
+      let fee = new BN(
+        calculateFee(transferFee, BigInt(preFeeAmount.toNumber())).toString()
+      );
+
+      return {
+        amount: postFeeAmount,
+        actualAmount: postFeeAmount.add(fee),
+        fee,
+      };
+    }
   }
 
   swapBaseInput(args: SwapBaseInputArgs): SwapBaseInputResult {
@@ -364,6 +450,49 @@ export class SwapCalculator {
     }
 
     if (args.minimumAmountOut.gt(outputFeeCalculation.actualAmount)) {
+      throw Error("ExceededSlippage");
+    }
+
+    return {
+      inputAmountFee: inputFeeCalculation,
+      outputAmountFee: outputFeeCalculation,
+      swapCalculation: swapCalculation,
+      swapResult: result,
+    };
+  }
+
+  swapBaseOutput(args: SwapBaseOutputArgs): SwapBaseInputResult {
+    let outputFeeCalculation = this.calculateTransferInverseFee(
+      args.outputMintConfig,
+      args.epoch,
+      args.amountOutLessFee
+    );
+
+    let swapCalculation = this.calculateTradeAmountsAndPriceBeforeSwap(
+      args.inputProtocolFee,
+      args.outputProtocolFee,
+      args.inputVault,
+      args.outputVault
+    );
+
+    let result = this.curve.swapBaseOutput(
+      outputFeeCalculation.actualAmount,
+      swapCalculation.totalInputTokenAmount,
+      swapCalculation.totalOutputTokenAmount,
+      args.protocolFeeRate
+    );
+
+    if (result.sourceAmountSwapped.isZero()) {
+      throw Error("sourceAmountSwapped is zero");
+    }
+
+    let inputFeeCalculation = this.calculateTransferInverseFee(
+      args.inputMintConfig,
+      args.epoch,
+      result.sourceAmountSwapped
+    );
+
+    if (inputFeeCalculation.actualAmount.gt(args.maxAmountIn)) {
       throw Error("ExceededSlippage");
     }
 
