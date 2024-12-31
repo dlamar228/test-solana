@@ -21,8 +21,8 @@ import { RaydiumAccounts } from "./raydium.utils";
 
 export interface AmmCreationArgs {
   index: number;
-  protocol_fee_rate: BN;
-  launch_fee_rate: BN;
+  protocolFeeRate: BN;
+  launchFeeRate: BN;
 }
 
 export interface DexCreationArgs {
@@ -82,7 +82,7 @@ export class DexUtils {
   async initializeAmm(signer: Signer, args: AmmCreationArgs) {
     let [amm] = this.pdaGetter.getAmmAddress(args.index);
     await this.program.methods
-      .createAmmConfig(args.index, args.protocol_fee_rate, args.launch_fee_rate)
+      .createAmmConfig(args.index, args.protocolFeeRate, args.launchFeeRate)
       .accounts({
         owner: signer.publicKey,
         ammConfig: amm,
@@ -144,7 +144,7 @@ export class DexUtils {
       },
     };
   }
-  async swap_base_input(
+  async swapBaseInput(
     signer: Signer,
     args: SwapBaseInputArgs
   ): Promise<TransactionSignature> {
@@ -175,7 +175,7 @@ export class DexUtils {
       ])
       .rpc(this.confirmOptions);
   }
-  async swap_base_output(
+  async swapBaseOutput(
     signer: Signer,
     args: SwapBaseOutputArgs
   ): Promise<TransactionSignature> {
@@ -207,16 +207,19 @@ export class DexUtils {
       .rpc(this.confirmOptions);
   }
 
-  async is_launched(state: PublicKey) {
+  async isLaunched(state: PublicKey) {
     return (await this.program.account.dexState.fetchNullable(state))
       .isLaunched;
   }
-  async get_state(state: PublicKey) {
+  async getDexState(state: PublicKey) {
     return await this.program.account.dexState.fetchNullable(state);
+  }
+  async getAmmState(amm: PublicKey) {
+    return await this.program.account.ammConfig.fetchNullable(amm);
   }
 }
 
-interface DexAccounts {
+export interface DexAccounts {
   auth: PublicKey;
   amm: PublicKey;
   state: PublicKey;

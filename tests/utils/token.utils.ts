@@ -12,6 +12,10 @@ import {
   getOrCreateAssociatedTokenAccount,
   mintTo,
   TOKEN_PROGRAM_ID,
+  getMint,
+  getTransferFeeConfig,
+  TransferFeeConfig,
+  calculateEpochFee,
 } from "@solana/spl-token";
 import { BN } from "@coral-xyz/anchor";
 
@@ -43,9 +47,33 @@ export class TokenUtils {
     this.confirmOptions = confirmOptions;
   }
 
-  async balance(address: PublicKey) {
+  async getBalance(address: PublicKey) {
     let balance = (await this.connection.getTokenAccountBalance(address)).value;
     return new BN(balance.amount);
+  }
+
+  async getTransferFeeConfig(mint: PublicKey, program: PublicKey) {
+    let mint_data = await getMint(
+      this.connection,
+      mint,
+      this.confirmOptions.commitment,
+      program
+    );
+    let config = getTransferFeeConfig(mint_data);
+
+    return config;
+  }
+
+  calculateEpochFee(
+    config: TransferFeeConfig,
+    epoch: bigint,
+    preFeeAmount: bigint
+  ) {
+    return calculateEpochFee(config, epoch, preFeeAmount);
+  }
+
+  async getEpoch() {
+    return (await this.connection.getEpochInfo(this.confirmOptions)).epoch;
   }
 
   async createSplMint(signer: Signer, decimals: number) {
