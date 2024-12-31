@@ -49,8 +49,8 @@ describe("dex.initialize.test", () => {
 
     let dexAmmArgs = {
       index: 1,
-      protocol_fee_rate: new BN(0),
-      launch_fee_rate: new BN(0),
+      protocolFeeRate: new BN(0),
+      launchFeeRate: new BN(0),
     };
 
     let dexAmm = await dexUtils.initializeAmm(signer, dexAmmArgs);
