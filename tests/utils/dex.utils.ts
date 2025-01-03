@@ -84,6 +84,9 @@ export class DexUtils {
         owner: signer.publicKey,
         ammConfig: amm,
       })
+      .preInstructions([
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
+      ])
       .rpc();
     return amm;
   }
@@ -126,6 +129,9 @@ export class DexUtils {
         systemProgram: SystemProgram.programId,
         rent: SYSVAR_RENT_PUBKEY,
       })
+      .preInstructions([
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
+      ])
       .rpc();
     return {
       auth,
@@ -168,7 +174,7 @@ export class DexUtils {
         raydiumToken1Vault: args.raydiumAccounts.vault1.address,
       })
       .preInstructions([
-        ComputeBudgetProgram.setComputeUnitLimit({ units: 400000 }),
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
       ])
       .rpc(this.confirmOptions);
   }
@@ -199,7 +205,7 @@ export class DexUtils {
         raydiumToken1Vault: args.raydiumAccounts.vault1.address,
       })
       .preInstructions([
-        ComputeBudgetProgram.setComputeUnitLimit({ units: 400000 }),
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
       ])
       .rpc(this.confirmOptions);
   }

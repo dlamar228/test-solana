@@ -12,6 +12,7 @@ import {
   SystemProgram,
   ConfirmOptions,
   SYSVAR_RENT_PUBKEY,
+  ComputeBudgetProgram,
 } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { ASSOCIATED_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/utils/token";
@@ -87,6 +88,9 @@ export class RaydiumUtils {
         creatorLpToken,
         rent: SYSVAR_RENT_PUBKEY,
       })
+      .preInstructions([
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
+      ])
       .rpc();
 
     return {
