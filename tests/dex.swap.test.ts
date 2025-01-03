@@ -13,16 +13,12 @@ import {
   DexAccounts,
   SwapBaseInputResult,
   TokenVault,
+  nextIndex,
 } from "./utils";
 import { expect } from "chai";
 
 describe("dex.swap.test", () => {
   anchor.setProvider(anchor.AnchorProvider.env());
-  var index = 0;
-  const nextIndex = () => {
-    index += 1;
-    return index;
-  };
   const signer = anchor.Wallet.local().payer;
   const dexProgram = anchor.workspace.Dex as Program<Dex>;
   const raydiumProgram = createRaydiumProgram(anchor.getProvider());

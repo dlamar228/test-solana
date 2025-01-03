@@ -279,3 +279,9 @@ export class DexSeeds {
     return Buffer.from(anchor.utils.bytes.utf8.encode(seed));
   }
 }
+
+var index = 0;
+export function nextIndex() {
+  index += 1;
+  return index;
+}
