@@ -699,28 +699,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7c74b8349d32d297c9134b8c88677813a227df8f779daa29bfc29c183fe3dca6"
 
 [[package]]
-name = "cp-proxy"
-version = "0.1.0"
-dependencies = [
- "ahash 0.8.6",
- "anchor-lang",
- "anchor-spl",
- "arrayref",
- "bytemuck",
- "num_enum 0.7.0",
- "proptest",
- "quickcheck",
- "rand 0.8.5",
- "raydium-cp-swap",
- "solana-program",
- "solana-security-txt",
- "spl-math",
- "spl-memo",
- "spl-token",
- "uint",
-]
-
-[[package]]
 name = "cpufeatures"
 version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
