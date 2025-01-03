@@ -6,16 +6,26 @@ import {
   ConfirmOptions,
   Commitment,
   TransactionSignature,
+  Transaction,
+  SystemProgram,
+  sendAndConfirmTransaction,
 } from "@solana/web3.js";
 import {
   createMint,
   getOrCreateAssociatedTokenAccount,
   mintTo,
   TOKEN_PROGRAM_ID,
+  TOKEN_2022_PROGRAM_ID,
   getMint,
   getTransferFeeConfig,
   TransferFeeConfig,
   calculateEpochFee,
+  ExtensionType,
+  getMintLen,
+  createInitializeTransferFeeConfigInstruction,
+  createInitializeMintInstruction,
+  MAX_FEE_BASIS_POINTS,
+  ONE_IN_BASIS_POINTS,
 } from "@solana/spl-token";
 import { BN } from "@coral-xyz/anchor";
 
@@ -96,12 +106,69 @@ export class TokenUtils {
     };
   }
 
+  async create2022MintWithTransferFee(
+    signer: Signer,
+    decimals: number,
+    transferFeeBasisPoints: number,
+    maximumFee: bigint
+  ): Promise<Mint> {
+    let mintKeypair = Keypair.generate();
+    const transferFeeConfigAuthority = Keypair.generate();
+    const withdrawWithheldAuthority = Keypair.generate();
+    const extensions = [ExtensionType.TransferFeeConfig];
+    const mintLen = getMintLen(extensions);
+
+    const mintLamports =
+      await this.connection.getMinimumBalanceForRentExemption(mintLen);
+
+    const mintTransaction = new Transaction().add(
+      SystemProgram.createAccount({
+        fromPubkey: signer.publicKey,
+        newAccountPubkey: mintKeypair.publicKey,
+        space: mintLen,
+        lamports: mintLamports,
+        programId: TOKEN_2022_PROGRAM_ID,
+      }),
+      createInitializeTransferFeeConfigInstruction(
+        mintKeypair.publicKey,
+        signer.publicKey,
+        signer.publicKey,
+        transferFeeBasisPoints,
+        maximumFee,
+        TOKEN_2022_PROGRAM_ID
+      ),
+      createInitializeMintInstruction(
+        mintKeypair.publicKey,
+        decimals,
+        signer.publicKey,
+        signer.publicKey,
+        TOKEN_2022_PROGRAM_ID
+      )
+    );
+
+    await sendAndConfirmTransaction(
+      this.connection,
+      mintTransaction,
+      [signer, mintKeypair],
+      this.confirmOptions
+    );
+
+    return {
+      authority: signer.publicKey,
+      freezeAuthority: signer.publicKey,
+      decimals,
+      address: mintKeypair.publicKey,
+      program: TOKEN_2022_PROGRAM_ID,
+    };
+  }
+
   async createAta(
     signer: Signer,
     owner: PublicKey,
     mint: PublicKey,
     allowOwnerOffCurve = false,
-    commitment = "processed" as Commitment
+    commitment = "processed" as Commitment,
+    program = TOKEN_PROGRAM_ID as PublicKey
   ) {
     const account = await getOrCreateAssociatedTokenAccount(
       this.connection,
@@ -110,7 +177,8 @@ export class TokenUtils {
       owner,
       allowOwnerOffCurve,
       commitment,
-      this.confirmOptions
+      this.confirmOptions,
+      program
     );
     return account.address;
   }
@@ -120,7 +188,8 @@ export class TokenUtils {
     authority: Signer,
     mint: PublicKey,
     destination: PublicKey,
-    amount: number
+    amount: number,
+    program = TOKEN_PROGRAM_ID
   ): Promise<TransactionSignature> {
     return await mintTo(
       this.connection,
@@ -130,7 +199,8 @@ export class TokenUtils {
       authority,
       amount,
       [],
-      this.confirmOptions
+      this.confirmOptions,
+      program
     );
   }
 
@@ -170,6 +240,68 @@ export class TokenUtils {
 
     await this.mintTo(signer, signer, mint0.address, ata0, amount0);
     await this.mintTo(signer, signer, mint1.address, ata1, amount1);
+
+    return {
+      mint0,
+      mint1,
+      ata0,
+      ata1,
+    };
+  }
+
+  async initialize2022MintPair(
+    signer: Signer,
+    amount0: number,
+    amount1: number
+  ): Promise<MintPair> {
+    let [mint0, mint1] = this.sortMintPair(
+      await this.create2022MintWithTransferFee(
+        signer,
+        9,
+        MAX_FEE_BASIS_POINTS,
+        ONE_IN_BASIS_POINTS
+      ),
+      await this.create2022MintWithTransferFee(
+        signer,
+        9,
+        MAX_FEE_BASIS_POINTS,
+        ONE_IN_BASIS_POINTS
+      )
+    );
+
+    let ata0 = await this.createAta(
+      signer,
+      signer.publicKey,
+      mint0.address,
+      false,
+      this.confirmOptions.commitment,
+      mint0.program
+    );
+    let ata1 = await this.createAta(
+      signer,
+      signer.publicKey,
+      mint1.address,
+      false,
+      this.confirmOptions.commitment,
+      mint1.program
+    );
+
+    await this.mintTo(
+      signer,
+      signer,
+      mint0.address,
+      ata0,
+      amount0,
+      mint0.program
+    );
+    await this.mintTo(
+      signer,
+      signer,
+      mint1.address,
+      ata1,
+      amount1,
+      mint1.program
+    );
 
     return {
       mint0,

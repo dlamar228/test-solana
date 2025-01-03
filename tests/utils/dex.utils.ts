@@ -10,10 +10,7 @@ import {
   ComputeBudgetProgram,
   TransactionSignature,
 } from "@solana/web3.js";
-import {
-  getAssociatedTokenAddressSync,
-  TOKEN_PROGRAM_ID,
-} from "@solana/spl-token";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { ASSOCIATED_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/utils/token";
 import { Mint, TokenUtils, TokenVault } from "./token.utils";
 import { u16ToBytes } from "./utils";
