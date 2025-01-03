@@ -113,8 +113,7 @@ export class TokenUtils {
     maximumFee: bigint
   ): Promise<Mint> {
     let mintKeypair = Keypair.generate();
-    const transferFeeConfigAuthority = Keypair.generate();
-    const withdrawWithheldAuthority = Keypair.generate();
+
     const extensions = [ExtensionType.TransferFeeConfig];
     const mintLen = getMintLen(extensions);
 
@@ -255,18 +254,8 @@ export class TokenUtils {
     amount1: number
   ): Promise<MintPair> {
     let [mint0, mint1] = this.sortMintPair(
-      await this.create2022MintWithTransferFee(
-        signer,
-        9,
-        MAX_FEE_BASIS_POINTS,
-        ONE_IN_BASIS_POINTS
-      ),
-      await this.create2022MintWithTransferFee(
-        signer,
-        9,
-        MAX_FEE_BASIS_POINTS,
-        ONE_IN_BASIS_POINTS
-      )
+      await this.create2022MintWithTransferFee(signer, 9, 50, BigInt(500)),
+      await this.create2022MintWithTransferFee(signer, 9, 50, BigInt(500))
     );
 
     let ata0 = await this.createAta(
