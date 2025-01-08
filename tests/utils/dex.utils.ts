@@ -16,18 +16,18 @@ import { Mint, TokenUtils, TokenVault } from "./token.utils";
 import { u16ToBytes } from "./utils";
 import { RaydiumAccounts } from "./raydium.utils";
 
-export interface AmmCreationArgs {
+export interface ConfigCreationArgs {
   index: number;
-  protocolFeeRate: BN;
-  launchFeeRate: BN;
 }
 
 export interface DexCreationArgs {
-  amm: PublicKey;
+  config: PublicKey;
   initAmount0: BN;
   initAmount1: BN;
   reserveBound: BN;
   openTime: BN;
+  protocolFeeRate: BN;
+  launchFeeRate: BN;
   raydium: PublicKey;
   mint0: Mint;
   mint1: Mint;
@@ -76,19 +76,19 @@ export class DexUtils {
     this.pdaGetter = new DexPda(program.programId);
   }
 
-  async initializeAmm(signer: Signer, args: AmmCreationArgs) {
-    let [amm] = this.pdaGetter.getAmmAddress(args.index);
+  async initializeConfig(signer: Signer, args: ConfigCreationArgs) {
+    let [config] = this.pdaGetter.getConfigAddress(args.index);
     await this.program.methods
-      .createAmmConfig(args.index, args.protocolFeeRate, args.launchFeeRate)
+      .initializeConfig(args.index)
       .accounts({
         owner: signer.publicKey,
-        ammConfig: amm,
+        config,
       })
       .preInstructions([
         ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
       ])
       .rpc();
-    return amm;
+    return config;
   }
   async initialize(
     signer: Signer,
@@ -96,7 +96,7 @@ export class DexUtils {
   ): Promise<DexAccounts> {
     let [auth] = this.pdaGetter.getAuthAddress();
     let [state] = this.pdaGetter.getStateAddress(
-      args.amm,
+      args.config,
       args.mint0.address,
       args.mint1.address
     );
@@ -104,16 +104,18 @@ export class DexUtils {
     let [vault1] = this.pdaGetter.getVaultAddress(state, args.mint1.address);
 
     await this.program.methods
-      .initialize(
+      .initializeDex(
         args.initAmount0,
         args.initAmount1,
         args.openTime,
-        args.reserveBound
+        args.reserveBound,
+        args.protocolFeeRate,
+        args.launchFeeRate
       )
       .accounts({
         raydium: args.raydium,
         creator: signer.publicKey,
-        ammConfig: args.amm,
+        config: args.config,
         authority: auth,
         dexState: state,
         token0Mint: args.mint0.address,
@@ -135,7 +137,7 @@ export class DexUtils {
       .rpc();
     return {
       auth,
-      amm: args.amm,
+      config: args.config,
       state,
       vault0: {
         mint: args.mint0,
@@ -162,7 +164,6 @@ export class DexUtils {
         outputTokenProgram: args.outputTokenProgram,
         // dex accounts
         authority: args.dexAccounts.auth,
-        ammConfig: args.dexAccounts.amm,
         dexState: args.dexAccounts.state,
         inputVault: args.inputVault,
         outputVault: args.outputVault,
@@ -193,7 +194,6 @@ export class DexUtils {
         outputTokenProgram: args.outputTokenProgram,
         // dex accounts
         authority: args.dexAccounts.auth,
-        ammConfig: args.dexAccounts.amm,
         dexState: args.dexAccounts.state,
         inputVault: args.inputVault,
         outputVault: args.outputVault,
@@ -217,14 +217,14 @@ export class DexUtils {
   async getDexState(state: PublicKey) {
     return await this.program.account.dexState.fetchNullable(state);
   }
-  async getAmmState(amm: PublicKey) {
-    return await this.program.account.ammConfig.fetchNullable(amm);
+  async getConfigState(config: PublicKey) {
+    return await this.program.account.config.fetchNullable(config);
   }
 }
 
 export interface DexAccounts {
   auth: PublicKey;
-  amm: PublicKey;
+  config: PublicKey;
   state: PublicKey;
   vault0: TokenVault;
   vault1: TokenVault;
@@ -242,9 +242,9 @@ export class DexPda {
   getAuthAddress() {
     return PublicKey.findProgramAddressSync([this.seeds.auth], this.programId);
   }
-  getAmmAddress(index: number) {
+  getConfigAddress(index: number) {
     return PublicKey.findProgramAddressSync(
-      [this.seeds.amm, u16ToBytes(index)],
+      [this.seeds.config, u16ToBytes(index)],
       this.programId
     );
   }
@@ -264,13 +264,13 @@ export class DexPda {
 
 export class DexSeeds {
   auth: Buffer;
-  amm: Buffer;
+  config: Buffer;
   dex: Buffer;
   vault: Buffer;
 
   constructor() {
     this.auth = this.toSeed("dex_auth");
-    this.amm = this.toSeed("dex_amm_config");
+    this.config = this.toSeed("dex_config");
     this.dex = this.toSeed("dex_state");
     this.vault = this.toSeed("dex_vault");
   }

@@ -24,8 +24,6 @@ import {
   getMintLen,
   createInitializeTransferFeeConfigInstruction,
   createInitializeMintInstruction,
-  MAX_FEE_BASIS_POINTS,
-  ONE_IN_BASIS_POINTS,
 } from "@solana/spl-token";
 import { BN } from "@coral-xyz/anchor";
 

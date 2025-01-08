@@ -48,16 +48,14 @@ describe("dex.initialize.test", () => {
       raydiumPoolArgs
     );
 
-    let dexAmmArgs = {
+    let dexConfigArgs = {
       index: nextIndex(),
-      protocolFeeRate: new BN(0),
-      launchFeeRate: new BN(0),
     };
 
-    let dexAmm = await dexUtils.initializeAmm(signer, dexAmmArgs);
+    let dexConfig = await dexUtils.initializeConfig(signer, dexConfigArgs);
 
     let dexArgs = {
-      amm: dexAmm,
+      config: dexConfig,
       initAmount0: new BN(2000),
       initAmount1: new BN(4555),
       reserveBound: new BN(3000),
@@ -67,6 +65,8 @@ describe("dex.initialize.test", () => {
       mint1,
       signerAta0: ata0,
       signerAta1: ata1,
+      protocolFeeRate: new BN(0),
+      launchFeeRate: new BN(0),
     };
 
     await dexUtils.initialize(signer, dexArgs);
@@ -94,16 +94,14 @@ describe("dex.initialize.test", () => {
       raydiumPoolArgs
     );
 
-    let dexAmmArgs = {
+    let dexConfigArgs = {
       index: nextIndex(),
-      protocolFeeRate: new BN(0),
-      launchFeeRate: new BN(0),
     };
 
-    let dexAmm = await dexUtils.initializeAmm(signer, dexAmmArgs);
+    let dexConfig = await dexUtils.initializeConfig(signer, dexConfigArgs);
 
     let dexArgs = {
-      amm: dexAmm,
+      config: dexConfig,
       initAmount0: new BN(2000),
       initAmount1: new BN(4555),
       reserveBound: new BN(3000),
@@ -113,6 +111,8 @@ describe("dex.initialize.test", () => {
       mint1,
       signerAta0: ata0,
       signerAta1: ata1,
+      protocolFeeRate: new BN(0),
+      launchFeeRate: new BN(0),
     };
 
     await dexUtils.initialize(signer, dexArgs);

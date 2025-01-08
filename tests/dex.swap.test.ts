@@ -58,15 +58,13 @@ describe("dex.swap.test", () => {
         raydiumPoolArgs
       );
 
-      let dexAmmArgs = {
+      let dexConfigArgs = {
         index: nextIndex(),
-        protocolFeeRate: new BN(0),
-        launchFeeRate: new BN(0),
       };
-      let dexAmm = await dexUtils.initializeAmm(signer, dexAmmArgs);
+      let dexConfig = await dexUtils.initializeConfig(signer, dexConfigArgs);
 
       let dexArgs = {
-        amm: dexAmm,
+        config: dexConfig,
         initAmount0: new BN(2000),
         initAmount1: new BN(4555),
         reserveBound: new BN(5000),
@@ -76,6 +74,8 @@ describe("dex.swap.test", () => {
         mint1,
         signerAta0: ata0,
         signerAta1: ata1,
+        protocolFeeRate: new BN(0),
+        launchFeeRate: new BN(0),
       };
       let dexAccounts = await dexUtils.initialize(signer, dexArgs);
 
@@ -120,15 +120,13 @@ describe("dex.swap.test", () => {
         raydiumPoolArgs
       );
 
-      let dexAmmArgs = {
+      let dexConfigArgs = {
         index: nextIndex(),
-        protocolFeeRate: new BN(0),
-        launchFeeRate: new BN(0),
       };
-      let dexAmm = await dexUtils.initializeAmm(signer, dexAmmArgs);
+      let dexConfig = await dexUtils.initializeConfig(signer, dexConfigArgs);
 
       let dexArgs = {
-        amm: dexAmm,
+        config: dexConfig,
         initAmount0: new BN(2000),
         initAmount1: new BN(4555),
         reserveBound: new BN(2100),
@@ -138,6 +136,8 @@ describe("dex.swap.test", () => {
         mint1,
         signerAta0: ata0,
         signerAta1: ata1,
+        protocolFeeRate: new BN(0),
+        launchFeeRate: new BN(0),
       };
       let dexAccounts = await dexUtils.initialize(signer, dexArgs);
 
@@ -188,15 +188,15 @@ describe("dex.swap.test", () => {
         raydiumPoolArgs
       );
 
-      let dexAmmArgs = {
+      let dexConfigArgs = {
         index: nextIndex(),
         protocolFeeRate: new BN(30_000),
         launchFeeRate: new BN(0),
       };
-      let dexAmm = await dexUtils.initializeAmm(signer, dexAmmArgs);
+      let dexConfig = await dexUtils.initializeConfig(signer, dexConfigArgs);
 
       let dexArgs = {
-        amm: dexAmm,
+        config: dexConfig,
         initAmount0: new BN(2000),
         initAmount1: new BN(4000),
         reserveBound: new BN(5000),
@@ -206,6 +206,8 @@ describe("dex.swap.test", () => {
         mint1,
         signerAta0: ata0,
         signerAta1: ata1,
+        protocolFeeRate: new BN(10_000),
+        launchFeeRate: new BN(10_000),
       };
       let dexAccounts = await dexUtils.initialize(signer, dexArgs);
 
@@ -241,7 +243,7 @@ describe("dex.swap.test", () => {
 
       let actualSwapFee = (
         await dexUtils.getDexState(dexAccounts.state)
-      ).protocolFeesToken0.toNumber();
+      ).swapFeesToken0.toNumber();
 
       expect(actualSwapFee, "Swap fee calculation mismatch!").eq(
         swapInputExpected.swapResult.protocolFee.toNumber()
@@ -270,15 +272,13 @@ describe("dex.swap.test", () => {
         raydiumPoolArgs
       );
 
-      let dexAmmArgs = {
+      let dexConfigArgs = {
         index: nextIndex(),
-        protocolFeeRate: new BN(30_000),
-        launchFeeRate: new BN(10_000),
       };
-      let dexAmm = await dexUtils.initializeAmm(signer, dexAmmArgs);
+      let dexConfig = await dexUtils.initializeConfig(signer, dexConfigArgs);
 
       let dexArgs = {
-        amm: dexAmm,
+        config: dexConfig,
         initAmount0: new BN(2000),
         initAmount1: new BN(4000),
         reserveBound: new BN(2001),
@@ -288,6 +288,8 @@ describe("dex.swap.test", () => {
         mint1,
         signerAta0: ata0,
         signerAta1: ata1,
+        protocolFeeRate: new BN(30_000),
+        launchFeeRate: new BN(10_000),
       };
       let dexAccounts = await dexUtils.initialize(signer, dexArgs);
 
@@ -323,12 +325,12 @@ describe("dex.swap.test", () => {
         swapArgs.amountIn
           .add(dexArgs.initAmount0)
           .sub(swapInputExpected.swapResult.protocolFee),
-        dexAmmArgs.launchFeeRate
+        dexArgs.launchFeeRate
       );
 
       let swapTx = await dexUtils.swapBaseInput(signer, swapArgs);
       let actualSwapFee = (await dexUtils.getDexState(dexAccounts.state))
-        .protocolFeesToken0;
+        .swapFeesToken0;
 
       let actualLaunchFee = (
         await tokenUtils.getBalance(swapArgs.inputVault)
@@ -369,15 +371,13 @@ describe("dex.swap.test", () => {
         raydiumPoolArgs
       );
 
-      let dexAmmArgs = {
+      let dexConfigArgs = {
         index: nextIndex(),
-        protocolFeeRate: new BN(0),
-        launchFeeRate: new BN(0),
       };
-      let dexAmm = await dexUtils.initializeAmm(signer, dexAmmArgs);
+      let dexConfig = await dexUtils.initializeConfig(signer, dexConfigArgs);
 
       let dexArgs = {
-        amm: dexAmm,
+        config: dexConfig,
         initAmount0: new BN(2000),
         initAmount1: new BN(4555),
         reserveBound: new BN(5000),
@@ -387,6 +387,8 @@ describe("dex.swap.test", () => {
         mint1,
         signerAta0: ata0,
         signerAta1: ata1,
+        protocolFeeRate: new BN(30_000),
+        launchFeeRate: new BN(10_000),
       };
       let dexAccounts = await dexUtils.initialize(signer, dexArgs);
 
@@ -431,15 +433,13 @@ describe("dex.swap.test", () => {
         raydiumPoolArgs
       );
 
-      let dexAmmArgs = {
+      let dexConfigArgs = {
         index: nextIndex(),
-        protocolFeeRate: new BN(0),
-        launchFeeRate: new BN(0),
       };
-      let dexAmm = await dexUtils.initializeAmm(signer, dexAmmArgs);
+      let dexConfig = await dexUtils.initializeConfig(signer, dexConfigArgs);
 
       let dexArgs = {
-        amm: dexAmm,
+        config: dexConfig,
         initAmount0: new BN(2000),
         initAmount1: new BN(4555),
         reserveBound: new BN(2100),
@@ -449,6 +449,8 @@ describe("dex.swap.test", () => {
         mint1,
         signerAta0: ata0,
         signerAta1: ata1,
+        protocolFeeRate: new BN(30_000),
+        launchFeeRate: new BN(10_000),
       };
       let dexAccounts = await dexUtils.initialize(signer, dexArgs);
 
@@ -499,15 +501,15 @@ describe("dex.swap.test", () => {
         raydiumPoolArgs
       );
 
-      let dexAmmArgs = {
+      let dexConfigArgs = {
         index: nextIndex(),
         protocolFeeRate: new BN(30_000),
         launchFeeRate: new BN(30_000),
       };
-      let dexAmm = await dexUtils.initializeAmm(signer, dexAmmArgs);
+      let dexConfig = await dexUtils.initializeConfig(signer, dexConfigArgs);
 
       let dexArgs = {
-        amm: dexAmm,
+        config: dexConfig,
         initAmount0: new BN(2000),
         initAmount1: new BN(5000),
         reserveBound: new BN(5000),
@@ -517,6 +519,8 @@ describe("dex.swap.test", () => {
         mint1,
         signerAta0: ata0,
         signerAta1: ata1,
+        protocolFeeRate: new BN(30_000),
+        launchFeeRate: new BN(10_000),
       };
       let dexAccounts = await dexUtils.initialize(signer, dexArgs);
 
@@ -552,7 +556,7 @@ describe("dex.swap.test", () => {
 
       let actualSwapFee = (
         await dexUtils.getDexState(dexAccounts.state)
-      ).protocolFeesToken0.toNumber();
+      ).swapFeesToken0.toNumber();
       expect(actualSwapFee, "Swap fee calculation mismatch!").eq(
         swapOutputExpected.swapResult.protocolFee.toNumber()
       );
@@ -580,15 +584,13 @@ describe("dex.swap.test", () => {
         raydiumPoolArgs
       );
 
-      let dexAmmArgs = {
+      let dexConfigArgs = {
         index: nextIndex(),
-        protocolFeeRate: new BN(25_000),
-        launchFeeRate: new BN(20_000),
       };
-      let dexAmm = await dexUtils.initializeAmm(signer, dexAmmArgs);
+      let dexConfig = await dexUtils.initializeConfig(signer, dexConfigArgs);
 
       let dexArgs = {
-        amm: dexAmm,
+        config: dexConfig,
         initAmount0: new BN(4000),
         initAmount1: new BN(5000),
         reserveBound: new BN(4005),
@@ -598,6 +600,8 @@ describe("dex.swap.test", () => {
         mint1,
         signerAta0: ata0,
         signerAta1: ata1,
+        protocolFeeRate: new BN(25_000),
+        launchFeeRate: new BN(20_000),
       };
       let dexAccounts = await dexUtils.initialize(signer, dexArgs);
 
@@ -633,13 +637,13 @@ describe("dex.swap.test", () => {
         swapOutputExpected.swapResult.sourceAmountSwapped
           .add(dexArgs.initAmount0)
           .sub(swapOutputExpected.swapResult.protocolFee),
-        dexAmmArgs.launchFeeRate
+        dexArgs.launchFeeRate
       );
 
       let swapTx = await dexUtils.swapBaseOutput(signer, swapArgs);
 
       let actualSwapFee = (await dexUtils.getDexState(dexAccounts.state))
-        .protocolFeesToken0;
+        .swapFeesToken0;
 
       let actualLaunchFee = (
         await tokenUtils.getBalance(swapArgs.inputVault)
@@ -683,15 +687,13 @@ describe("dex.swap.test", () => {
         raydiumPoolArgs
       );
 
-      let dexAmmArgs = {
+      let dexConfigArgs = {
         index: nextIndex(),
-        protocolFeeRate: new BN(0),
-        launchFeeRate: new BN(0),
       };
-      let dexAmm = await dexUtils.initializeAmm(signer, dexAmmArgs);
+      let dexConfig = await dexUtils.initializeConfig(signer, dexConfigArgs);
 
       let dexArgs = {
-        amm: dexAmm,
+        config: dexConfig,
         initAmount0: new BN(2000),
         initAmount1: new BN(4555),
         reserveBound: new BN(5000),
@@ -701,6 +703,8 @@ describe("dex.swap.test", () => {
         mint1,
         signerAta0: ata0,
         signerAta1: ata1,
+        protocolFeeRate: new BN(25_000),
+        launchFeeRate: new BN(20_000),
       };
       let dexAccounts = await dexUtils.initialize(signer, dexArgs);
 
@@ -746,15 +750,13 @@ describe("dex.swap.test", () => {
         raydiumPoolArgs
       );
 
-      let dexAmmArgs = {
+      let dexConfigArgs = {
         index: nextIndex(),
-        protocolFeeRate: new BN(0),
-        launchFeeRate: new BN(0),
       };
-      let dexAmm = await dexUtils.initializeAmm(signer, dexAmmArgs);
+      let dexConfig = await dexUtils.initializeConfig(signer, dexConfigArgs);
 
       let dexArgs = {
-        amm: dexAmm,
+        config: dexConfig,
         initAmount0: new BN(2000),
         initAmount1: new BN(4555),
         reserveBound: new BN(2100),
@@ -764,6 +766,8 @@ describe("dex.swap.test", () => {
         mint1,
         signerAta0: ata0,
         signerAta1: ata1,
+        protocolFeeRate: new BN(25_000),
+        launchFeeRate: new BN(20_000),
       };
       let dexAccounts = await dexUtils.initialize(signer, dexArgs);
 
@@ -815,15 +819,13 @@ describe("dex.swap.test", () => {
         raydiumPoolArgs
       );
 
-      let dexAmmArgs = {
+      let dexConfigArgs = {
         index: nextIndex(),
-        protocolFeeRate: new BN(30_000),
-        launchFeeRate: new BN(0),
       };
-      let dexAmm = await dexUtils.initializeAmm(signer, dexAmmArgs);
+      let dexConfig = await dexUtils.initializeConfig(signer, dexConfigArgs);
 
       let dexArgs = {
-        amm: dexAmm,
+        config: dexConfig,
         initAmount0: new BN(2000),
         initAmount1: new BN(4000),
         reserveBound: new BN(5000),
@@ -833,6 +835,8 @@ describe("dex.swap.test", () => {
         mint1,
         signerAta0: ata0,
         signerAta1: ata1,
+        protocolFeeRate: new BN(25_000),
+        launchFeeRate: new BN(20_000),
       };
       let dexAccounts = await dexUtils.initialize(signer, dexArgs);
 
@@ -868,7 +872,7 @@ describe("dex.swap.test", () => {
 
       let actualSwapFee = (
         await dexUtils.getDexState(dexAccounts.state)
-      ).protocolFeesToken0.toNumber();
+      ).swapFeesToken0.toNumber();
 
       expect(actualSwapFee, "Swap fee calculation mismatch!").eq(
         swapInputExpected.swapResult.protocolFee.toNumber()
@@ -898,15 +902,13 @@ describe("dex.swap.test", () => {
         raydiumPoolArgs
       );
 
-      let dexAmmArgs = {
+      let dexConfigArgs = {
         index: nextIndex(),
-        protocolFeeRate: new BN(30_000),
-        launchFeeRate: new BN(10_000),
       };
-      let dexAmm = await dexUtils.initializeAmm(signer, dexAmmArgs);
+      let dexConfig = await dexUtils.initializeConfig(signer, dexConfigArgs);
 
       let dexArgs = {
-        amm: dexAmm,
+        config: dexConfig,
         initAmount0: new BN(2000),
         initAmount1: new BN(4000),
         reserveBound: new BN(2001),
@@ -916,6 +918,8 @@ describe("dex.swap.test", () => {
         mint1,
         signerAta0: ata0,
         signerAta1: ata1,
+        protocolFeeRate: new BN(30_000),
+        launchFeeRate: new BN(10_000),
       };
       let dexAccounts = await dexUtils.initialize(signer, dexArgs);
 
@@ -951,12 +955,12 @@ describe("dex.swap.test", () => {
         swapArgs.amountIn
           .add(dexArgs.initAmount0)
           .sub(swapInputExpected.swapResult.protocolFee),
-        dexAmmArgs.launchFeeRate
+        dexArgs.launchFeeRate
       );
 
       let swapTx = await dexUtils.swapBaseInput(signer, swapArgs);
       let actualSwapFee = (await dexUtils.getDexState(dexAccounts.state))
-        .protocolFeesToken0;
+        .swapFeesToken0;
 
       let actualLaunchFee = (
         await tokenUtils.getBalance(swapArgs.inputVault)
@@ -998,15 +1002,13 @@ describe("dex.swap.test", () => {
         raydiumPoolArgs
       );
 
-      let dexAmmArgs = {
+      let dexConfigArgs = {
         index: nextIndex(),
-        protocolFeeRate: new BN(0),
-        launchFeeRate: new BN(0),
       };
-      let dexAmm = await dexUtils.initializeAmm(signer, dexAmmArgs);
+      let dexConfig = await dexUtils.initializeConfig(signer, dexConfigArgs);
 
       let dexArgs = {
-        amm: dexAmm,
+        config: dexConfig,
         initAmount0: new BN(2000),
         initAmount1: new BN(4555),
         reserveBound: new BN(5000),
@@ -1016,6 +1018,8 @@ describe("dex.swap.test", () => {
         mint1,
         signerAta0: ata0,
         signerAta1: ata1,
+        protocolFeeRate: new BN(30_000),
+        launchFeeRate: new BN(10_000),
       };
       let dexAccounts = await dexUtils.initialize(signer, dexArgs);
 
@@ -1061,15 +1065,13 @@ describe("dex.swap.test", () => {
         raydiumPoolArgs
       );
 
-      let dexAmmArgs = {
+      let dexConfigArgs = {
         index: nextIndex(),
-        protocolFeeRate: new BN(0),
-        launchFeeRate: new BN(0),
       };
-      let dexAmm = await dexUtils.initializeAmm(signer, dexAmmArgs);
+      let dexConfig = await dexUtils.initializeConfig(signer, dexConfigArgs);
 
       let dexArgs = {
-        amm: dexAmm,
+        config: dexConfig,
         initAmount0: new BN(2000),
         initAmount1: new BN(4555),
         reserveBound: new BN(2100),
@@ -1079,6 +1081,8 @@ describe("dex.swap.test", () => {
         mint1,
         signerAta0: ata0,
         signerAta1: ata1,
+        protocolFeeRate: new BN(30_000),
+        launchFeeRate: new BN(10_000),
       };
       let dexAccounts = await dexUtils.initialize(signer, dexArgs);
 
@@ -1130,15 +1134,13 @@ describe("dex.swap.test", () => {
         raydiumPoolArgs
       );
 
-      let dexAmmArgs = {
+      let dexConfigArgs = {
         index: nextIndex(),
-        protocolFeeRate: new BN(30_000),
-        launchFeeRate: new BN(30_000),
       };
-      let dexAmm = await dexUtils.initializeAmm(signer, dexAmmArgs);
+      let dexConfig = await dexUtils.initializeConfig(signer, dexConfigArgs);
 
       let dexArgs = {
-        amm: dexAmm,
+        config: dexConfig,
         initAmount0: new BN(2000),
         initAmount1: new BN(5000),
         reserveBound: new BN(5000),
@@ -1148,6 +1150,8 @@ describe("dex.swap.test", () => {
         mint1,
         signerAta0: ata0,
         signerAta1: ata1,
+        protocolFeeRate: new BN(30_000),
+        launchFeeRate: new BN(30_000),
       };
       let dexAccounts = await dexUtils.initialize(signer, dexArgs);
 
@@ -1183,7 +1187,7 @@ describe("dex.swap.test", () => {
 
       let actualSwapFee = (
         await dexUtils.getDexState(dexAccounts.state)
-      ).protocolFeesToken0.toNumber();
+      ).swapFeesToken0.toNumber();
       expect(actualSwapFee, "Swap fee calculation mismatch!").eq(
         swapOutputExpected.swapResult.protocolFee.toNumber()
       );
@@ -1212,15 +1216,13 @@ describe("dex.swap.test", () => {
         raydiumPoolArgs
       );
 
-      let dexAmmArgs = {
+      let dexConfigArgs = {
         index: nextIndex(),
-        protocolFeeRate: new BN(25_000),
-        launchFeeRate: new BN(20_000),
       };
-      let dexAmm = await dexUtils.initializeAmm(signer, dexAmmArgs);
+      let dexConfig = await dexUtils.initializeConfig(signer, dexConfigArgs);
 
       let dexArgs = {
-        amm: dexAmm,
+        config: dexConfig,
         initAmount0: new BN(4000),
         initAmount1: new BN(5000),
         reserveBound: new BN(4005),
@@ -1230,6 +1232,8 @@ describe("dex.swap.test", () => {
         mint1,
         signerAta0: ata0,
         signerAta1: ata1,
+        protocolFeeRate: new BN(25_000),
+        launchFeeRate: new BN(20_000),
       };
       let dexAccounts = await dexUtils.initialize(signer, dexArgs);
 
@@ -1265,13 +1269,13 @@ describe("dex.swap.test", () => {
         swapOutputExpected.swapResult.sourceAmountSwapped
           .add(dexArgs.initAmount0)
           .sub(swapOutputExpected.swapResult.protocolFee),
-        dexAmmArgs.launchFeeRate
+        dexArgs.launchFeeRate
       );
 
       let swapTx = await dexUtils.swapBaseOutput(signer, swapArgs);
 
       let actualSwapFee = (await dexUtils.getDexState(dexAccounts.state))
-        .protocolFeesToken0;
+        .swapFeesToken0;
 
       let actualLaunchFee = (
         await tokenUtils.getBalance(swapArgs.inputVault)
@@ -1304,7 +1308,6 @@ async function setupSwapBaseInputTest(
 ): Promise<SwapBaseInputResult> {
   let [
     dexState,
-    ammState,
     inputVaultBalance,
     outputVaultBalance,
     inputMintConfig,
@@ -1312,7 +1315,6 @@ async function setupSwapBaseInputTest(
     epoch,
   ] = await Promise.all([
     dexUtils.getDexState(dexAccounts.state),
-    dexUtils.getAmmState(dexAccounts.amm),
     tokenUtils.getBalance(inputVault.address),
     tokenUtils.getBalance(outputVault.address),
     tokenUtils.getTransferFeeConfig(
@@ -1327,9 +1329,9 @@ async function setupSwapBaseInputTest(
   ]);
 
   let result = calculator.swapBaseInput({
-    protocolFeeRate: ammState.protocolFeeRate,
-    inputProtocolFee: dexState.protocolFeesToken0,
-    outputProtocolFee: dexState.protocolFeesToken1,
+    protocolFeeRate: dexState.swapFeeRate,
+    inputProtocolFee: dexState.swapFeesToken0,
+    outputProtocolFee: dexState.swapFeesToken1,
     inputMintConfig,
     outputMintConfig,
     inputVault: inputVaultBalance,
@@ -1354,7 +1356,6 @@ async function setupSwapOutputInputTest(
 ): Promise<SwapBaseInputResult> {
   let [
     dexState,
-    ammState,
     inputVaultBalance,
     outputVaultBalance,
     inputMintConfig,
@@ -1362,7 +1363,6 @@ async function setupSwapOutputInputTest(
     epoch,
   ] = await Promise.all([
     dexUtils.getDexState(dexAccounts.state),
-    dexUtils.getAmmState(dexAccounts.amm),
     tokenUtils.getBalance(inputVault.address),
     tokenUtils.getBalance(outputVault.address),
     tokenUtils.getTransferFeeConfig(
@@ -1377,9 +1377,9 @@ async function setupSwapOutputInputTest(
   ]);
 
   let result = calculator.swapBaseOutput({
-    protocolFeeRate: ammState.protocolFeeRate,
-    inputProtocolFee: dexState.protocolFeesToken0,
-    outputProtocolFee: dexState.protocolFeesToken1,
+    protocolFeeRate: dexState.swapFeeRate,
+    inputProtocolFee: dexState.swapFeesToken0,
+    outputProtocolFee: dexState.swapFeesToken1,
     inputMintConfig,
     outputMintConfig,
     inputVault: inputVaultBalance,
