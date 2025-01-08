@@ -1,8 +1,5 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::Mint;
-/// Seed to derive account address and signature
-pub const DEX_SEED: &str = "dex_state";
-pub const DEX_VAULT_SEED: &str = "dex_vault";
 
 pub const Q32: u128 = (u32::MAX as u128) + 1; // 2^32
 
@@ -11,7 +8,7 @@ pub const Q32: u128 = (u32::MAX as u128) + 1; // 2^32
 #[derive(Default, Debug)]
 pub struct DexState {
     /// Which config the pool belongs
-    pub amm_config: Pubkey,
+    pub config: Pubkey,
     /// pool creator
     pub pool_creator: Pubkey,
     /// Token A
@@ -22,8 +19,6 @@ pub struct DexState {
     pub is_launched: bool,
     pub vault_0_reserve_bound: u64,
 
-    /// raydium lp mint
-    pub lp_mint: Pubkey,
     /// raydium pool state
     pub raydium: Pubkey,
     /// Mint information for token A
@@ -36,15 +31,20 @@ pub struct DexState {
     /// token_1 program
     pub token_1_program: Pubkey,
 
+    /// The swap fee
+    pub swap_fee_rate: u64,
+    /// The launch fee
+    pub launch_fee_rate: u64,
+
     pub auth_bump: u8,
 
     /// mint0 and mint1 decimals
     pub mint_0_decimals: u8,
     pub mint_1_decimals: u8,
 
-    /// The amounts of token_0 and token_1 that are owed to the liquidity provider.
-    pub protocol_fees_token_0: u64,
-    pub protocol_fees_token_1: u64,
+    /// The fees amounts of token_0 and token_1
+    pub swap_fees_token_0: u64,
+    pub swap_fees_token_1: u64,
 
     /// The timestamp allowed for swap in the pool.
     pub open_time: u64,
@@ -62,15 +62,17 @@ impl DexState {
         auth_bump: u8,
         open_time: u64,
         pool_creator: Pubkey,
-        amm_config: Pubkey,
+        config: Pubkey,
         token_0_vault: Pubkey,
         token_1_vault: Pubkey,
         token_0_mint: &InterfaceAccount<Mint>,
         token_1_mint: &InterfaceAccount<Mint>,
         raydium: Pubkey,
         vault_0_reserve_bound: u64,
+        swap_fee_rate: u64,
+        launch_fee_rate: u64,
     ) {
-        self.amm_config = amm_config.key();
+        self.config = config.key();
         self.pool_creator = pool_creator.key();
         self.token_0_vault = token_0_vault;
         self.token_1_vault = token_1_vault;
@@ -82,8 +84,10 @@ impl DexState {
         self.token_0_program = *token_0_mint.to_account_info().owner;
         self.token_1_program = *token_1_mint.to_account_info().owner;
         self.auth_bump = auth_bump;
-        self.protocol_fees_token_0 = 0;
-        self.protocol_fees_token_1 = 0;
+        self.swap_fees_token_0 = 0;
+        self.swap_fees_token_1 = 0;
+        self.swap_fee_rate = swap_fee_rate;
+        self.launch_fee_rate = launch_fee_rate;
         self.open_time = open_time;
         self.recent_epoch = Clock::get().unwrap().epoch;
         self.padding = [0u64; 31];
@@ -91,8 +95,8 @@ impl DexState {
 
     pub fn vault_amount_without_fee(&self, vault_0: u64, vault_1: u64) -> (u64, u64) {
         (
-            vault_0.checked_sub(self.protocol_fees_token_0).unwrap(),
-            vault_1.checked_sub(self.protocol_fees_token_1).unwrap(),
+            vault_0.checked_sub(self.swap_fees_token_0).unwrap(),
+            vault_1.checked_sub(self.swap_fees_token_1).unwrap(),
         )
     }
 

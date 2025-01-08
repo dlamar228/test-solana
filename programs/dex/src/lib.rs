@@ -10,87 +10,47 @@ use instructions::*;
 
 declare_id!("7E65apY9nbnCLvhfjCPc4V1veuPriHrp8kD3c76tTr4U");
 
-pub const AUTH_SEED: &str = "dex_auth";
-
 #[program]
 pub mod dex {
     use curve::MAX_FEE_RATE_VALUE;
 
     use super::*;
 
-    // The configuation of AMM protocol, include trade fee and protocol fee
+    // The configuration, include admin
     /// # Arguments
     ///
     /// * `ctx`- The accounts needed by instruction.
-    /// * `index` - The index of amm config, there may be multiple config.
-    /// * `protocol_fee_rate` - The rate of protocol fee.
+    /// * `index` - The index of config, there may be multiple config.
     ///
-    pub fn create_amm_config(
-        ctx: Context<CreateAmmConfig>,
-        index: u16,
-        protocol_fee_rate: u64,
-        launch_fee_rate: u64,
-    ) -> Result<()> {
-        assert!(protocol_fee_rate + launch_fee_rate <= FEE_RATE_DENOMINATOR_VALUE);
-        assert!(protocol_fee_rate <= MAX_FEE_RATE_VALUE);
-        assert!(launch_fee_rate <= MAX_FEE_RATE_VALUE);
-        instructions::create_amm_config(ctx, index, protocol_fee_rate, launch_fee_rate)
+    pub fn initialize_config(ctx: Context<CreateConfig>, index: u16) -> Result<()> {
+        instructions::initialize_config(ctx, index)
     }
 
-    /// Updates the owner of the amm config
-    /// Must be called by the current owner or admin
+    /// Updates the admin of the config
+    /// Must be called by the current admin
     ///
     /// # Arguments
     ///
     /// * `ctx`- The context of accounts
-    /// * `protocol_fee_rate`- The new protocol fee rate of amm config, be set when `param` is 0
-    /// * `launch_fee_rate`- The new launch fee rate of amm config, be set when `param` is 1
-    /// * `new_owner`- The config's new owner, be set when `param` is 2
-    /// * `disable_create_pool`- Disable pool creation, be set when `param` is 3
-    /// * `param`- The vaule can be 0 | 1 | 2 | 3, otherwise will report a error
+    /// * `new_admin`- The new admin
     ///
-    pub fn update_amm_config(ctx: Context<UpdateAmmConfig>, param: u8, value: u64) -> Result<()> {
-        instructions::update_amm_config(ctx, param, value)
+    pub fn update_config_admin(ctx: Context<UpdateConfigState>, new_admin: Pubkey) -> Result<()> {
+        instructions::update_config_admin(ctx, new_admin)
     }
 
-    /// Update the reserve bound for pool state
-    /// Must be called by the current owner
+    /// Updates the `disable_create_dex` of the config
+    /// Must be called by the current admin
     ///
     /// # Arguments
     ///
     /// * `ctx`- The context of accounts
-    /// * `reserve_bound`- The new reserve bound for launch
+    /// * `disable_or_enable`- The new flag of dex creation
     ///
-    pub fn update_reserve_bound(
-        ctx: Context<UpdateReserveBound>,
-        reserve_bound: u64,
+    pub fn update_create_dex(
+        ctx: Context<UpdateConfigState>,
+        disable_or_enable: bool,
     ) -> Result<()> {
-        instructions::update_reserve_bound(ctx, reserve_bound)
-    }
-
-    /// Creates a pool for the given token pair and the initial price
-    ///
-    /// # Arguments
-    ///
-    /// * `ctx`- The context of accounts
-    /// * `init_amount_0` - the initial amount_0 to deposit
-    /// * `init_amount_1` - the initial amount_1 to deposit
-    /// * `open_time` - the timestamp allowed for swap
-    ///
-    pub fn initialize(
-        ctx: Context<Initialize>,
-        init_amount_0: u64,
-        init_amount_1: u64,
-        open_time: u64,
-        vault_0_reserve_bound: u64,
-    ) -> Result<()> {
-        instructions::initialize(
-            ctx,
-            init_amount_0,
-            init_amount_1,
-            open_time,
-            vault_0_reserve_bound,
-        )
+        instructions::update_create_dex(ctx, disable_or_enable)
     }
 
     /// Collect the protocol fee
@@ -102,17 +62,86 @@ pub mod dex {
     /// * `amount_1_requested` - The maximum amount of token_1 to send, can be 0 to collect fees in only token_0
     ///
     pub fn collect_protocol_fee(
-        ctx: Context<CollectProtocolFee>,
+        ctx: Context<CollectFee>,
         amount_0_requested: u64,
         amount_1_requested: u64,
     ) -> Result<()> {
-        instructions::collect_protocol_fee(ctx, amount_0_requested, amount_1_requested)
+        instructions::collect_fee(ctx, amount_0_requested, amount_1_requested)
     }
 
-    /*     /// Transferred tokens to raydium and burt lp tokens
-    pub fn launch(ctx: Context<Launch>) -> Result<()> {
-        instructions::launch(ctx)
-    } */
+    /// Creates a dex for the given token pair and the initial price
+    ///
+    /// # Arguments
+    ///
+    /// * `ctx`- The context of accounts
+    /// * `init_amount_0` - the initial amount_0 to deposit
+    /// * `init_amount_1` - the initial amount_1 to deposit
+    /// * `open_time` - the timestamp allowed for swap
+    /// * `vault_0_reserve_bound` - the bound if reserve to launch
+    /// * `swap_fee_rate` - the swap fee rate
+    /// * `launch_fee_rate` - the launch fee rate
+    ///
+    pub fn initialize_dex(
+        ctx: Context<InitializeDex>,
+        init_amount_0: u64,
+        init_amount_1: u64,
+        open_time: u64,
+        vault_0_reserve_bound: u64,
+        swap_fee_rate: u64,
+        launch_fee_rate: u64,
+    ) -> Result<()> {
+        assert!(swap_fee_rate + launch_fee_rate <= FEE_RATE_DENOMINATOR_VALUE);
+        assert!(swap_fee_rate <= MAX_FEE_RATE_VALUE);
+        assert!(launch_fee_rate <= MAX_FEE_RATE_VALUE);
+        instructions::initialize_dex(
+            ctx,
+            init_amount_0,
+            init_amount_1,
+            open_time,
+            vault_0_reserve_bound,
+            swap_fee_rate,
+            launch_fee_rate,
+        )
+    }
+
+    /// Update the reserve bound for dex state
+    /// Must be called by the current admin
+    ///
+    /// # Arguments
+    ///
+    /// * `ctx`- The context of accounts
+    /// * `reserve_bound`- The new reserve bound for launch
+    ///
+    pub fn update_reserve_bound(ctx: Context<UpdateDexState>, reserve_bound: u64) -> Result<()> {
+        instructions::update_reserve_bound(ctx, reserve_bound)
+    }
+
+    /// Update the swap fee rate for dex state
+    /// Must be called by the current admin
+    ///
+    /// # Arguments
+    ///
+    /// * `ctx`- The context of accounts
+    /// * `swap_fee_rate`- The new swap fee rate
+    ///
+    pub fn update_swap_fee_rate(ctx: Context<UpdateDexState>, swap_fee_rate: u64) -> Result<()> {
+        instructions::update_swap_fee_rate(ctx, swap_fee_rate)
+    }
+
+    /// Update the launch fee rate for dex state
+    /// Must be called by the current admin
+    ///
+    /// # Arguments
+    ///
+    /// * `ctx`- The context of accounts
+    /// * `launch_fee_rate`- The new launch fee rate
+    ///
+    pub fn update_launch_fee_rate(
+        ctx: Context<UpdateDexState>,
+        launch_fee_rate: u64,
+    ) -> Result<()> {
+        instructions::update_launch_fee_rate(ctx, launch_fee_rate)
+    }
 
     /// Swap the tokens in the pool base input amount
     ///

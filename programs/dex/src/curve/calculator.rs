@@ -67,6 +67,8 @@ pub struct SwapResult {
     pub destination_amount_swapped: u128,
     /// Amount of source tokens going to protocol
     pub protocol_fee: u128,
+    pub constant_before: u128,
+    pub constant_after: u128,
 }
 
 /// Concrete struct to wrap around the trait object which performs calculation.
@@ -100,14 +102,33 @@ impl CurveCalculator {
             swap_destination_amount,
         );
 
-        Some(SwapResult {
-            new_swap_source_amount: swap_source_amount.checked_add(source_amount)?,
-            new_swap_destination_amount: swap_destination_amount
-                .checked_sub(destination_amount_swapped)?,
+        let new_swap_source_amount = swap_source_amount.checked_add(source_amount)?;
+        let new_swap_destination_amount =
+            swap_destination_amount.checked_sub(destination_amount_swapped)?;
+
+        let result = SwapResult {
+            new_swap_source_amount,
+            new_swap_destination_amount,
             source_amount_swapped: source_amount,
             destination_amount_swapped,
             protocol_fee,
-        })
+            constant_before: swap_source_amount.checked_mul(swap_destination_amount)?,
+            constant_after: new_swap_source_amount
+                .checked_sub(protocol_fee)?
+                .checked_mul(new_swap_destination_amount)?,
+        };
+
+        #[cfg(feature = "enable-log")]
+        msg!(
+            "source_amount_swapped:{}, destination_amount_swapped:{}, protocol_fee:{}, constant_before:{},constant_after:{}",
+            result.source_amount_swapped,
+            result.destination_amount_swapped,
+            result.protocol_fee,
+            result.constant_before,
+            result.constant_after
+        );
+
+        Some(result)
     }
 
     pub fn swap_base_output(
@@ -126,12 +147,20 @@ impl CurveCalculator {
             Fees::calculate_pre_fee_amount(source_amount_swapped, protocol_fee_rate).unwrap();
         let protocol_fee = Fees::protocol_fee(source_amount, protocol_fee_rate)?;
 
+        let new_swap_source_amount = swap_source_amount.checked_add(source_amount)?;
+        let new_swap_destination_amount =
+            swap_destination_amount.checked_sub(destination_amount)?;
+
         Some(SwapResult {
-            new_swap_source_amount: swap_source_amount.checked_add(source_amount)?,
-            new_swap_destination_amount: swap_destination_amount.checked_sub(destination_amount)?,
+            new_swap_source_amount,
+            new_swap_destination_amount,
             source_amount_swapped: source_amount,
             destination_amount_swapped: destination_amount,
             protocol_fee,
+            constant_before: swap_source_amount.checked_mul(swap_destination_amount)?,
+            constant_after: new_swap_source_amount
+                .checked_sub(protocol_fee)?
+                .checked_mul(new_swap_destination_amount)?,
         })
     }
 

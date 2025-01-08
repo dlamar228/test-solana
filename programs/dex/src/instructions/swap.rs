@@ -16,14 +16,11 @@ pub struct Swap<'info> {
     /// CHECK: dex vault authority
     #[account(
         seeds = [
-            crate::AUTH_SEED.as_bytes(),
+            AUTH_SEED.as_bytes(),
         ],
         bump,
     )]
     pub authority: UncheckedAccount<'info>,
-    /// The factory state to read protocol fees
-    #[account(address = dex_state.load()?.amm_config)]
-    pub amm_config: Box<Account<'info, AmmConfig>>,
     /// The program account of the dex in which the swap will be performed
     #[account(mut)]
     pub dex_state: AccountLoader<'info, DexState>,
@@ -87,6 +84,17 @@ pub fn swap_base_input<'info>(
     swap_and_launch.try_launch(trade_direction)
 }
 
+pub fn swap_base_output<'info>(
+    ctx: &Context<'_, '_, '_, 'info, Swap<'info>>,
+    max_amount_in: u64,
+    amount_out_less_fee: u64,
+) -> Result<()> {
+    let mut swap_and_launch = SwapAndLaunch::from_ctx(ctx);
+    let trade_direction =
+        swap_and_launch.try_swap_base_output(max_amount_in, amount_out_less_fee)?;
+    swap_and_launch.try_launch(trade_direction)
+}
+
 pub struct SwapCalculation {
     pub trade_direction: TradeDirection,
     pub total_input_token_amount: u64,
@@ -98,7 +106,6 @@ pub struct SwapCalculation {
 pub struct SwapAndLaunch<'info> {
     authority: UncheckedAccount<'info>,
     dex_state: AccountLoader<'info, DexState>,
-    amm_config: Box<Account<'info, AmmConfig>>,
     input_vault: Box<InterfaceAccount<'info, TokenAccount>>,
     output_vault: Box<InterfaceAccount<'info, TokenAccount>>,
     input_token_program: Interface<'info, TokenInterface>,
@@ -118,7 +125,6 @@ impl<'info> SwapAndLaunch<'info> {
         Self {
             authority: ctx.accounts.authority.clone(),
             dex_state: ctx.accounts.dex_state.clone(),
-            amm_config: ctx.accounts.amm_config.clone(),
             input_vault: ctx.accounts.input_vault.clone(),
             output_vault: ctx.accounts.output_vault.clone(),
             input_token_program: ctx.accounts.input_token_program.clone(),
@@ -215,37 +221,26 @@ impl<'info> SwapAndLaunch<'info> {
             trade_direction,
             total_input_token_amount,
             total_output_token_amount,
-            token_0_price_x64,
-            token_1_price_x64,
+            ..
         } = self.calculate_trade_amounts_and_price_before_swap(dex_state)?;
-
-        let constant_before = u128::from(total_input_token_amount)
-            .checked_mul(u128::from(total_output_token_amount))
-            .unwrap();
 
         let result = CurveCalculator::swap_base_input(
             u128::from(actual_amount_in),
             u128::from(total_input_token_amount),
             u128::from(total_output_token_amount),
-            self.amm_config.protocol_fee_rate,
+            dex_state.swap_fee_rate,
         )
         .ok_or(ErrorCode::ZeroTradingTokens)?;
 
-        let constant_after = result
-            .new_swap_source_amount
-            .checked_sub(result.protocol_fee)
-            .unwrap()
-            .checked_mul(result.new_swap_destination_amount)
-            .unwrap();
-
         #[cfg(feature = "enable-log")]
         msg!(
-            "source_amount_swapped:{}, destination_amount_swapped:{}, protocol_fee:{}, constant_before:{},constant_after:{}",
+            "swap source_amount_swapped:{}, destination_amount_swapped:{}, protocol_fee:{}, constant_before:{}, constant_after:{}, base_input:{}",
             result.source_amount_swapped,
             result.destination_amount_swapped,
             result.protocol_fee,
-            constant_before,
-            constant_after
+            result.constant_before,
+            result.constant_after,
+            true
         );
 
         require_eq!(
@@ -270,20 +265,31 @@ impl<'info> SwapAndLaunch<'info> {
 
         let protocol_fee = u64::try_from(result.protocol_fee).unwrap();
 
+        let remaining_tokens;
         match trade_direction {
             TradeDirection::ZeroForOne => {
-                dex_state.protocol_fees_token_0 = dex_state
-                    .protocol_fees_token_0
+                remaining_tokens = dex_state
+                    .vault_0_reserve_bound
+                    .checked_sub(self.input_token_account.amount)
+                    .unwrap_or_default();
+                dex_state.swap_fees_token_0 = dex_state
+                    .swap_fees_token_0
                     .checked_add(protocol_fee)
                     .unwrap();
             }
             TradeDirection::OneForZero => {
-                dex_state.protocol_fees_token_1 = dex_state
-                    .protocol_fees_token_1
+                remaining_tokens = dex_state
+                    .vault_0_reserve_bound
+                    .checked_sub(self.output_token_account.amount)
+                    .unwrap_or_default();
+                dex_state.swap_fees_token_1 = dex_state
+                    .swap_fees_token_1
                     .checked_add(protocol_fee)
                     .unwrap();
             }
         };
+
+        require_gte!(result.constant_after, result.constant_before);
 
         emit!(SwapEvent {
             dex_id,
@@ -293,14 +299,8 @@ impl<'info> SwapAndLaunch<'info> {
             output_amount: u64::try_from(result.destination_amount_swapped).unwrap(),
             input_transfer_fee,
             output_transfer_fee,
+            remaining_tokens,
             base_input: true
-        });
-        require_gte!(constant_after, constant_before);
-
-        emit!(MarketCapEvent {
-            dex_id,
-            price_0: u64::try_from(token_0_price_x64).unwrap(),
-            price_1: u64::try_from(token_1_price_x64).unwrap(),
         });
 
         transfer_from_user_to_dex_vault(
@@ -314,7 +314,7 @@ impl<'info> SwapAndLaunch<'info> {
         )?;
 
         // dex authority pda signer seeds
-        let seeds = [crate::AUTH_SEED.as_bytes(), &[dex_state.auth_bump]];
+        let seeds = [AUTH_SEED.as_bytes(), &[dex_state.auth_bump]];
         let signer_seeds = &[seeds.as_slice()];
 
         transfer_from_dex_vault_to_user(
@@ -358,37 +358,26 @@ impl<'info> SwapAndLaunch<'info> {
             trade_direction,
             total_input_token_amount,
             total_output_token_amount,
-            token_0_price_x64,
-            token_1_price_x64,
+            ..
         } = self.calculate_trade_amounts_and_price_before_swap(dex_state)?;
-
-        let constant_before = u128::from(total_input_token_amount)
-            .checked_mul(u128::from(total_output_token_amount))
-            .unwrap();
 
         let result = CurveCalculator::swap_base_output(
             u128::from(actual_amount_out),
             u128::from(total_input_token_amount),
             u128::from(total_output_token_amount),
-            self.amm_config.protocol_fee_rate,
+            dex_state.swap_fee_rate,
         )
         .ok_or(ErrorCode::ZeroTradingTokens)?;
 
-        let constant_after = result
-            .new_swap_source_amount
-            .checked_sub(result.protocol_fee)
-            .unwrap()
-            .checked_mul(result.new_swap_destination_amount)
-            .unwrap();
-
         #[cfg(feature = "enable-log")]
         msg!(
-            "source_amount_swapped:{}, destination_amount_swapped:{}, protocol_fee:{}, constant_before:{},constant_after:{}",
+            "swap source_amount_swapped:{}, destination_amount_swapped:{}, protocol_fee:{}, constant_before:{}, constant_after:{}, base_input:{}",
             result.source_amount_swapped,
             result.destination_amount_swapped,
             result.protocol_fee,
-            constant_before,
-            constant_after
+            result.constant_before,
+            result.constant_after,
+            false
         );
 
         // Re-calculate the source amount swapped based on what the curve says
@@ -415,16 +404,26 @@ impl<'info> SwapAndLaunch<'info> {
 
         let protocol_fee = u64::try_from(result.protocol_fee).unwrap();
 
+        let remaining_tokens;
+
         match trade_direction {
             TradeDirection::ZeroForOne => {
-                dex_state.protocol_fees_token_0 = dex_state
-                    .protocol_fees_token_0
+                remaining_tokens = dex_state
+                    .vault_0_reserve_bound
+                    .checked_sub(self.input_token_account.amount)
+                    .unwrap_or_default();
+                dex_state.swap_fees_token_0 = dex_state
+                    .swap_fees_token_0
                     .checked_add(protocol_fee)
                     .unwrap();
             }
             TradeDirection::OneForZero => {
-                dex_state.protocol_fees_token_1 = dex_state
-                    .protocol_fees_token_1
+                remaining_tokens = dex_state
+                    .vault_0_reserve_bound
+                    .checked_sub(self.output_token_account.amount)
+                    .unwrap_or_default();
+                dex_state.swap_fees_token_1 = dex_state
+                    .swap_fees_token_1
                     .checked_add(protocol_fee)
                     .unwrap();
             }
@@ -438,16 +437,10 @@ impl<'info> SwapAndLaunch<'info> {
             output_amount: u64::try_from(result.destination_amount_swapped).unwrap(),
             input_transfer_fee,
             output_transfer_fee,
+            remaining_tokens,
             base_input: false
         });
-        require_gte!(constant_after, constant_before);
-
-        emit!(MarketCapEvent {
-            dex_id,
-            price_0: u64::try_from(token_0_price_x64).unwrap(),
-            price_1: u64::try_from(token_1_price_x64).unwrap(),
-        });
-
+        require_gte!(result.constant_after, result.constant_before);
         transfer_from_user_to_dex_vault(
             self.payer.to_account_info(),
             self.input_token_account.to_account_info(),
@@ -459,7 +452,7 @@ impl<'info> SwapAndLaunch<'info> {
         )?;
 
         // dex authority pda signer seeds
-        let seeds = [crate::AUTH_SEED.as_bytes(), &[dex_state.auth_bump]];
+        let seeds = [AUTH_SEED.as_bytes(), &[dex_state.auth_bump]];
         let signer_seeds = &[seeds.as_slice()];
 
         transfer_from_dex_vault_to_user(
@@ -477,28 +470,27 @@ impl<'info> SwapAndLaunch<'info> {
 
         Ok(trade_direction)
     }
+    fn get_taxed_amount_before_launch(
+        &self,
+        amount: u64,
+        swap_fees: u64,
+        launch_fee_rate: u64,
+    ) -> Result<(u64, u64)> {
+        let clean = amount.checked_sub(swap_fees).ok_or(ErrorCode::Underflow)?;
+        let launch_tax = Fees::protocol_fee(clean as u128, launch_fee_rate).unwrap();
+        let casted_launch_tax = u64::try_from(launch_tax).map_err(|_| ErrorCode::InvalidU64Cast)?;
+        Ok((
+            clean
+                .checked_sub(casted_launch_tax)
+                .ok_or(ErrorCode::Underflow)?,
+            casted_launch_tax,
+        ))
+    }
     pub fn try_launch(&mut self, trade_direction: TradeDirection) -> Result<()> {
         self.input_vault.reload()?;
         self.output_vault.reload()?;
+        let dex_state = &mut self.dex_state.load_mut()?;
 
-        let current_reserve = match trade_direction {
-            TradeDirection::ZeroForOne => self.input_vault.amount,
-            TradeDirection::OneForZero => self.output_vault.amount,
-        };
-
-        let state = &mut self.dex_state.load_mut()?;
-
-        if state.vault_0_reserve_bound > current_reserve {
-            emit!(RemainingTokensAvailableEvent {
-                dex_id: self.dex_state.key(),
-                remaining_tokens: state.vault_0_reserve_bound - current_reserve,
-            });
-            return Ok(());
-        }
-
-        state.is_launched = true;
-
-        let launch_fee_rates = self.amm_config.launch_fee_rate;
         let (vault_0, mint_0, program_0, vault_1, mint_1, program_1) = match trade_direction {
             TradeDirection::ZeroForOne => (
                 &self.input_vault,
@@ -518,51 +510,32 @@ impl<'info> SwapAndLaunch<'info> {
             ),
         };
 
-        let taxed_amount_0 = {
-            let clean_vault_0 = vault_0
-                .amount
-                .checked_sub(state.protocol_fees_token_0)
-                .ok_or(ErrorCode::Underflow)?;
+        if dex_state.vault_0_reserve_bound > vault_0.amount {
+            return Ok(());
+        }
 
-            let launch_tax =
-                u64::try_from(Fees::protocol_fee(clean_vault_0 as u128, launch_fee_rates).unwrap())
-                    .map_err(|_| ErrorCode::InvalidU64Cast)?;
-            #[cfg(feature = "enable-log")]
-            msg!(
-                "vault_0: {}, clean_vault_0: {}, launch_tax_0: {}",
-                vault_0.amount,
-                clean_vault_0,
-                launch_tax
-            );
-            clean_vault_0
-                .checked_sub(launch_tax)
-                .ok_or(ErrorCode::Underflow)?
-        };
+        let (taxed_amount_0, launch_fees_0) = self.get_taxed_amount_before_launch(
+            vault_0.amount,
+            dex_state.swap_fees_token_0,
+            dex_state.launch_fee_rate,
+        )?;
 
-        let taxed_amount_1 = {
-            let clean_vault_1 = vault_1
-                .amount
-                .checked_sub(state.protocol_fees_token_1)
-                .ok_or(ErrorCode::Underflow)?;
+        let (taxed_amount_1, launch_fees_1) = self.get_taxed_amount_before_launch(
+            vault_1.amount,
+            dex_state.swap_fees_token_1,
+            dex_state.launch_fee_rate,
+        )?;
 
-            let launch_tax =
-                u64::try_from(Fees::protocol_fee(clean_vault_1 as u128, launch_fee_rates).unwrap())
-                    .map_err(|_| ErrorCode::InvalidU64Cast)?;
+        #[cfg(feature = "enable-log")]
+        msg!(
+            "try_launch taxed_amount_0:{}, launch_fees_0:{}, taxed_amount_1:{}, launch_fees_1:{}",
+            taxed_amount_0,
+            launch_fees_0,
+            taxed_amount_1,
+            launch_fees_1,
+        );
 
-            #[cfg(feature = "enable-log")]
-            msg!(
-                "vault_1: {}, clean_vault_1: {}, launch_tax_1: {}",
-                vault_1.amount,
-                clean_vault_1,
-                launch_tax
-            );
-
-            clean_vault_1
-                .checked_sub(launch_tax)
-                .ok_or(ErrorCode::Underflow)?
-        };
-
-        let seeds = [crate::AUTH_SEED.as_bytes(), &[state.auth_bump]];
+        let seeds = [AUTH_SEED.as_bytes(), &[dex_state.auth_bump]];
         let signer_seeds = &[seeds.as_slice()];
 
         transfer_from_dex_vault_to_user(
@@ -587,11 +560,15 @@ impl<'info> SwapAndLaunch<'info> {
             signer_seeds,
         )?;
 
+        dex_state.is_launched = true;
+
         emit!(TokenLaunchedEvent {
             dex_id: self.dex_state.key(),
             raydium_id: self.raydium_pool_state.key(),
             amount_0: taxed_amount_0,
-            amount_1: taxed_amount_1
+            amount_1: taxed_amount_1,
+            launch_fees_0,
+            launch_fees_1
         });
 
         Ok(())

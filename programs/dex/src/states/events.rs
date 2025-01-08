@@ -16,6 +16,7 @@ pub struct SwapEvent {
     pub output_amount: u64,
     pub input_transfer_fee: u64,
     pub output_transfer_fee: u64,
+    pub remaining_tokens: u64,
     pub base_input: bool,
 }
 
@@ -28,22 +29,24 @@ pub struct TokenLaunchedEvent {
     pub raydium_id: Pubkey,
     pub amount_0: u64,
     pub amount_1: u64,
+    pub launch_fees_0: u64,
+    pub launch_fees_1: u64,
 }
 
 #[event]
 #[cfg_attr(feature = "client", derive(Debug))]
-pub struct RemainingTokensAvailableEvent {
+pub struct InitializeConfigEvent {
     #[index]
-    pub dex_id: Pubkey,
-    pub remaining_tokens: u64,
+    pub config_id: Pubkey,
+    pub admin: Pubkey,
 }
 
-/// Emitted when launch
 #[event]
 #[cfg_attr(feature = "client", derive(Debug))]
-pub struct MarketCapEvent {
+pub struct InitializeDexEvent {
+    #[index]
+    pub config_id: Pubkey,
     #[index]
     pub dex_id: Pubkey,
-    pub price_0: u64,
-    pub price_1: u64,
+    pub signer: Pubkey,
 }

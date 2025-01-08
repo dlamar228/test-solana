@@ -7,15 +7,14 @@ use anchor_spl::token_interface::Token2022;
 use anchor_spl::token_interface::TokenAccount;
 
 #[derive(Accounts)]
-pub struct CollectProtocolFee<'info> {
-    /// Only admin or owner can collect fee now
-    #[account(address = amm_config.protocol_owner)]
+pub struct CollectFee<'info> {
+    /// Only admin can collect fee now
+    #[account(address = config.admin)]
     pub owner: Signer<'info>,
-
     /// CHECK: dex vault mint authority
     #[account(
         seeds = [
-            crate::AUTH_SEED.as_bytes(),
+            AUTH_SEED.as_bytes(),
         ],
         bump,
     )]
@@ -23,9 +22,9 @@ pub struct CollectProtocolFee<'info> {
     /// Dex state stores accumulated protocol fee amount
     #[account(mut)]
     pub dex_state: AccountLoader<'info, DexState>,
-    /// Amm config account stores owner
-    #[account(address = dex_state.load()?.amm_config)]
-    pub amm_config: Account<'info, AmmConfig>,
+    /// Config account stores owner
+    #[account(address = dex_state.load()?.config)]
+    pub config: Account<'info, Config>,
     /// The address that holds dex tokens for token_0
     #[account(
         mut,
@@ -60,35 +59,40 @@ pub struct CollectProtocolFee<'info> {
     pub token_program_2022: Program<'info, Token2022>,
 }
 
-pub fn collect_protocol_fee(
-    ctx: Context<CollectProtocolFee>,
+pub fn collect_fee(
+    ctx: Context<CollectFee>,
     amount_0_requested: u64,
     amount_1_requested: u64,
 ) -> Result<()> {
-    let amount_0: u64;
-    let amount_1: u64;
-    let auth_bump: u8;
-    {
-        let mut dex_state = ctx.accounts.dex_state.load_mut()?;
+    require_gt!(ctx.accounts.token_0_vault.amount, 0);
+    require_gt!(ctx.accounts.token_1_vault.amount, 0);
 
-        amount_0 = amount_0_requested.min(dex_state.protocol_fees_token_0);
-        amount_1 = amount_1_requested.min(dex_state.protocol_fees_token_1);
+    let mut dex_state = ctx.accounts.dex_state.load_mut()?;
 
-        dex_state.protocol_fees_token_0 = dex_state
-            .protocol_fees_token_0
+    let (amount_0, amount_1) = if dex_state.is_launched {
+        dex_state.swap_fees_token_0 = 0;
+        dex_state.swap_fees_token_1 = 0;
+        (
+            ctx.accounts.token_0_vault.amount,
+            ctx.accounts.token_1_vault.amount,
+        )
+    } else {
+        let amount_0 = amount_0_requested.min(dex_state.swap_fees_token_0);
+        let amount_1 = amount_1_requested.min(dex_state.swap_fees_token_1);
+        dex_state.swap_fees_token_0 = dex_state
+            .swap_fees_token_0
             .checked_sub(amount_0)
             .ok_or(crate::error::ErrorCode::Underflow)?;
-        dex_state.protocol_fees_token_1 = dex_state
-            .protocol_fees_token_1
+        dex_state.swap_fees_token_1 = dex_state
+            .swap_fees_token_1
             .checked_sub(amount_1)
             .ok_or(crate::error::ErrorCode::Underflow)?;
 
-        auth_bump = dex_state.auth_bump;
-        dex_state.recent_epoch = Clock::get()?.epoch;
-    }
+        (amount_0, amount_1)
+    };
 
     // dex authority pda signer seeds
-    let seeds = [crate::AUTH_SEED.as_bytes(), &[auth_bump]];
+    let seeds = [AUTH_SEED.as_bytes(), &[dex_state.auth_bump]];
     let signer_seeds = &[seeds.as_slice()];
 
     transfer_from_dex_vault_to_user(
@@ -120,6 +124,8 @@ pub fn collect_protocol_fee(
         ctx.accounts.vault_1_mint.decimals,
         signer_seeds,
     )?;
+
+    dex_state.recent_epoch = Clock::get()?.epoch;
 
     Ok(())
 }

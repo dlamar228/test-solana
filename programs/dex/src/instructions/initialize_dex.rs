@@ -15,18 +15,18 @@ use anchor_spl::{
 use std::ops::Deref;
 
 #[derive(Accounts)]
-pub struct Initialize<'info> {
+pub struct InitializeDex<'info> {
     /// Address paying to create the dex
-    #[account(mut ,address = amm_config.protocol_owner @ ErrorCode::InvalidProtocolOwner)]
+    #[account(mut ,address = config.admin @ ErrorCode::InvalidAdmin)]
     pub creator: Signer<'info>,
 
     /// Which config the dex belongs to.
-    pub amm_config: Box<Account<'info, AmmConfig>>,
+    pub config: Box<Account<'info, Config>>,
 
     /// CHECK: dex vault authority
     #[account(
         seeds = [
-            crate::AUTH_SEED.as_bytes(),
+            AUTH_SEED.as_bytes(),
         ],
         bump,
     )]
@@ -36,7 +36,7 @@ pub struct Initialize<'info> {
     /// PDA account:
     /// seeds = [
     ///     DEX_SEED.as_bytes(),
-    ///     amm_config.key().as_ref(),
+    ///     config.key().as_ref(),
     ///     token_0_mint.key().as_ref(),
     ///     token_1_mint.key().as_ref(),
     /// ],
@@ -115,12 +115,14 @@ pub struct Initialize<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn initialize(
-    ctx: Context<Initialize>,
+pub fn initialize_dex(
+    ctx: Context<InitializeDex>,
     init_amount_0: u64,
     init_amount_1: u64,
     mut open_time: u64,
     vault_0_reserve_bound: u64,
+    swap_fee_rate: u64,
+    launch_fee_rate: u64,
 ) -> Result<()> {
     if !(is_supported_mint(&ctx.accounts.token_0_mint).unwrap()
         && is_supported_mint(&ctx.accounts.token_1_mint).unwrap())
@@ -128,7 +130,7 @@ pub fn initialize(
         return err!(ErrorCode::NotSupportMint);
     }
 
-    if ctx.accounts.amm_config.disable_create_dex {
+    if ctx.accounts.config.disable_create_dex {
         return err!(ErrorCode::NotApproved);
     }
     let block_timestamp = clock::Clock::get()?.unix_timestamp as u64;
@@ -169,7 +171,7 @@ pub fn initialize(
     let dex_state_loader = create_dex(
         &ctx.accounts.creator.to_account_info(),
         &ctx.accounts.dex_state.to_account_info(),
-        &ctx.accounts.amm_config.to_account_info(),
+        &ctx.accounts.config.to_account_info(),
         &ctx.accounts.token_0_mint.to_account_info(),
         &ctx.accounts.token_1_mint.to_account_info(),
         &ctx.accounts.system_program.to_account_info(),
@@ -221,13 +223,15 @@ pub fn initialize(
         ctx.bumps.authority,
         open_time,
         ctx.accounts.creator.key(),
-        ctx.accounts.amm_config.key(),
+        ctx.accounts.config.key(),
         ctx.accounts.token_0_vault.key(),
         ctx.accounts.token_1_vault.key(),
         &ctx.accounts.token_0_mint,
         &ctx.accounts.token_1_mint,
         ctx.accounts.raydium.key(),
         vault_0_reserve_bound,
+        swap_fee_rate,
+        launch_fee_rate,
     );
 
     Ok(())
@@ -236,7 +240,7 @@ pub fn initialize(
 pub fn create_dex<'info>(
     payer: &AccountInfo<'info>,
     dex_account_info: &AccountInfo<'info>,
-    amm_config: &AccountInfo<'info>,
+    config: &AccountInfo<'info>,
     token_0_mint: &AccountInfo<'info>,
     token_1_mint: &AccountInfo<'info>,
     system_program: &AccountInfo<'info>,
@@ -248,7 +252,7 @@ pub fn create_dex<'info>(
     let (expect_pda_address, bump) = Pubkey::find_program_address(
         &[
             DEX_SEED.as_bytes(),
-            amm_config.key().as_ref(),
+            config.key().as_ref(),
             token_0_mint.key().as_ref(),
             token_1_mint.key().as_ref(),
         ],
@@ -267,7 +271,7 @@ pub fn create_dex<'info>(
     anchor_lang::system_program::create_account(
         cpi_context.with_signer(&[&[
             DEX_SEED.as_bytes(),
-            amm_config.key().as_ref(),
+            config.key().as_ref(),
             token_0_mint.key().as_ref(),
             token_1_mint.key().as_ref(),
             &[bump],
@@ -276,6 +280,12 @@ pub fn create_dex<'info>(
         DexState::LEN as u64,
         &crate::id(),
     )?;
+
+    emit!(InitializeDexEvent {
+        signer: payer.key(),
+        config_id: config.key(),
+        dex_id: dex_account_info.key(),
+    });
 
     AccountLoad::<DexState>::try_from_unchecked(&crate::id(), dex_account_info)
 }

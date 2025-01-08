@@ -6,7 +6,7 @@ pub enum ErrorCode {
     #[msg("Not approved")]
     NotApproved,
     #[msg("Invalid owner")]
-    InvalidProtocolOwner,
+    InvalidAdmin,
     /// The input token account is empty.
     #[msg("Input token account empty")]
     EmptySupply,
