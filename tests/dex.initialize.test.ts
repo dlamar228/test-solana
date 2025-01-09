@@ -69,7 +69,7 @@ describe("dex.initialize.test", () => {
       launchFeeRate: new BN(0),
     };
 
-    await dexUtils.initialize(signer, dexArgs);
+    await dexUtils.initializeDex(signer, dexArgs);
   });
 
   it("initialize with token 2022 mints", async () => {
@@ -115,6 +115,6 @@ describe("dex.initialize.test", () => {
       launchFeeRate: new BN(0),
     };
 
-    await dexUtils.initialize(signer, dexArgs);
+    await dexUtils.initializeDex(signer, dexArgs);
   });
 });

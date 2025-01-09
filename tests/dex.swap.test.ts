@@ -77,7 +77,7 @@ describe("dex.swap.test", () => {
         protocolFeeRate: new BN(0),
         launchFeeRate: new BN(0),
       };
-      let dexAccounts = await dexUtils.initialize(signer, dexArgs);
+      let dexAccounts = await dexUtils.initializeDex(signer, dexArgs);
 
       await sleep(1000);
 
@@ -139,7 +139,7 @@ describe("dex.swap.test", () => {
         protocolFeeRate: new BN(0),
         launchFeeRate: new BN(0),
       };
-      let dexAccounts = await dexUtils.initialize(signer, dexArgs);
+      let dexAccounts = await dexUtils.initializeDex(signer, dexArgs);
 
       await sleep(1000);
 
@@ -209,7 +209,7 @@ describe("dex.swap.test", () => {
         protocolFeeRate: new BN(10_000),
         launchFeeRate: new BN(10_000),
       };
-      let dexAccounts = await dexUtils.initialize(signer, dexArgs);
+      let dexAccounts = await dexUtils.initializeDex(signer, dexArgs);
 
       await sleep(1000);
 
@@ -291,7 +291,7 @@ describe("dex.swap.test", () => {
         protocolFeeRate: new BN(30_000),
         launchFeeRate: new BN(10_000),
       };
-      let dexAccounts = await dexUtils.initialize(signer, dexArgs);
+      let dexAccounts = await dexUtils.initializeDex(signer, dexArgs);
 
       await sleep(1000);
 
@@ -390,7 +390,7 @@ describe("dex.swap.test", () => {
         protocolFeeRate: new BN(30_000),
         launchFeeRate: new BN(10_000),
       };
-      let dexAccounts = await dexUtils.initialize(signer, dexArgs);
+      let dexAccounts = await dexUtils.initializeDex(signer, dexArgs);
 
       await sleep(1000);
 
@@ -452,7 +452,7 @@ describe("dex.swap.test", () => {
         protocolFeeRate: new BN(30_000),
         launchFeeRate: new BN(10_000),
       };
-      let dexAccounts = await dexUtils.initialize(signer, dexArgs);
+      let dexAccounts = await dexUtils.initializeDex(signer, dexArgs);
 
       await sleep(1000);
 
@@ -522,7 +522,7 @@ describe("dex.swap.test", () => {
         protocolFeeRate: new BN(30_000),
         launchFeeRate: new BN(10_000),
       };
-      let dexAccounts = await dexUtils.initialize(signer, dexArgs);
+      let dexAccounts = await dexUtils.initializeDex(signer, dexArgs);
 
       await sleep(1000);
 
@@ -603,7 +603,7 @@ describe("dex.swap.test", () => {
         protocolFeeRate: new BN(25_000),
         launchFeeRate: new BN(20_000),
       };
-      let dexAccounts = await dexUtils.initialize(signer, dexArgs);
+      let dexAccounts = await dexUtils.initializeDex(signer, dexArgs);
 
       await sleep(1000);
 
@@ -706,7 +706,7 @@ describe("dex.swap.test", () => {
         protocolFeeRate: new BN(25_000),
         launchFeeRate: new BN(20_000),
       };
-      let dexAccounts = await dexUtils.initialize(signer, dexArgs);
+      let dexAccounts = await dexUtils.initializeDex(signer, dexArgs);
 
       await sleep(1000);
 
@@ -769,7 +769,7 @@ describe("dex.swap.test", () => {
         protocolFeeRate: new BN(25_000),
         launchFeeRate: new BN(20_000),
       };
-      let dexAccounts = await dexUtils.initialize(signer, dexArgs);
+      let dexAccounts = await dexUtils.initializeDex(signer, dexArgs);
 
       await sleep(1000);
 
@@ -838,7 +838,7 @@ describe("dex.swap.test", () => {
         protocolFeeRate: new BN(25_000),
         launchFeeRate: new BN(20_000),
       };
-      let dexAccounts = await dexUtils.initialize(signer, dexArgs);
+      let dexAccounts = await dexUtils.initializeDex(signer, dexArgs);
 
       await sleep(1000);
 
@@ -921,7 +921,7 @@ describe("dex.swap.test", () => {
         protocolFeeRate: new BN(30_000),
         launchFeeRate: new BN(10_000),
       };
-      let dexAccounts = await dexUtils.initialize(signer, dexArgs);
+      let dexAccounts = await dexUtils.initializeDex(signer, dexArgs);
 
       await sleep(1000);
 
@@ -1021,7 +1021,7 @@ describe("dex.swap.test", () => {
         protocolFeeRate: new BN(30_000),
         launchFeeRate: new BN(10_000),
       };
-      let dexAccounts = await dexUtils.initialize(signer, dexArgs);
+      let dexAccounts = await dexUtils.initializeDex(signer, dexArgs);
 
       await sleep(1000);
 
@@ -1084,7 +1084,7 @@ describe("dex.swap.test", () => {
         protocolFeeRate: new BN(30_000),
         launchFeeRate: new BN(10_000),
       };
-      let dexAccounts = await dexUtils.initialize(signer, dexArgs);
+      let dexAccounts = await dexUtils.initializeDex(signer, dexArgs);
 
       await sleep(1000);
 
@@ -1153,7 +1153,7 @@ describe("dex.swap.test", () => {
         protocolFeeRate: new BN(30_000),
         launchFeeRate: new BN(30_000),
       };
-      let dexAccounts = await dexUtils.initialize(signer, dexArgs);
+      let dexAccounts = await dexUtils.initializeDex(signer, dexArgs);
 
       await sleep(1000);
 
@@ -1235,7 +1235,7 @@ describe("dex.swap.test", () => {
         protocolFeeRate: new BN(25_000),
         launchFeeRate: new BN(20_000),
       };
-      let dexAccounts = await dexUtils.initialize(signer, dexArgs);
+      let dexAccounts = await dexUtils.initializeDex(signer, dexArgs);
 
       await sleep(1000);
 

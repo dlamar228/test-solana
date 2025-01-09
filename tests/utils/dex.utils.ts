@@ -90,7 +90,7 @@ export class DexUtils {
       .rpc();
     return config;
   }
-  async initialize(
+  async initializeDex(
     signer: Signer,
     args: DexCreationArgs
   ): Promise<DexAccounts> {
