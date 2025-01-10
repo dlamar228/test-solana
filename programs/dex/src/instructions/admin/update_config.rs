@@ -3,6 +3,7 @@ use crate::states::*;
 use anchor_lang::prelude::*;
 
 pub fn update_config_admin(ctx: Context<UpdateConfigState>, new_admin: Pubkey) -> Result<()> {
+    let config_id = ctx.accounts.config.key();
     let config = &mut ctx.accounts.config;
     require_keys_neq!(new_admin, Pubkey::default());
 
@@ -13,12 +14,19 @@ pub fn update_config_admin(ctx: Context<UpdateConfigState>, new_admin: Pubkey) -
         new_admin.key().to_string()
     );
 
+    emit!(UpdateConfigAdminEvent {
+        config_id,
+        old: config.admin,
+        new: new_admin,
+    });
+
     config.admin = new_admin;
 
     Ok(())
 }
 
 pub fn update_create_dex(ctx: Context<UpdateConfigState>, disable_or_enable: bool) -> Result<()> {
+    let config_id = ctx.accounts.config.key();
     let config = &mut ctx.accounts.config;
 
     #[cfg(feature = "enable-log")]
@@ -27,6 +35,12 @@ pub fn update_create_dex(ctx: Context<UpdateConfigState>, disable_or_enable: boo
         config.disable_create_dex,
         disable_or_enable,
     );
+
+    emit!(UpdateCreateDexEvent {
+        config_id,
+        old: config.disable_create_dex,
+        new: disable_or_enable,
+    });
 
     config.disable_create_dex = disable_or_enable;
     Ok(())

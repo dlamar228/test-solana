@@ -1,5 +1,15 @@
 use anchor_lang::prelude::*;
 
+#[event]
+#[cfg_attr(feature = "client", derive(Debug))]
+pub struct InitializeDexEvent {
+    #[index]
+    pub config_id: Pubkey,
+    #[index]
+    pub dex_id: Pubkey,
+    pub signer: Pubkey,
+}
+
 /// Emitted when swap
 #[event]
 #[cfg_attr(feature = "client", derive(Debug))]
@@ -22,7 +32,14 @@ pub struct SwapEvent {
 
 #[event]
 #[cfg_attr(feature = "client", derive(Debug))]
-pub struct TokenLaunchedEvent {
+pub struct DexIsReadyToLaunchEvent {
+    #[index]
+    pub dex_id: Pubkey,
+}
+
+#[event]
+#[cfg_attr(feature = "client", derive(Debug))]
+pub struct DexLaunchedEvent {
     #[index]
     pub dex_id: Pubkey,
     #[index]
@@ -35,6 +52,33 @@ pub struct TokenLaunchedEvent {
 
 #[event]
 #[cfg_attr(feature = "client", derive(Debug))]
+pub struct UpdateDexLaunchFeeRateEvent {
+    #[index]
+    pub dex_id: Pubkey,
+    pub old: u64,
+    pub new: u64,
+}
+
+#[event]
+#[cfg_attr(feature = "client", derive(Debug))]
+pub struct UpdateDexSwapFeeRateEvent {
+    #[index]
+    pub dex_id: Pubkey,
+    pub old: u64,
+    pub new: u64,
+}
+
+#[event]
+#[cfg_attr(feature = "client", derive(Debug))]
+pub struct UpdateDexReserveBoundEvent {
+    #[index]
+    pub dex_id: Pubkey,
+    pub old: u64,
+    pub new: u64,
+}
+
+#[event]
+#[cfg_attr(feature = "client", derive(Debug))]
 pub struct InitializeConfigEvent {
     #[index]
     pub config_id: Pubkey,
@@ -43,10 +87,18 @@ pub struct InitializeConfigEvent {
 
 #[event]
 #[cfg_attr(feature = "client", derive(Debug))]
-pub struct InitializeDexEvent {
+pub struct UpdateConfigAdminEvent {
     #[index]
     pub config_id: Pubkey,
+    pub old: Pubkey,
+    pub new: Pubkey,
+}
+
+#[event]
+#[cfg_attr(feature = "client", derive(Debug))]
+pub struct UpdateCreateDexEvent {
     #[index]
-    pub dex_id: Pubkey,
-    pub signer: Pubkey,
+    pub config_id: Pubkey,
+    pub old: bool,
+    pub new: bool,
 }

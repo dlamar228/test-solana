@@ -5,13 +5,18 @@ use anchor_lang::prelude::*;
 
 pub fn update_swap_fee_rate(ctx: Context<UpdateDexState>, swap_fee_rate: u64) -> Result<()> {
     assert!(swap_fee_rate <= MAX_FEE_RATE_VALUE);
+    let dex_id = ctx.accounts.dex_state.key();
     let dex_state = &mut ctx.accounts.dex_state.load_mut()?;
 
+    let old = dex_state.swap_fee_rate;
     #[cfg(feature = "enable-log")]
-    {
-        let old = dex_state.swap_fee_rate;
-        msg!("update_swap_fee_rate, old:{}, new:{}", old, swap_fee_rate,);
-    }
+    msg!("update_swap_fee_rate, old:{}, new:{}", old, swap_fee_rate,);
+
+    emit!(UpdateDexSwapFeeRateEvent {
+        dex_id,
+        old,
+        new: swap_fee_rate,
+    });
 
     dex_state.swap_fee_rate = swap_fee_rate;
 
@@ -20,17 +25,22 @@ pub fn update_swap_fee_rate(ctx: Context<UpdateDexState>, swap_fee_rate: u64) ->
 
 pub fn update_launch_fee_rate(ctx: Context<UpdateDexState>, launch_fee_rate: u64) -> Result<()> {
     assert!(launch_fee_rate <= MAX_FEE_RATE_VALUE);
+    let dex_id = ctx.accounts.dex_state.key();
     let dex_state = &mut ctx.accounts.dex_state.load_mut()?;
 
+    let old = dex_state.launch_fee_rate;
     #[cfg(feature = "enable-log")]
-    {
-        let old = dex_state.launch_fee_rate;
-        msg!(
-            "update_launch_fee_rate, old:{}, new:{}",
-            old,
-            launch_fee_rate,
-        );
-    }
+    msg!(
+        "update_launch_fee_rate, old:{}, new:{}",
+        old,
+        launch_fee_rate,
+    );
+
+    emit!(UpdateDexLaunchFeeRateEvent {
+        dex_id,
+        old,
+        new: launch_fee_rate,
+    });
 
     dex_state.launch_fee_rate = launch_fee_rate;
 
@@ -38,13 +48,19 @@ pub fn update_launch_fee_rate(ctx: Context<UpdateDexState>, launch_fee_rate: u64
 }
 
 pub fn update_reserve_bound(ctx: Context<UpdateDexState>, reserve_bound: u64) -> Result<()> {
+    let dex_id = ctx.accounts.dex_state.key();
     let dex_state = &mut ctx.accounts.dex_state.load_mut()?;
 
+    let old = dex_state.vault_0_reserve_bound;
+
     #[cfg(feature = "enable-log")]
-    {
-        let old = dex_state.vault_0_reserve_bound;
-        msg!("update_reserve_bound, old:{}, new:{}", old, reserve_bound,);
-    }
+    msg!("update_reserve_bound, old:{}, new:{}", old, reserve_bound,);
+
+    emit!(UpdateDexReserveBoundEvent {
+        dex_id,
+        old,
+        new: reserve_bound,
+    });
 
     dex_state.vault_0_reserve_bound = reserve_bound;
 
