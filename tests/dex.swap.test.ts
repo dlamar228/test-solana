@@ -43,81 +43,7 @@ describe("dex.swap.test", () => {
   );
   const swapCalculator = new SwapCalculator();
 
-  // describe("Spl token", () => {
-  //   it("TEST LAUNCH", async () => {
-  //     let { mint0, mint1, ata0, ata1 } = await tokenUtils.initializeSplMintPair(
-  //       signer,
-  //       100_000_000,
-  //       100_000_000
-  //     );
-
-  //     let dexConfigArgs = {
-  //       index: nextIndex(),
-  //     };
-  //     let dexConfig = await dexUtils.initializeConfig(signer, dexConfigArgs);
-
-  //     let dexArgs = {
-  //       config: dexConfig,
-  //       initAmount0: new BN(2000),
-  //       initAmount1: new BN(4555),
-  //       reserveBound: new BN(2100),
-  //       openTime: new BN(0),
-  //       mint0,
-  //       mint1,
-  //       signerAta0: ata0,
-  //       signerAta1: ata1,
-  //       protocolFeeRate: new BN(0),
-  //       launchFeeRate: new BN(0),
-  //     };
-  //     let dexAccounts = await dexUtils.initializeDex(signer, dexArgs);
-
-  //     let fundTx = await dexUtils.fundDexAuth(
-  //       signer,
-  //       dexAccounts.auth,
-  //       LAMPORTS_PER_SOL
-  //     );
-
-  //     await sleep(1000);
-
-  //     let expected = await dexUtils.isLaunched(dexAccounts.state);
-  //     expect(true, "Dex already launched!").not.equal(expected);
-
-  //     let swapArgs = {
-  //       inputToken: dexAccounts.vault0.mint.address,
-  //       inputTokenProgram: dexAccounts.vault0.mint.program,
-  //       outputToken: dexAccounts.vault1.mint.address,
-  //       outputTokenProgram: dexAccounts.vault1.mint.program,
-  //       inputAta: ata0,
-  //       outputAta: ata1,
-  //       inputVault: dexAccounts.vault0.address,
-  //       outputVault: dexAccounts.vault1.address,
-  //       amountIn: new BN(1000),
-  //       minimumAmountOut: new BN(100),
-  //       dexAccounts,
-  //     };
-  //     let swapTx = await dexUtils.swapBaseInput(signer, swapArgs);
-
-  //     let actual = await dexUtils.isReadyToLaunch(dexAccounts.state);
-  //     expect(actual, "Dex not ready to launch!").equal(true);
-
-  //     let launchArgs = {
-  //       cpSwapProgram: raydiumUtils.program.programId,
-  //       raydiumAmmConfig: ammConfigAddress,
-  //       raydiumPdaGetter: raydiumUtils.pdaGetter,
-  //       dexAccounts,
-  //     };
-  //     let launchTx = await dexUtils.launchDex(signer, launchArgs);
-
-  //     let refundTx = await dexUtils.refundDexAuth(
-  //       signer,
-  //       dexAccounts.state,
-  //       dexAccounts.auth,
-  //       dexAccounts.config
-  //     );
-  //   });
-  // });
-
-  describe("Spl token", () => {
+  describe("Spl token, swap vault0 to vault1", () => {
     it("Should swap base input", async () => {
       let mints = await tokenUtils.initializeSplMintPair(
         signer,
@@ -370,7 +296,7 @@ describe("dex.swap.test", () => {
     });
   });
 
-  describe("Token 2022", () => {
+  describe("Token 2022, swap vault0 to vault1", () => {
     it("Should swap base input", async () => {
       let mints = await tokenUtils.initialize2022MintPair(
         signer,
@@ -835,6 +761,7 @@ async function setupOutputSwapTest(
   mints: MintPair,
   tokenUtils: TokenUtils,
   dexUtils: DexUtils,
+  oneToZero: boolean = true,
   maxAmountIn: BN = new BN(1000),
   amountOutLessFee: BN = new BN(1250),
   initAmount0: BN = new BN(2000),
