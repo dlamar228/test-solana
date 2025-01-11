@@ -9,12 +9,16 @@ import {
   SYSVAR_RENT_PUBKEY,
   ComputeBudgetProgram,
   TransactionSignature,
+  Transaction,
+  sendAndConfirmTransaction,
 } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { ASSOCIATED_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/utils/token";
 import { Mint, TokenUtils, TokenVault } from "./token.utils";
 import { u16ToBytes } from "./utils";
-import { RaydiumAccounts } from "./raydium.utils";
+import { RaydiumAccounts, RaydiumPda } from "./raydium.utils";
+import { createPoolFeeReceive } from "./raydium.idl";
+import { SYSTEM_PROGRAM_ID } from "@raydium-io/raydium-sdk-v2";
 
 export interface ConfigCreationArgs {
   index: number;
@@ -28,7 +32,6 @@ export interface DexCreationArgs {
   openTime: BN;
   protocolFeeRate: BN;
   launchFeeRate: BN;
-  raydium: PublicKey;
   mint0: Mint;
   mint1: Mint;
   signerAta0: PublicKey;
@@ -46,7 +49,6 @@ export interface SwapBaseInputArgs {
   outputVault: PublicKey;
   amountIn: BN;
   minimumAmountOut: BN;
-  raydiumAccounts: RaydiumAccounts;
   dexAccounts: DexAccounts;
 }
 
@@ -61,7 +63,13 @@ export interface SwapBaseOutputArgs {
   outputVault: PublicKey;
   maxAmountIn: BN;
   amountOutLessFee: BN;
-  raydiumAccounts: RaydiumAccounts;
+  dexAccounts: DexAccounts;
+}
+
+export interface LaunchDexArgs {
+  cpSwapProgram: PublicKey;
+  raydiumAmmConfig: PublicKey;
+  raydiumPdaGetter: RaydiumPda;
   dexAccounts: DexAccounts;
 }
 
@@ -113,7 +121,6 @@ export class DexUtils {
         args.launchFeeRate
       )
       .accounts({
-        raydium: args.raydium,
         creator: signer.publicKey,
         config: args.config,
         authority: auth,
@@ -149,6 +156,48 @@ export class DexUtils {
       },
     };
   }
+  async fundDexAuth(
+    from: Signer,
+    to: PublicKey,
+    lamports: number
+  ): Promise<TransactionSignature> {
+    let transaction = new Transaction().add(
+      SystemProgram.transfer({
+        fromPubkey: from.publicKey,
+        toPubkey: to,
+        lamports,
+      })
+    );
+    let transferTx = await sendAndConfirmTransaction(
+      this.program.provider.connection,
+      transaction,
+      [from],
+      this.confirmOptions
+    );
+    return transferTx;
+  }
+
+  async refundDexAuth(
+    admin: Signer,
+    dexState: PublicKey,
+    dexAuthority: PublicKey,
+    config: PublicKey
+  ): Promise<TransactionSignature> {
+    return await this.program.methods
+      .refundDexAuth()
+      .accounts({
+        admin: admin.publicKey,
+        dexAuthority,
+        config,
+        dexState,
+        systemProgram: SYSTEM_PROGRAM_ID,
+      })
+      .preInstructions([
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
+      ])
+      .rpc(this.confirmOptions);
+  }
+
   async swapBaseInput(
     signer: Signer,
     args: SwapBaseInputArgs
@@ -169,10 +218,6 @@ export class DexUtils {
         outputVault: args.outputVault,
         inputTokenMint: args.inputToken,
         outputTokenMint: args.outputToken,
-        // raydium accounts
-        raydiumPoolState: args.raydiumAccounts.state,
-        raydiumToken0Vault: args.raydiumAccounts.vault0.address,
-        raydiumToken1Vault: args.raydiumAccounts.vault1.address,
       })
       .preInstructions([
         ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
@@ -199,17 +244,78 @@ export class DexUtils {
         outputVault: args.outputVault,
         inputTokenMint: args.inputToken,
         outputTokenMint: args.outputToken,
-        // raydium accounts
-        raydiumPoolState: args.raydiumAccounts.state,
-        raydiumToken0Vault: args.raydiumAccounts.vault0.address,
-        raydiumToken1Vault: args.raydiumAccounts.vault1.address,
       })
       .preInstructions([
         ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
       ])
       .rpc(this.confirmOptions);
   }
+  async launchDex(
+    signer: Signer,
+    args: LaunchDexArgs
+  ): Promise<TransactionSignature> {
+    let [auth] = args.raydiumPdaGetter.getAuthAddress();
+    let [state] = args.raydiumPdaGetter.getStateAddress(
+      args.raydiumAmmConfig,
+      args.dexAccounts.vault0.mint.address,
+      args.dexAccounts.vault1.mint.address
+    );
+    let [vault0] = args.raydiumPdaGetter.getVaultAddress(
+      state,
+      args.dexAccounts.vault0.mint.address
+    );
+    let [vault1] = args.raydiumPdaGetter.getVaultAddress(
+      state,
+      args.dexAccounts.vault1.mint.address
+    );
+    let [oracle] = args.raydiumPdaGetter.getOracleAddress(state);
+    let [lpMint] = args.raydiumPdaGetter.getLpMintAddress(state);
+    let [creatorLpToken] = PublicKey.findProgramAddressSync(
+      [
+        args.dexAccounts.auth.toBuffer(),
+        TOKEN_PROGRAM_ID.toBuffer(),
+        lpMint.toBuffer(),
+      ],
+      ASSOCIATED_PROGRAM_ID
+    );
 
+    return await this.program.methods
+      .launch()
+      .accounts({
+        dexAuthority: args.dexAccounts.auth,
+        dexConfig: args.dexAccounts.config,
+        dexState: args.dexAccounts.state,
+        cpSwapProgram: args.cpSwapProgram,
+        payer: signer.publicKey,
+        ammConfig: args.raydiumAmmConfig,
+        authority: auth,
+        poolState: state,
+        token0Mint: args.dexAccounts.vault0.mint.address,
+        token1Mint: args.dexAccounts.vault1.mint.address,
+        creatorToken0: args.dexAccounts.vault0.address,
+        creatorToken1: args.dexAccounts.vault1.address,
+        token0Vault: vault0,
+        token1Vault: vault1,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        token0Program: args.dexAccounts.vault0.mint.program,
+        token1Program: args.dexAccounts.vault0.mint.program,
+        associatedTokenProgram: ASSOCIATED_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+        observationState: oracle,
+        lpMint,
+        createPoolFee: createPoolFeeReceive,
+        creatorLpToken,
+        rent: SYSVAR_RENT_PUBKEY,
+      })
+      .preInstructions([
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
+      ])
+      .rpc(this.confirmOptions);
+  }
+  async isReadyToLaunch(state: PublicKey) {
+    return (await this.program.account.dexState.fetchNullable(state))
+      .isReadyToLaunch;
+  }
   async isLaunched(state: PublicKey) {
     return (await this.program.account.dexState.fetchNullable(state))
       .isLaunched;
@@ -238,7 +344,6 @@ export class DexPda {
     this.programId = programId;
     this.seeds = new DexSeeds();
   }
-
   getAuthAddress() {
     return PublicKey.findProgramAddressSync([this.seeds.auth], this.programId);
   }

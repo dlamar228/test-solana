@@ -38,7 +38,7 @@ export class Curve {
     protocolFeeRate: BN
   ): SwapResult {
     // debit the fee to calculate the amount swapped
-    let protocolFee = this.protocolFee(sourceAmount, protocolFeeRate);
+    let protocolFee = this.Fee(sourceAmount, protocolFeeRate);
     let sourceAmountLessFees = sourceAmount.sub(protocolFee);
     let destinationAmountSwapped = this.swapBaseInputWithoutFees(
       sourceAmountLessFees,
@@ -73,7 +73,7 @@ export class Curve {
       sourceAmountSwapped,
       protocolFeeRate
     );
-    let protocolFee = this.protocolFee(sourceAmount, protocolFeeRate);
+    let protocolFee = this.Fee(sourceAmount, protocolFeeRate);
 
     return {
       newSwapSourceAmount: swapSourceAmount.add(sourceAmount),
@@ -160,12 +160,8 @@ export class Curve {
     return tokenAmount.mul(feeNumerator).div(feeDenominator);
   }
 
-  protocolFee(amount: BN, protocolFeeRate: BN): BN {
-    return this.floorDiv(
-      amount,
-      protocolFeeRate,
-      this.FEE_RATE_DENOMINATOR_VALUE
-    );
+  Fee(amount: BN, feeRate: BN): BN {
+    return this.floorDiv(amount, feeRate, this.FEE_RATE_DENOMINATOR_VALUE);
   }
 
   calculatePreFeeAmount(postFeeAmount: BN, tradeFeeRate: BN): BN {
@@ -244,7 +240,7 @@ export interface MintFeeCalculation {
   fee: BN;
 }
 
-export interface SwapBaseInputResult {
+export interface SwapBaseResult {
   inputAmountFee: MintFeeCalculation;
   outputAmountFee: MintFeeCalculation;
   swapCalculation: SwapCalculation;
@@ -414,7 +410,7 @@ export class SwapCalculator {
     }
   }
 
-  swapBaseInput(args: SwapBaseInputArgs): SwapBaseInputResult {
+  swapBaseInput(args: SwapBaseInputArgs): SwapBaseResult {
     let inputFeeCalculation = this.calculateTransferFee(
       args.inputMintConfig,
       args.epoch,
@@ -461,7 +457,7 @@ export class SwapCalculator {
     };
   }
 
-  swapBaseOutput(args: SwapBaseOutputArgs): SwapBaseInputResult {
+  swapBaseOutput(args: SwapBaseOutputArgs): SwapBaseResult {
     let outputFeeCalculation = this.calculateTransferInverseFee(
       args.outputMintConfig,
       args.epoch,
