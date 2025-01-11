@@ -69,27 +69,29 @@ pub fn collect_fee(
 
     let mut dex_state = ctx.accounts.dex_state.load_mut()?;
 
-    let (amount_0, amount_1) = if dex_state.is_launched {
-        dex_state.swap_fees_token_0 = 0;
-        dex_state.swap_fees_token_1 = 0;
-        (
-            ctx.accounts.token_0_vault.amount,
-            ctx.accounts.token_1_vault.amount,
-        )
-    } else {
-        let amount_0 = amount_0_requested.min(dex_state.swap_fees_token_0);
-        let amount_1 = amount_1_requested.min(dex_state.swap_fees_token_1);
-        dex_state.swap_fees_token_0 = dex_state
-            .swap_fees_token_0
-            .checked_sub(amount_0)
-            .ok_or(crate::error::ErrorCode::Underflow)?;
-        dex_state.swap_fees_token_1 = dex_state
-            .swap_fees_token_1
-            .checked_sub(amount_1)
-            .ok_or(crate::error::ErrorCode::Underflow)?;
+    let mut amount_0 = amount_0_requested.min(dex_state.swap_fees_token_0);
+    let mut amount_1 = amount_1_requested.min(dex_state.swap_fees_token_1);
 
-        (amount_0, amount_1)
-    };
+    dex_state.swap_fees_token_0 = dex_state
+        .swap_fees_token_0
+        .checked_sub(amount_0)
+        .ok_or(crate::error::ErrorCode::Underflow)?;
+    dex_state.swap_fees_token_1 = dex_state
+        .swap_fees_token_1
+        .checked_sub(amount_1)
+        .ok_or(crate::error::ErrorCode::Underflow)?;
+
+    if dex_state.is_launched {
+        amount_0 = amount_0
+            .checked_add(dex_state.launch_fees_token_0)
+            .ok_or(crate::error::ErrorCode::Overflow)?;
+        amount_1 = amount_1
+            .checked_add(dex_state.launch_fees_token_1)
+            .ok_or(crate::error::ErrorCode::Overflow)?;
+
+        dex_state.launch_fees_token_0 = 0;
+        dex_state.launch_fees_token_1 = 0;
+    }
 
     // dex authority pda signer seeds
     let seeds = [AUTH_SEED.as_bytes(), &[dex_state.auth_bump]];

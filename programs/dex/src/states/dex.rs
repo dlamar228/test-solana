@@ -17,10 +17,9 @@ pub struct DexState {
     pub token_1_vault: Pubkey,
 
     pub is_launched: bool,
+    pub is_ready_to_launch: bool,
     pub vault_0_reserve_bound: u64,
 
-    /// raydium pool state
-    pub raydium: Pubkey,
     /// Mint information for token A
     pub token_0_mint: Pubkey,
     /// Mint information for token B
@@ -45,6 +44,8 @@ pub struct DexState {
     /// The fees amounts of token_0 and token_1
     pub swap_fees_token_0: u64,
     pub swap_fees_token_1: u64,
+    pub launch_fees_token_0: u64,
+    pub launch_fees_token_1: u64,
 
     /// The timestamp allowed for swap in the pool.
     pub open_time: u64,
@@ -67,7 +68,6 @@ impl DexState {
         token_1_vault: Pubkey,
         token_0_mint: &InterfaceAccount<Mint>,
         token_1_mint: &InterfaceAccount<Mint>,
-        raydium: Pubkey,
         vault_0_reserve_bound: u64,
         swap_fee_rate: u64,
         launch_fee_rate: u64,
@@ -78,7 +78,6 @@ impl DexState {
         self.token_1_vault = token_1_vault;
         self.is_launched = false;
         self.vault_0_reserve_bound = vault_0_reserve_bound;
-        self.raydium = raydium;
         self.token_0_mint = token_0_mint.key();
         self.token_1_mint = token_1_mint.key();
         self.token_0_program = *token_0_mint.to_account_info().owner;
@@ -86,6 +85,8 @@ impl DexState {
         self.auth_bump = auth_bump;
         self.swap_fees_token_0 = 0;
         self.swap_fees_token_1 = 0;
+        self.launch_fees_token_0 = 0;
+        self.launch_fees_token_1 = 0;
         self.swap_fee_rate = swap_fee_rate;
         self.launch_fee_rate = launch_fee_rate;
         self.open_time = open_time;

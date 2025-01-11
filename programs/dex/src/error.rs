@@ -23,8 +23,6 @@ pub enum ErrorCode {
     NotSupportMint,
     #[msg("Invalid vault")]
     InvalidVault,
-    #[msg("lp token amount is zero")]
-    LpIsZero,
     #[msg("Invalid cast to u64")]
     InvalidU64Cast,
     #[msg("Calculation overflow")]
@@ -35,4 +33,8 @@ pub enum ErrorCode {
     DivZero,
     #[msg("Dex launched")]
     DexLaunched,
+    #[msg("Dex ready to launch")]
+    DexReadyToLaunch,
+    #[msg("Dex not ready to launch")]
+    DexNotReadyToLaunch,
 }

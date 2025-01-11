@@ -19,10 +19,8 @@ pub struct InitializeDex<'info> {
     /// Address paying to create the dex
     #[account(mut ,address = config.admin @ ErrorCode::InvalidAdmin)]
     pub creator: Signer<'info>,
-
     /// Which config the dex belongs to.
     pub config: Box<Account<'info, Config>>,
-
     /// CHECK: dex vault authority
     #[account(
         seeds = [
@@ -31,7 +29,6 @@ pub struct InitializeDex<'info> {
         bump,
     )]
     pub authority: UncheckedAccount<'info>,
-
     /// CHECK: Initialize an account to store the dex state
     /// PDA account:
     /// seeds = [
@@ -44,23 +41,17 @@ pub struct InitializeDex<'info> {
     /// Or random account: must be signed by cli
     #[account(mut)]
     pub dex_state: UncheckedAccount<'info>,
-
     /// Token_0 mint, the key must smaller then token_1 mint.
     #[account(
         constraint = token_0_mint.key() < token_1_mint.key(),
         mint::token_program = token_0_program,
     )]
     pub token_0_mint: Box<InterfaceAccount<'info, Mint>>,
-
     /// Token_1 mint, the key must grater then token_0 mint.
     #[account(
         mint::token_program = token_1_program,
     )]
     pub token_1_mint: Box<InterfaceAccount<'info, Mint>>,
-
-    /// CHECK: raydium pool
-    pub raydium: UncheckedAccount<'info>,
-
     /// payer token0 account
     #[account(
         mut,
@@ -68,7 +59,6 @@ pub struct InitializeDex<'info> {
         token::authority = creator,
     )]
     pub creator_token_0: Box<InterfaceAccount<'info, TokenAccount>>,
-
     /// creator token1 account
     #[account(
         mut,
@@ -76,7 +66,6 @@ pub struct InitializeDex<'info> {
         token::authority = creator,
     )]
     pub creator_token_1: Box<InterfaceAccount<'info, TokenAccount>>,
-
     /// CHECK: Token_0 vault for the dex, create by contract
     #[account(
         mut,
@@ -88,7 +77,6 @@ pub struct InitializeDex<'info> {
         bump,
     )]
     pub token_0_vault: UncheckedAccount<'info>,
-
     /// CHECK: Token_1 vault for the dex, create by contract
     #[account(
         mut,
@@ -100,7 +88,6 @@ pub struct InitializeDex<'info> {
         bump,
     )]
     pub token_1_vault: UncheckedAccount<'info>,
-
     /// Program to create mint account and mint tokens
     pub token_program: Program<'info, Token>,
     /// Spl token program or token program 2022
@@ -228,7 +215,6 @@ pub fn initialize_dex(
         ctx.accounts.token_1_vault.key(),
         &ctx.accounts.token_0_mint,
         &ctx.accounts.token_1_mint,
-        ctx.accounts.raydium.key(),
         vault_0_reserve_bound,
         swap_fee_rate,
         launch_fee_rate,

@@ -120,7 +120,7 @@ impl CurveCalculator {
 
         #[cfg(feature = "enable-log")]
         msg!(
-            "source_amount_swapped:{}, destination_amount_swapped:{}, protocol_fee:{}, constant_before:{},constant_after:{}",
+            "swap_base_input source_amount_swapped:{},destination_amount_swapped:{},protocol_fee:{},constant_before:{},constant_after:{}",
             result.source_amount_swapped,
             result.destination_amount_swapped,
             result.protocol_fee,
@@ -151,7 +151,7 @@ impl CurveCalculator {
         let new_swap_destination_amount =
             swap_destination_amount.checked_sub(destination_amount)?;
 
-        Some(SwapResult {
+        let result = SwapResult {
             new_swap_source_amount,
             new_swap_destination_amount,
             source_amount_swapped: source_amount,
@@ -161,7 +161,19 @@ impl CurveCalculator {
             constant_after: new_swap_source_amount
                 .checked_sub(protocol_fee)?
                 .checked_mul(new_swap_destination_amount)?,
-        })
+        };
+
+        #[cfg(feature = "enable-log")]
+        msg!(
+            "swap_base_output source_amount_swapped:{},destination_amount_swapped:{},protocol_fee:{},constant_before:{},constant_after:{}",
+            result.source_amount_swapped,
+            result.destination_amount_swapped,
+            result.protocol_fee,
+            result.constant_before,
+            result.constant_after,
+        );
+
+        Some(result)
     }
 
     /// Get the amount of trading tokens for the given amount of pool tokens,

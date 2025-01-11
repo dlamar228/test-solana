@@ -1,5 +1,4 @@
 use crate::curve::calculator::CurveCalculator;
-use crate::curve::Fees;
 use crate::curve::TradeDirection;
 use crate::error::ErrorCode;
 use crate::states::*;
@@ -8,6 +7,24 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 use std::cell::RefMut;
+
+pub fn swap_base_input<'info>(
+    ctx: &Context<'_, '_, '_, 'info, Swap<'info>>,
+    amount_in: u64,
+    minimum_amount_out: u64,
+) -> Result<()> {
+    let mut swapper = Swapper::from_ctx(ctx);
+    swapper.try_swap_base_input(amount_in, minimum_amount_out)
+}
+
+pub fn swap_base_output<'info>(
+    ctx: &Context<'_, '_, '_, 'info, Swap<'info>>,
+    max_amount_in: u64,
+    amount_out_less_fee: u64,
+) -> Result<()> {
+    let mut swapper = Swapper::from_ctx(ctx);
+    swapper.try_swap_base_output(max_amount_in, amount_out_less_fee)
+}
 
 #[derive(Accounts)]
 pub struct Swap<'info> {
@@ -56,54 +73,9 @@ pub struct Swap<'info> {
         address = output_vault.mint
     )]
     pub output_token_mint: Box<InterfaceAccount<'info, Mint>>,
-    #[account(
-        address = dex_state.load()?.raydium
-    )]
-    pub raydium_pool_state: AccountLoader<'info, raydium_cp_swap::states::pool::PoolState>,
-    /// The address that holds pool tokens for token_0
-    #[account(
-        mut,
-        constraint = raydium_token_0_vault.key() == raydium_pool_state.load()?.token_0_vault
-    )]
-    pub raydium_token_0_vault: Box<InterfaceAccount<'info, TokenAccount>>,
-    /// The address that holds pool tokens for token_1
-    #[account(
-        mut,
-        constraint = raydium_token_1_vault.key() == raydium_pool_state.load()?.token_1_vault
-    )]
-    pub raydium_token_1_vault: Box<InterfaceAccount<'info, TokenAccount>>,
 }
 
-pub fn swap_base_input<'info>(
-    ctx: &Context<'_, '_, '_, 'info, Swap<'info>>,
-    amount_in: u64,
-    minimum_amount_out: u64,
-) -> Result<()> {
-    let mut swap_and_launch = SwapAndLaunch::from_ctx(ctx);
-    let trade_direction = swap_and_launch.try_swap_base_input(amount_in, minimum_amount_out)?;
-    swap_and_launch.try_launch(trade_direction)
-}
-
-pub fn swap_base_output<'info>(
-    ctx: &Context<'_, '_, '_, 'info, Swap<'info>>,
-    max_amount_in: u64,
-    amount_out_less_fee: u64,
-) -> Result<()> {
-    let mut swap_and_launch = SwapAndLaunch::from_ctx(ctx);
-    let trade_direction =
-        swap_and_launch.try_swap_base_output(max_amount_in, amount_out_less_fee)?;
-    swap_and_launch.try_launch(trade_direction)
-}
-
-pub struct SwapCalculation {
-    pub trade_direction: TradeDirection,
-    pub total_input_token_amount: u64,
-    pub total_output_token_amount: u64,
-    pub token_0_price_x64: u128,
-    pub token_1_price_x64: u128,
-}
-
-pub struct SwapAndLaunch<'info> {
+pub struct Swapper<'info> {
     authority: UncheckedAccount<'info>,
     dex_state: AccountLoader<'info, DexState>,
     input_vault: Box<InterfaceAccount<'info, TokenAccount>>,
@@ -112,15 +84,12 @@ pub struct SwapAndLaunch<'info> {
     output_token_program: Interface<'info, TokenInterface>,
     input_token_mint: Box<InterfaceAccount<'info, Mint>>,
     output_token_mint: Box<InterfaceAccount<'info, Mint>>,
-    raydium_pool_state: AccountLoader<'info, raydium_cp_swap::states::pool::PoolState>,
-    raydium_token_0_vault: Box<InterfaceAccount<'info, TokenAccount>>,
-    raydium_token_1_vault: Box<InterfaceAccount<'info, TokenAccount>>,
     input_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
     output_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
     payer: Signer<'info>,
 }
 
-impl<'info> SwapAndLaunch<'info> {
+impl<'info> Swapper<'info> {
     pub fn from_ctx(ctx: &Context<'_, '_, '_, 'info, Swap<'info>>) -> Self {
         Self {
             authority: ctx.accounts.authority.clone(),
@@ -131,9 +100,6 @@ impl<'info> SwapAndLaunch<'info> {
             output_token_program: ctx.accounts.output_token_program.clone(),
             input_token_mint: ctx.accounts.input_token_mint.clone(),
             output_token_mint: ctx.accounts.output_token_mint.clone(),
-            raydium_pool_state: ctx.accounts.raydium_pool_state.clone(),
-            raydium_token_0_vault: ctx.accounts.raydium_token_0_vault.clone(),
-            raydium_token_1_vault: ctx.accounts.raydium_token_1_vault.clone(),
             input_token_account: ctx.accounts.input_token_account.clone(),
             output_token_account: ctx.accounts.output_token_account.clone(),
             payer: ctx.accounts.payer.clone(),
@@ -195,17 +161,18 @@ impl<'info> SwapAndLaunch<'info> {
             token_1_price_x64,
         })
     }
-    pub fn try_swap_base_input(
-        &mut self,
-        amount_in: u64,
-        minimum_amount_out: u64,
-    ) -> Result<TradeDirection> {
+
+    pub fn try_swap_base_input(&mut self, amount_in: u64, minimum_amount_out: u64) -> Result<()> {
         let block_timestamp = solana_program::clock::Clock::get()?.unix_timestamp as u64;
         let dex_id = self.dex_state.key();
         let dex_state = &mut self.dex_state.load_mut()?;
 
         if block_timestamp < dex_state.open_time {
             return err!(ErrorCode::NotApproved);
+        }
+
+        if dex_state.is_launched {
+            return err!(ErrorCode::DexReadyToLaunch);
         }
 
         if dex_state.is_launched {
@@ -328,20 +295,40 @@ impl<'info> SwapAndLaunch<'info> {
             signer_seeds,
         )?;
 
+        let vault_0_amount = match trade_direction {
+            TradeDirection::ZeroForOne => {
+                self.input_vault.reload()?;
+                self.input_vault.amount
+            }
+            TradeDirection::OneForZero => {
+                self.output_vault.reload()?;
+                self.output_vault.amount
+            }
+        };
+
+        if vault_0_amount >= dex_state.vault_0_reserve_bound {
+            dex_state.is_ready_to_launch = true;
+            emit!(DexIsReadyToLaunchEvent { dex_id });
+        }
+
         dex_state.recent_epoch = Clock::get()?.epoch;
 
-        Ok(trade_direction)
+        Ok(())
     }
     pub fn try_swap_base_output(
         &mut self,
         max_amount_in: u64,
         amount_out_less_fee: u64,
-    ) -> Result<TradeDirection> {
+    ) -> Result<()> {
         let block_timestamp = solana_program::clock::Clock::get()?.unix_timestamp as u64;
         let dex_id = self.dex_state.key();
         let dex_state = &mut self.dex_state.load_mut()?;
         if block_timestamp < dex_state.open_time {
             return err!(ErrorCode::NotApproved);
+        }
+
+        if dex_state.is_launched {
+            return err!(ErrorCode::DexReadyToLaunch);
         }
 
         if dex_state.is_launched {
@@ -368,17 +355,6 @@ impl<'info> SwapAndLaunch<'info> {
             dex_state.swap_fee_rate,
         )
         .ok_or(ErrorCode::ZeroTradingTokens)?;
-
-        #[cfg(feature = "enable-log")]
-        msg!(
-            "swap source_amount_swapped:{}, destination_amount_swapped:{}, protocol_fee:{}, constant_before:{}, constant_after:{}, base_input:{}",
-            result.source_amount_swapped,
-            result.destination_amount_swapped,
-            result.protocol_fee,
-            result.constant_before,
-            result.constant_after,
-            false
-        );
 
         // Re-calculate the source amount swapped based on what the curve says
         let (input_transfer_amount, input_transfer_fee) = {
@@ -466,111 +442,32 @@ impl<'info> SwapAndLaunch<'info> {
             signer_seeds,
         )?;
 
-        dex_state.recent_epoch = Clock::get()?.epoch;
-
-        Ok(trade_direction)
-    }
-    fn get_taxed_amount_before_launch(
-        &self,
-        amount: u64,
-        swap_fees: u64,
-        launch_fee_rate: u64,
-    ) -> Result<(u64, u64)> {
-        let clean = amount.checked_sub(swap_fees).ok_or(ErrorCode::Underflow)?;
-        let launch_tax = Fees::protocol_fee(clean as u128, launch_fee_rate).unwrap();
-        let casted_launch_tax = u64::try_from(launch_tax).map_err(|_| ErrorCode::InvalidU64Cast)?;
-        Ok((
-            clean
-                .checked_sub(casted_launch_tax)
-                .ok_or(ErrorCode::Underflow)?,
-            casted_launch_tax,
-        ))
-    }
-    pub fn try_launch(&mut self, trade_direction: TradeDirection) -> Result<()> {
-        self.input_vault.reload()?;
-        self.output_vault.reload()?;
-        let dex_state = &mut self.dex_state.load_mut()?;
-
-        let (vault_0, mint_0, program_0, vault_1, mint_1, program_1) = match trade_direction {
-            TradeDirection::ZeroForOne => (
-                &self.input_vault,
-                &self.input_token_mint,
-                &self.input_token_program,
-                &self.output_vault,
-                &self.output_token_mint,
-                &self.output_token_program,
-            ),
-            TradeDirection::OneForZero => (
-                &self.output_vault,
-                &self.output_token_mint,
-                &self.output_token_program,
-                &self.input_vault,
-                &self.input_token_mint,
-                &self.input_token_program,
-            ),
+        let vault_0_amount = match trade_direction {
+            TradeDirection::ZeroForOne => {
+                self.input_vault.reload()?;
+                self.input_vault.amount
+            }
+            TradeDirection::OneForZero => {
+                self.output_vault.reload()?;
+                self.output_vault.amount
+            }
         };
 
-        if dex_state.vault_0_reserve_bound > vault_0.amount {
-            return Ok(());
+        if vault_0_amount >= dex_state.vault_0_reserve_bound {
+            dex_state.is_ready_to_launch = true;
+            emit!(DexIsReadyToLaunchEvent { dex_id });
         }
 
-        let (taxed_amount_0, launch_fees_0) = self.get_taxed_amount_before_launch(
-            vault_0.amount,
-            dex_state.swap_fees_token_0,
-            dex_state.launch_fee_rate,
-        )?;
-
-        let (taxed_amount_1, launch_fees_1) = self.get_taxed_amount_before_launch(
-            vault_1.amount,
-            dex_state.swap_fees_token_1,
-            dex_state.launch_fee_rate,
-        )?;
-
-        #[cfg(feature = "enable-log")]
-        msg!(
-            "try_launch taxed_amount_0:{}, launch_fees_0:{}, taxed_amount_1:{}, launch_fees_1:{}",
-            taxed_amount_0,
-            launch_fees_0,
-            taxed_amount_1,
-            launch_fees_1,
-        );
-
-        let seeds = [AUTH_SEED.as_bytes(), &[dex_state.auth_bump]];
-        let signer_seeds = &[seeds.as_slice()];
-
-        transfer_from_dex_vault_to_user(
-            self.authority.to_account_info(),
-            vault_0.to_account_info(),
-            self.raydium_token_0_vault.to_account_info(),
-            mint_0.to_account_info(),
-            program_0.to_account_info(),
-            taxed_amount_0,
-            mint_0.decimals,
-            signer_seeds,
-        )?;
-
-        transfer_from_dex_vault_to_user(
-            self.authority.to_account_info(),
-            vault_1.to_account_info(),
-            self.raydium_token_1_vault.to_account_info(),
-            mint_1.to_account_info(),
-            program_1.to_account_info(),
-            taxed_amount_1,
-            mint_1.decimals,
-            signer_seeds,
-        )?;
-
-        dex_state.is_launched = true;
-
-        emit!(TokenLaunchedEvent {
-            dex_id: self.dex_state.key(),
-            raydium_id: self.raydium_pool_state.key(),
-            amount_0: taxed_amount_0,
-            amount_1: taxed_amount_1,
-            launch_fees_0,
-            launch_fees_1
-        });
+        dex_state.recent_epoch = Clock::get()?.epoch;
 
         Ok(())
     }
+}
+
+pub struct SwapCalculation {
+    pub trade_direction: TradeDirection,
+    pub total_input_token_amount: u64,
+    pub total_output_token_amount: u64,
+    pub token_0_price_x64: u128,
+    pub token_1_price_x64: u128,
 }

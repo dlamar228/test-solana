@@ -48,6 +48,9 @@ pub struct DexLaunchedEvent {
     pub amount_1: u64,
     pub launch_fees_0: u64,
     pub launch_fees_1: u64,
+    pub transfer_fee_0: u64,
+    pub transfer_fee_1: u64,
+    pub lp_burned: u64,
 }
 
 #[event]

@@ -174,4 +174,12 @@ pub mod dex {
     ) -> Result<()> {
         instructions::swap_base_output(&ctx, max_amount_in, amount_out)
     }
+
+    pub fn launch(ctx: Context<Launch>) -> Result<()> {
+        instructions::launch_dex(ctx)
+    }
+
+    pub fn refund_dex_auth(ctx: Context<RefundDexAuth>) -> Result<()> {
+        instructions::refund_dex_auth(ctx)
+    }
 }
