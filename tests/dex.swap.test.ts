@@ -1,12 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program, BN } from "@coral-xyz/anchor";
 import { Dex } from "../target/types/dex";
-import {
-  Commitment,
-  LAMPORTS_PER_SOL,
-  PublicKey,
-  Signer,
-} from "@solana/web3.js";
+import { Commitment, LAMPORTS_PER_SOL, Signer } from "@solana/web3.js";
 import {
   DexUtils,
   TokenUtils,
@@ -903,7 +898,7 @@ async function setupSwapBaseInputTest(
   ]);
 
   let result = calculator.swapBaseInput({
-    protocolFeeRate: dexState.swapFeeRate,
+    swapFeeRate: dexState.swapFeeRate,
     inputProtocolFee: dexState.swapFeesToken0,
     outputProtocolFee: dexState.swapFeesToken1,
     inputMintConfig,
@@ -951,7 +946,7 @@ async function setupSwapOutputTest(
   ]);
 
   let result = calculator.swapBaseOutput({
-    protocolFeeRate: dexState.swapFeeRate,
+    swapFeeRate: dexState.swapFeeRate,
     inputProtocolFee: dexState.swapFeesToken0,
     outputProtocolFee: dexState.swapFeesToken1,
     inputMintConfig,
@@ -1003,7 +998,7 @@ async function setupInputSwapTest(
   initAmount0: BN = new BN(2000),
   initAmount1: BN = new BN(5000),
   reserveBound: BN = new BN(2500),
-  protocolFeeRate: BN = new BN(25_000),
+  swapFeeRate: BN = new BN(25_000),
   launchFeeRate: BN = new BN(10_000)
 ): Promise<SetupInputSwap> {
   let dexConfigArgs = {
@@ -1021,7 +1016,7 @@ async function setupInputSwapTest(
     mint1: mints.mint1,
     signerAta0: mints.ata0,
     signerAta1: mints.ata1,
-    protocolFeeRate,
+    swapFeeRate,
     launchFeeRate,
   };
   let dexAccounts = await dexUtils.initializeDex(signer, dexCreationArgs);
@@ -1101,7 +1096,7 @@ async function setupOutputSwapTest(
   initAmount0: BN = new BN(2000),
   initAmount1: BN = new BN(5000),
   reserveBound: BN = new BN(2500),
-  protocolFeeRate: BN = new BN(25_000),
+  swapFeeRate: BN = new BN(25_000),
   launchFeeRate: BN = new BN(10_000)
 ): Promise<SetupOutputSwap> {
   let dexConfigArgs = {
@@ -1119,7 +1114,7 @@ async function setupOutputSwapTest(
     mint1: mints.mint1,
     signerAta0: mints.ata0,
     signerAta1: mints.ata1,
-    protocolFeeRate,
+    swapFeeRate,
     launchFeeRate,
   };
   let dexAccounts = await dexUtils.initializeDex(signer, dexCreationArgs);

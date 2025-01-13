@@ -30,7 +30,7 @@ export interface DexCreationArgs {
   initAmount1: BN;
   reserveBound: BN;
   openTime: BN;
-  protocolFeeRate: BN;
+  swapFeeRate: BN;
   launchFeeRate: BN;
   mint0: Mint;
   mint1: Mint;
@@ -117,7 +117,7 @@ export class DexUtils {
         args.initAmount1,
         args.openTime,
         args.reserveBound,
-        args.protocolFeeRate,
+        args.swapFeeRate,
         args.launchFeeRate
       )
       .accounts({
@@ -176,7 +176,6 @@ export class DexUtils {
     );
     return transferTx;
   }
-
   async refundDexAuth(
     admin: Signer,
     dexState: PublicKey,
@@ -197,7 +196,6 @@ export class DexUtils {
       ])
       .rpc(this.confirmOptions);
   }
-
   async swapBaseInput(
     signer: Signer,
     args: SwapBaseInputArgs
@@ -306,6 +304,84 @@ export class DexUtils {
         createPoolFee: createPoolFeeReceive,
         creatorLpToken,
         rent: SYSVAR_RENT_PUBKEY,
+      })
+      .preInstructions([
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
+      ])
+      .rpc(this.confirmOptions);
+  }
+  async updateAdmin(signer: Signer, config: PublicKey, new_admin: PublicKey) {
+    return await this.program.methods
+      .updateConfigAdmin(new_admin)
+      .accounts({
+        admin: signer.publicKey,
+        config,
+      })
+      .preInstructions([
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
+      ])
+      .rpc(this.confirmOptions);
+  }
+  async updateLaunchFeeRate(
+    signer: Signer,
+    config: PublicKey,
+    dexState: PublicKey,
+    newFeeRate: BN
+  ) {
+    return await this.program.methods
+      .updateLaunchFeeRate(newFeeRate)
+      .accounts({
+        admin: signer.publicKey,
+        config,
+        dexState,
+      })
+      .preInstructions([
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
+      ])
+      .rpc(this.confirmOptions);
+  }
+  async updateSwapFeeRate(
+    signer: Signer,
+    config: PublicKey,
+    dexState: PublicKey,
+    newSwapRate: BN
+  ) {
+    return await this.program.methods
+      .updateSwapFeeRate(newSwapRate)
+      .accounts({
+        admin: signer.publicKey,
+        config,
+        dexState,
+      })
+      .preInstructions([
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
+      ])
+      .rpc(this.confirmOptions);
+  }
+  async updateReserveBound(
+    signer: Signer,
+    config: PublicKey,
+    dexState: PublicKey,
+    newReserveBound: BN
+  ) {
+    return await this.program.methods
+      .updateReserveBound(newReserveBound)
+      .accounts({
+        admin: signer.publicKey,
+        config,
+        dexState,
+      })
+      .preInstructions([
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
+      ])
+      .rpc(this.confirmOptions);
+  }
+  async updateCreateDex(signer: Signer, config: PublicKey, createDex: boolean) {
+    return await this.program.methods
+      .updateCreateDex(createDex)
+      .accounts({
+        admin: signer.publicKey,
+        config,
       })
       .preInstructions([
         ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),

@@ -258,7 +258,7 @@ export interface SwapBaseResult {
 }
 
 export interface SwapBaseInputArgs {
-  protocolFeeRate: BN;
+  swapFeeRate: BN;
   inputProtocolFee: BN;
   outputProtocolFee: BN;
   inputMintConfig: TransferFeeConfig | null;
@@ -271,7 +271,7 @@ export interface SwapBaseInputArgs {
 }
 
 export interface SwapBaseOutputArgs {
-  protocolFeeRate: BN;
+  swapFeeRate: BN;
   inputProtocolFee: BN;
   outputProtocolFee: BN;
   inputMintConfig: TransferFeeConfig | null;
@@ -433,7 +433,7 @@ export class SwapCalculator {
       inputFeeCalculation.actualAmount,
       swapCalculation.totalInputTokenAmount,
       swapCalculation.totalOutputTokenAmount,
-      args.protocolFeeRate
+      args.swapFeeRate
     );
 
     if (!inputFeeCalculation.actualAmount.eq(result.sourceAmountSwapped)) {
@@ -480,7 +480,7 @@ export class SwapCalculator {
       outputFeeCalculation.actualAmount,
       swapCalculation.totalInputTokenAmount,
       swapCalculation.totalOutputTokenAmount,
-      args.protocolFeeRate
+      args.swapFeeRate
     );
 
     if (result.sourceAmountSwapped.isZero()) {

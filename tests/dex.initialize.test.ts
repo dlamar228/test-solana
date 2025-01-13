@@ -39,7 +39,7 @@ describe("dex.initialize.test", () => {
       mint1,
       signerAta0: ata0,
       signerAta1: ata1,
-      protocolFeeRate: new BN(0),
+      swapFeeRate: new BN(0),
       launchFeeRate: new BN(0),
     };
 
@@ -69,7 +69,7 @@ describe("dex.initialize.test", () => {
       mint1,
       signerAta0: ata0,
       signerAta1: ata1,
-      protocolFeeRate: new BN(0),
+      swapFeeRate: new BN(0),
       launchFeeRate: new BN(0),
     };
 
