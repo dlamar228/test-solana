@@ -31,6 +31,13 @@ export class Curve {
     }
   }
 
+  checkedSub(a: BN, b: BN): BN {
+    if (b.gt(a)) {
+      throw Error("Sub Underflow");
+    }
+    return a.sub(b);
+  }
+
   swapBaseInput(
     sourceAmount: BN,
     swapSourceAmount: BN,
@@ -39,7 +46,7 @@ export class Curve {
   ): SwapResult {
     // debit the fee to calculate the amount swapped
     let protocolFee = this.Fee(sourceAmount, protocolFeeRate);
-    let sourceAmountLessFees = sourceAmount.sub(protocolFee);
+    let sourceAmountLessFees = this.checkedSub(sourceAmount, protocolFee);
     let destinationAmountSwapped = this.swapBaseInputWithoutFees(
       sourceAmountLessFees,
       swapSourceAmount,
@@ -48,7 +55,8 @@ export class Curve {
 
     return {
       newSwapSourceAmount: swapSourceAmount.add(sourceAmount),
-      newSwapDestinationAmount: swapDestinationAmount.sub(
+      newSwapDestinationAmount: this.checkedSub(
+        swapDestinationAmount,
         destinationAmountSwapped
       ),
       sourceAmountSwapped: sourceAmount,
@@ -77,7 +85,10 @@ export class Curve {
 
     return {
       newSwapSourceAmount: swapSourceAmount.add(sourceAmount),
-      newSwapDestinationAmount: swapDestinationAmount.sub(destinationAmount),
+      newSwapDestinationAmount: this.checkedSub(
+        swapDestinationAmount,
+        destinationAmount
+      ),
       sourceAmountSwapped: sourceAmount,
       destinationAmountSwapped: destinationAmount,
       protocolFee,
@@ -104,7 +115,7 @@ export class Curve {
     // (x + delta_x) * (y - delta_y) = x * y
     // delta_x = (x * delta_y) / (y - delta_y)
     let numerator = swapSourceAmount.mul(destinationAmount);
-    let denominator = swapDestinationAmount.sub(destinationAmount);
+    let denominator = this.checkedSub(swapDestinationAmount, destinationAmount);
     let result = this.checkedCeilDiv(numerator, denominator);
 
     return result[0];
@@ -171,11 +182,10 @@ export class Curve {
 
     const numerator = postFeeAmount.mul(this.FEE_RATE_DENOMINATOR_VALUE);
 
-    if (tradeFeeRate.gt(this.FEE_RATE_DENOMINATOR_VALUE)) {
-      throw Error("Sub underflow");
-    }
-    const denominator =
-      this.FEE_RATE_DENOMINATOR_VALUE.clone().sub(tradeFeeRate);
+    const denominator = this.checkedSub(
+      this.FEE_RATE_DENOMINATOR_VALUE.clone(),
+      tradeFeeRate
+    );
 
     let result = numerator.add(denominator).sub(this.ONE).div(denominator);
 
@@ -283,8 +293,11 @@ export class SwapCalculator {
     inputVault: BN,
     outputVault: BN
   ): SwapCalculation {
-    let totalInputTokenAmount = this.withoutFee(inputVault, inputProtocolFee);
-    let totalOutputTokenAmount = this.withoutFee(
+    let totalInputTokenAmount = this.curve.checkedSub(
+      inputVault,
+      inputProtocolFee
+    );
+    let totalOutputTokenAmount = this.curve.checkedSub(
       outputVault,
       outputProtocolFee
     );
@@ -304,14 +317,6 @@ export class SwapCalculator {
       throw Error("Div by zero");
     }
     return amount.mul(this.Q32).div(amount);
-  }
-
-  withoutFee(amount: BN, fee: BN): BN {
-    if (fee.gt(amount)) {
-      throw Error("Sub overflow");
-    }
-
-    return amount.sub(fee);
   }
 
   calculateTransferFee(
