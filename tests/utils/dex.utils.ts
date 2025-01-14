@@ -21,6 +21,7 @@ import { createPoolFeeReceive } from "./raydium.idl";
 import { SYSTEM_PROGRAM_ID } from "@raydium-io/raydium-sdk-v2";
 
 export interface ConfigCreationArgs {
+  admin: PublicKey;
   index: number;
 }
 
@@ -83,14 +84,37 @@ export class DexUtils {
     this.confirmOptions = confirmOptions;
     this.pdaGetter = new DexPda(program.programId);
   }
+  async initializeDexProtocol(signer: Signer) {
+    let [protocol] = this.pdaGetter.getProtocolAddress();
 
-  async initializeConfig(signer: Signer, args: ConfigCreationArgs) {
-    let [config] = this.pdaGetter.getConfigAddress(args.index);
+    let protocolState = await this.getProtocolState(protocol);
+    if (protocolState != null) {
+      return protocol;
+    }
+
     await this.program.methods
-      .initializeConfig(args.index)
+      .initializeProtocol()
       .accounts({
-        owner: signer.publicKey,
+        signer: signer.publicKey,
+        protocol,
+        systemProgram: SYSTEM_PROGRAM_ID,
+      })
+      .preInstructions([
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
+      ])
+      .rpc();
+    return protocol;
+  }
+  async initializeDexConfig(protocolAdmin: Signer, args: ConfigCreationArgs) {
+    let [protocol] = this.pdaGetter.getProtocolAddress();
+    let [config] = this.pdaGetter.getConfigStateAddress(args.index);
+    await this.program.methods
+      .initializeConfig(args.admin, args.index)
+      .accounts({
+        signer: protocolAdmin.publicKey,
+        protocol,
         config,
+        systemProgram: SYSTEM_PROGRAM_ID,
       })
       .preInstructions([
         ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
@@ -102,14 +126,14 @@ export class DexUtils {
     signer: Signer,
     args: DexCreationArgs
   ): Promise<DexAccounts> {
-    let [auth] = this.pdaGetter.getAuthAddress();
-    let [state] = this.pdaGetter.getStateAddress(
+    let [auth] = this.pdaGetter.getAuthorityAddress();
+    let [state] = this.pdaGetter.getDexStateAddress(
       args.config,
       args.mint0.address,
       args.mint1.address
     );
-    let [vault0] = this.pdaGetter.getVaultAddress(state, args.mint0.address);
-    let [vault1] = this.pdaGetter.getVaultAddress(state, args.mint1.address);
+    let [vault0] = this.pdaGetter.getDexVaultAddress(state, args.mint0.address);
+    let [vault1] = this.pdaGetter.getDexVaultAddress(state, args.mint1.address);
 
     await this.program.methods
       .initializeDex(
@@ -310,7 +334,11 @@ export class DexUtils {
       ])
       .rpc(this.confirmOptions);
   }
-  async updateAdmin(signer: Signer, config: PublicKey, new_admin: PublicKey) {
+  async updateDexAdmin(
+    signer: Signer,
+    config: PublicKey,
+    new_admin: PublicKey
+  ) {
     return await this.program.methods
       .updateConfigAdmin(new_admin)
       .accounts({
@@ -322,7 +350,7 @@ export class DexUtils {
       ])
       .rpc(this.confirmOptions);
   }
-  async updateLaunchFeeRate(
+  async updateDexLaunchFeeRate(
     signer: Signer,
     config: PublicKey,
     dexState: PublicKey,
@@ -340,7 +368,7 @@ export class DexUtils {
       ])
       .rpc(this.confirmOptions);
   }
-  async updateSwapFeeRate(
+  async updateDexSwapFeeRate(
     signer: Signer,
     config: PublicKey,
     dexState: PublicKey,
@@ -358,7 +386,7 @@ export class DexUtils {
       ])
       .rpc(this.confirmOptions);
   }
-  async updateReserveBound(
+  async updateDexReserveBound(
     signer: Signer,
     config: PublicKey,
     dexState: PublicKey,
@@ -376,7 +404,11 @@ export class DexUtils {
       ])
       .rpc(this.confirmOptions);
   }
-  async updateCreateDex(signer: Signer, config: PublicKey, createDex: boolean) {
+  async updateConfigCreateDex(
+    signer: Signer,
+    config: PublicKey,
+    createDex: boolean
+  ) {
     return await this.program.methods
       .updateCreateDex(createDex)
       .accounts({
@@ -388,16 +420,19 @@ export class DexUtils {
       ])
       .rpc(this.confirmOptions);
   }
-  async isReadyToLaunch(state: PublicKey) {
-    return (await this.program.account.dexState.fetchNullable(state))
+  async dexIsReadyToLaunch(dexState: PublicKey) {
+    return (await this.program.account.dexState.fetchNullable(dexState))
       .isReadyToLaunch;
   }
-  async isLaunched(state: PublicKey) {
-    return (await this.program.account.dexState.fetchNullable(state))
+  async dexIsLaunched(dexState: PublicKey) {
+    return (await this.program.account.dexState.fetchNullable(dexState))
       .isLaunched;
   }
-  async getDexState(state: PublicKey) {
-    return await this.program.account.dexState.fetchNullable(state);
+  async getProtocolState(protocol: PublicKey) {
+    return await this.program.account.protocolState.fetchNullable(protocol);
+  }
+  async getDexState(dexState: PublicKey) {
+    return await this.program.account.dexState.fetchNullable(dexState);
   }
   async getConfigState(config: PublicKey) {
     return await this.program.account.config.fetchNullable(config);
@@ -420,40 +455,51 @@ export class DexPda {
     this.programId = programId;
     this.seeds = new DexSeeds();
   }
-  getAuthAddress() {
-    return PublicKey.findProgramAddressSync([this.seeds.auth], this.programId);
-  }
-  getConfigAddress(index: number) {
+  getProtocolAddress() {
     return PublicKey.findProgramAddressSync(
-      [this.seeds.config, u16ToBytes(index)],
+      [this.seeds.dexProtocol],
       this.programId
     );
   }
-  getStateAddress(amm: PublicKey, mint0: PublicKey, mint1: PublicKey) {
+  getAuthorityAddress() {
     return PublicKey.findProgramAddressSync(
-      [this.seeds.dex, amm.toBuffer(), mint0.toBuffer(), mint1.toBuffer()],
+      [this.seeds.dexAuthority],
       this.programId
     );
   }
-  getVaultAddress(state: PublicKey, mint: PublicKey) {
+  getConfigStateAddress(index: number) {
     return PublicKey.findProgramAddressSync(
-      [this.seeds.vault, state.toBuffer(), mint.toBuffer()],
+      [this.seeds.dexConfig, u16ToBytes(index)],
+      this.programId
+    );
+  }
+  getDexStateAddress(amm: PublicKey, mint0: PublicKey, mint1: PublicKey) {
+    return PublicKey.findProgramAddressSync(
+      [this.seeds.dexState, amm.toBuffer(), mint0.toBuffer(), mint1.toBuffer()],
+      this.programId
+    );
+  }
+  getDexVaultAddress(state: PublicKey, mint: PublicKey) {
+    return PublicKey.findProgramAddressSync(
+      [this.seeds.dexVault, state.toBuffer(), mint.toBuffer()],
       this.programId
     );
   }
 }
 
 export class DexSeeds {
-  auth: Buffer;
-  config: Buffer;
-  dex: Buffer;
-  vault: Buffer;
+  dexProtocol: Buffer;
+  dexAuthority: Buffer;
+  dexConfig: Buffer;
+  dexState: Buffer;
+  dexVault: Buffer;
 
   constructor() {
-    this.auth = this.toSeed("dex_auth");
-    this.config = this.toSeed("dex_config");
-    this.dex = this.toSeed("dex_state");
-    this.vault = this.toSeed("dex_vault");
+    this.dexProtocol = this.toSeed("dex_protocol");
+    this.dexAuthority = this.toSeed("dex_auth");
+    this.dexConfig = this.toSeed("dex_config");
+    this.dexState = this.toSeed("dex_state");
+    this.dexVault = this.toSeed("dex_vault");
   }
 
   toSeed(seed: string) {

@@ -25,11 +25,14 @@ describe("dex.admin.test", () => {
       100_000_000
     );
 
+    await dexUtils.initializeDexProtocol(signer);
+
     let dexConfigArgs = {
       index: nextIndex(),
+      admin: signer.publicKey,
     };
 
-    let dexConfig = await dexUtils.initializeConfig(signer, dexConfigArgs);
+    let dexConfig = await dexUtils.initializeDexConfig(signer, dexConfigArgs);
 
     let dexArgs = {
       config: dexConfig,
@@ -69,11 +72,14 @@ describe("dex.admin.test", () => {
       100_000_000
     );
 
+    await dexUtils.initializeDexProtocol(signer);
+
     let dexConfigArgs = {
       index: nextIndex(),
+      admin: signer.publicKey,
     };
 
-    let dexConfig = await dexUtils.initializeConfig(signer, dexConfigArgs);
+    let dexConfig = await dexUtils.initializeDexConfig(signer, dexConfigArgs);
 
     let dexArgs = {
       config: dexConfig,
@@ -93,7 +99,7 @@ describe("dex.admin.test", () => {
     await sleep(1000);
 
     let new_admin = Keypair.generate().publicKey;
-    await dexUtils.updateAdmin(signer, dexAccounts.config, new_admin);
+    await dexUtils.updateDexAdmin(signer, dexAccounts.config, new_admin);
     await sleep(1000);
 
     let actual = (await dexUtils.getConfigState(dexAccounts.config)).admin;
@@ -107,11 +113,14 @@ describe("dex.admin.test", () => {
       100_000_000
     );
 
+    await dexUtils.initializeDexProtocol(signer);
+
     let dexConfigArgs = {
       index: nextIndex(),
+      admin: signer.publicKey,
     };
 
-    let dexConfig = await dexUtils.initializeConfig(signer, dexConfigArgs);
+    let dexConfig = await dexUtils.initializeDexConfig(signer, dexConfigArgs);
 
     let dexArgs = {
       config: dexConfig,
@@ -130,7 +139,7 @@ describe("dex.admin.test", () => {
     let dexAccounts = await dexUtils.initializeDex(signer, dexArgs);
     await sleep(1000);
 
-    await dexUtils.updateCreateDex(signer, dexAccounts.config, false);
+    await dexUtils.updateConfigCreateDex(signer, dexAccounts.config, false);
     await sleep(1000);
 
     let actual = (await dexUtils.getConfigState(dexAccounts.config))
@@ -145,11 +154,14 @@ describe("dex.admin.test", () => {
       100_000_000
     );
 
+    await dexUtils.initializeDexProtocol(signer);
+
     let dexConfigArgs = {
       index: nextIndex(),
+      admin: signer.publicKey,
     };
 
-    let dexConfig = await dexUtils.initializeConfig(signer, dexConfigArgs);
+    let dexConfig = await dexUtils.initializeDexConfig(signer, dexConfigArgs);
 
     let dexArgs = {
       config: dexConfig,
@@ -169,7 +181,7 @@ describe("dex.admin.test", () => {
     await sleep(1000);
 
     let newFeeRate = new BN(10_000);
-    await dexUtils.updateSwapFeeRate(
+    await dexUtils.updateDexSwapFeeRate(
       signer,
       dexAccounts.config,
       dexAccounts.state,
@@ -190,11 +202,14 @@ describe("dex.admin.test", () => {
       100_000_000
     );
 
+    await dexUtils.initializeDexProtocol(signer);
+
     let dexConfigArgs = {
       index: nextIndex(),
+      admin: signer.publicKey,
     };
 
-    let dexConfig = await dexUtils.initializeConfig(signer, dexConfigArgs);
+    let dexConfig = await dexUtils.initializeDexConfig(signer, dexConfigArgs);
 
     let dexArgs = {
       config: dexConfig,
@@ -214,7 +229,7 @@ describe("dex.admin.test", () => {
     await sleep(1000);
 
     let newLaunchRate = new BN(10_000);
-    await dexUtils.updateLaunchFeeRate(
+    await dexUtils.updateDexLaunchFeeRate(
       signer,
       dexAccounts.config,
       dexAccounts.state,

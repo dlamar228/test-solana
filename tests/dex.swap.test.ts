@@ -78,7 +78,9 @@ describe("dex.swap.test", () => {
           swapTest.swapBaseInputArgs
         );
 
-        let actual = await dexUtils.isReadyToLaunch(swapTest.dexAccounts.state);
+        let actual = await dexUtils.dexIsReadyToLaunch(
+          swapTest.dexAccounts.state
+        );
         expect(actual, "Dex not ready to launch!").equal(true);
       });
 
@@ -142,7 +144,7 @@ describe("dex.swap.test", () => {
           "Swap fee calculation mismatch!"
         ).equal(swapTest.swapInputExpected.swapResult.protocolFee.toNumber());
         expect(
-          await dexUtils.isReadyToLaunch(swapTest.dexAccounts.state),
+          await dexUtils.dexIsReadyToLaunch(swapTest.dexAccounts.state),
           "Dex not ready to launch!"
         ).equal(true);
 
@@ -231,7 +233,9 @@ describe("dex.swap.test", () => {
           swapTest.swapBaseOutputArgs
         );
 
-        let actual = await dexUtils.isReadyToLaunch(swapTest.dexAccounts.state);
+        let actual = await dexUtils.dexIsReadyToLaunch(
+          swapTest.dexAccounts.state
+        );
         expect(actual, "Dex not ready to launch!").equal(true);
       });
 
@@ -269,7 +273,7 @@ describe("dex.swap.test", () => {
           "Swap fee calculation mismatch!"
         ).equal(swapTest.swapOutputExpected.swapResult.protocolFee.toNumber());
         expect(
-          await dexUtils.isReadyToLaunch(swapTest.dexAccounts.state),
+          await dexUtils.dexIsReadyToLaunch(swapTest.dexAccounts.state),
           "Dex not ready to launch!"
         ).equal(true);
 
@@ -335,7 +339,9 @@ describe("dex.swap.test", () => {
           swapTest.swapBaseInputArgs
         );
 
-        let actual = await dexUtils.isReadyToLaunch(swapTest.dexAccounts.state);
+        let actual = await dexUtils.dexIsReadyToLaunch(
+          swapTest.dexAccounts.state
+        );
         expect(actual, "Dex ready to launch!").equal(false);
       });
 
@@ -441,7 +447,9 @@ describe("dex.swap.test", () => {
           swapTest.swapBaseOutputArgs
         );
 
-        let actual = await dexUtils.isReadyToLaunch(swapTest.dexAccounts.state);
+        let actual = await dexUtils.dexIsReadyToLaunch(
+          swapTest.dexAccounts.state
+        );
         expect(actual, "Dex ready to launch!").equal(false);
       });
     });
@@ -487,7 +495,9 @@ describe("dex.swap.test", () => {
           swapTest.swapBaseInputArgs
         );
 
-        let actual = await dexUtils.isReadyToLaunch(swapTest.dexAccounts.state);
+        let actual = await dexUtils.dexIsReadyToLaunch(
+          swapTest.dexAccounts.state
+        );
         expect(actual, "Dex not ready to launch!").equal(true);
       });
 
@@ -552,7 +562,7 @@ describe("dex.swap.test", () => {
           "Swap fee calculation mismatch!"
         ).equal(swapTest.swapInputExpected.swapResult.protocolFee.toNumber());
         expect(
-          await dexUtils.isReadyToLaunch(swapTest.dexAccounts.state),
+          await dexUtils.dexIsReadyToLaunch(swapTest.dexAccounts.state),
           "Dex not ready to launch!"
         ).equal(true);
 
@@ -641,7 +651,9 @@ describe("dex.swap.test", () => {
           swapTest.swapBaseOutputArgs
         );
 
-        let actual = await dexUtils.isReadyToLaunch(swapTest.dexAccounts.state);
+        let actual = await dexUtils.dexIsReadyToLaunch(
+          swapTest.dexAccounts.state
+        );
         expect(actual, "Dex not ready to launch!").equal(true);
       });
 
@@ -679,7 +691,7 @@ describe("dex.swap.test", () => {
           "Swap fee calculation mismatch!"
         ).equal(swapTest.swapOutputExpected.swapResult.protocolFee.toNumber());
         expect(
-          await dexUtils.isReadyToLaunch(swapTest.dexAccounts.state),
+          await dexUtils.dexIsReadyToLaunch(swapTest.dexAccounts.state),
           "Dex not ready to launch!"
         ).equal(true);
 
@@ -749,7 +761,9 @@ describe("dex.swap.test", () => {
           swapTest.swapBaseInputArgs
         );
 
-        let actual = await dexUtils.isReadyToLaunch(swapTest.dexAccounts.state);
+        let actual = await dexUtils.dexIsReadyToLaunch(
+          swapTest.dexAccounts.state
+        );
         expect(actual, "Dex ready to launch!").equal(false);
       });
 
@@ -858,7 +872,9 @@ describe("dex.swap.test", () => {
           swapTest.swapBaseOutputArgs
         );
 
-        let actual = await dexUtils.isReadyToLaunch(swapTest.dexAccounts.state);
+        let actual = await dexUtils.dexIsReadyToLaunch(
+          swapTest.dexAccounts.state
+        );
         expect(actual, "Dex ready to launch!").equal(false);
       });
     });
@@ -1001,10 +1017,13 @@ async function setupInputSwapTest(
   swapFeeRate: BN = new BN(25_000),
   launchFeeRate: BN = new BN(10_000)
 ): Promise<SetupInputSwap> {
+  await dexUtils.initializeDexProtocol(signer);
+
   let dexConfigArgs = {
     index: nextIndex(),
+    admin: signer.publicKey,
   };
-  let dexConfig = await dexUtils.initializeConfig(signer, dexConfigArgs);
+  let dexConfig = await dexUtils.initializeDexConfig(signer, dexConfigArgs);
 
   let dexCreationArgs = {
     config: dexConfig,
@@ -1099,10 +1118,13 @@ async function setupOutputSwapTest(
   swapFeeRate: BN = new BN(25_000),
   launchFeeRate: BN = new BN(10_000)
 ): Promise<SetupOutputSwap> {
+  await dexUtils.initializeDexProtocol(signer);
+
   let dexConfigArgs = {
     index: nextIndex(),
+    admin: signer.publicKey,
   };
-  let dexConfig = await dexUtils.initializeConfig(signer, dexConfigArgs);
+  let dexConfig = await dexUtils.initializeDexConfig(signer, dexConfigArgs);
 
   let dexCreationArgs = {
     config: dexConfig,

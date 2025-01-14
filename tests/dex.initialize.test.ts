@@ -23,11 +23,14 @@ describe("dex.initialize.test", () => {
       100_000_000
     );
 
+    await dexUtils.initializeDexProtocol(signer);
+
     let dexConfigArgs = {
       index: nextIndex(),
+      admin: signer.publicKey,
     };
 
-    let dexConfig = await dexUtils.initializeConfig(signer, dexConfigArgs);
+    let dexConfig = await dexUtils.initializeDexConfig(signer, dexConfigArgs);
 
     let dexArgs = {
       config: dexConfig,
@@ -53,11 +56,14 @@ describe("dex.initialize.test", () => {
       100_000_000
     );
 
+    await dexUtils.initializeDexProtocol(signer);
+
     let dexConfigArgs = {
       index: nextIndex(),
+      admin: signer.publicKey,
     };
 
-    let dexConfig = await dexUtils.initializeConfig(signer, dexConfigArgs);
+    let dexConfig = await dexUtils.initializeDexConfig(signer, dexConfigArgs);
 
     let dexArgs = {
       config: dexConfig,
