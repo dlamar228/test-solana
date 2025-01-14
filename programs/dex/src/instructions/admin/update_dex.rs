@@ -183,7 +183,7 @@ pub fn update_reserve_bound(ctx: Context<UpdateDexState>, reserve_bound: u64) ->
     let dex_id = ctx.accounts.dex_state.key();
     let dex_state = &mut ctx.accounts.dex_state.load_mut()?;
 
-    let old = dex_state.vault_0_reserve_bound;
+    let old = dex_state.vault_reserve_bound;
 
     #[cfg(feature = "enable-log")]
     msg!("update_reserve_bound, old:{}, new:{}", old, reserve_bound,);
@@ -194,7 +194,7 @@ pub fn update_reserve_bound(ctx: Context<UpdateDexState>, reserve_bound: u64) ->
         new: reserve_bound,
     });
 
-    dex_state.vault_0_reserve_bound = reserve_bound;
+    dex_state.vault_reserve_bound = reserve_bound;
 
     Ok(())
 }

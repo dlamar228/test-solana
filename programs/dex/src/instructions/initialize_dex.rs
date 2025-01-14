@@ -107,7 +107,9 @@ pub fn initialize_dex(
     init_amount_0: u64,
     init_amount_1: u64,
     mut open_time: u64,
-    vault_0_reserve_bound: u64,
+    vault_for_reserve_bound: bool,
+    reserve_bound_ge: bool,
+    vault_reserve_bound: u64,
     swap_fee_rate: u64,
     launch_fee_rate: u64,
 ) -> Result<()> {
@@ -215,7 +217,9 @@ pub fn initialize_dex(
         ctx.accounts.token_1_vault.key(),
         &ctx.accounts.token_0_mint,
         &ctx.accounts.token_1_mint,
-        vault_0_reserve_bound,
+        vault_for_reserve_bound,
+        reserve_bound_ge,
+        vault_reserve_bound,
         swap_fee_rate,
         launch_fee_rate,
     );

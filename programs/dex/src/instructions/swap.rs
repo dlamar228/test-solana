@@ -161,7 +161,6 @@ impl<'info> Swapper<'info> {
             token_1_price_x64,
         })
     }
-
     pub fn try_swap_base_input(&mut self, amount_in: u64, minimum_amount_out: u64) -> Result<()> {
         let block_timestamp = solana_program::clock::Clock::get()?.unix_timestamp as u64;
         let dex_id = self.dex_state.key();
@@ -232,23 +231,14 @@ impl<'info> Swapper<'info> {
 
         let protocol_fee = u64::try_from(result.protocol_fee).unwrap();
 
-        let remaining_tokens;
         match trade_direction {
             TradeDirection::ZeroForOne => {
-                remaining_tokens = dex_state
-                    .vault_0_reserve_bound
-                    .checked_sub(self.input_token_account.amount)
-                    .unwrap_or_default();
                 dex_state.swap_fees_token_0 = dex_state
                     .swap_fees_token_0
                     .checked_add(protocol_fee)
                     .unwrap();
             }
             TradeDirection::OneForZero => {
-                remaining_tokens = dex_state
-                    .vault_0_reserve_bound
-                    .checked_sub(self.output_token_account.amount)
-                    .unwrap_or_default();
                 dex_state.swap_fees_token_1 = dex_state
                     .swap_fees_token_1
                     .checked_add(protocol_fee)
@@ -257,18 +247,6 @@ impl<'info> Swapper<'info> {
         };
 
         require_gte!(result.constant_after, result.constant_before);
-
-        emit!(SwapEvent {
-            dex_id,
-            input_vault_before: total_input_token_amount,
-            output_vault_before: total_output_token_amount,
-            input_amount: u64::try_from(result.source_amount_swapped).unwrap(),
-            output_amount: u64::try_from(result.destination_amount_swapped).unwrap(),
-            input_transfer_fee,
-            output_transfer_fee,
-            remaining_tokens,
-            base_input: true
-        });
 
         transfer_from_user_to_dex_vault(
             self.payer.to_account_info(),
@@ -295,18 +273,33 @@ impl<'info> Swapper<'info> {
             signer_seeds,
         )?;
 
-        let vault_0_amount = match trade_direction {
-            TradeDirection::ZeroForOne => {
-                self.input_vault.reload()?;
-                self.input_vault.amount
-            }
-            TradeDirection::OneForZero => {
-                self.output_vault.reload()?;
-                self.output_vault.amount
-            }
-        };
+        self.input_vault.reload()?;
+        self.output_vault.reload()?;
 
-        if vault_0_amount >= dex_state.vault_0_reserve_bound {
+        let vault_reserve_amount = dex_state.get_vault_reserve_amount(
+            self.input_vault.amount,
+            self.output_vault.amount,
+            trade_direction,
+        );
+
+        let remaining_tokens = dex_state
+            .vault_reserve_bound
+            .checked_sub(vault_reserve_amount)
+            .unwrap_or_default();
+
+        emit!(SwapEvent {
+            dex_id,
+            input_vault_before: total_input_token_amount,
+            output_vault_before: total_output_token_amount,
+            input_amount: u64::try_from(result.source_amount_swapped).unwrap(),
+            output_amount: u64::try_from(result.destination_amount_swapped).unwrap(),
+            input_transfer_fee,
+            output_transfer_fee,
+            remaining_tokens,
+            base_input: true
+        });
+
+        if dex_state.is_reached_reserve_bound(vault_reserve_amount) {
             dex_state.is_ready_to_launch = true;
             emit!(DexIsReadyToLaunchEvent { dex_id });
         }
@@ -380,24 +373,14 @@ impl<'info> Swapper<'info> {
 
         let protocol_fee = u64::try_from(result.protocol_fee).unwrap();
 
-        let remaining_tokens;
-
         match trade_direction {
             TradeDirection::ZeroForOne => {
-                remaining_tokens = dex_state
-                    .vault_0_reserve_bound
-                    .checked_sub(self.input_token_account.amount)
-                    .unwrap_or_default();
                 dex_state.swap_fees_token_0 = dex_state
                     .swap_fees_token_0
                     .checked_add(protocol_fee)
                     .unwrap();
             }
             TradeDirection::OneForZero => {
-                remaining_tokens = dex_state
-                    .vault_0_reserve_bound
-                    .checked_sub(self.output_token_account.amount)
-                    .unwrap_or_default();
                 dex_state.swap_fees_token_1 = dex_state
                     .swap_fees_token_1
                     .checked_add(protocol_fee)
@@ -405,17 +388,6 @@ impl<'info> Swapper<'info> {
             }
         };
 
-        emit!(SwapEvent {
-            dex_id,
-            input_vault_before: total_input_token_amount,
-            output_vault_before: total_output_token_amount,
-            input_amount: u64::try_from(result.source_amount_swapped).unwrap(),
-            output_amount: u64::try_from(result.destination_amount_swapped).unwrap(),
-            input_transfer_fee,
-            output_transfer_fee,
-            remaining_tokens,
-            base_input: false
-        });
         require_gte!(result.constant_after, result.constant_before);
         transfer_from_user_to_dex_vault(
             self.payer.to_account_info(),
@@ -442,18 +414,33 @@ impl<'info> Swapper<'info> {
             signer_seeds,
         )?;
 
-        let vault_0_amount = match trade_direction {
-            TradeDirection::ZeroForOne => {
-                self.input_vault.reload()?;
-                self.input_vault.amount
-            }
-            TradeDirection::OneForZero => {
-                self.output_vault.reload()?;
-                self.output_vault.amount
-            }
-        };
+        self.input_vault.reload()?;
+        self.output_vault.reload()?;
 
-        if vault_0_amount >= dex_state.vault_0_reserve_bound {
+        let vault_reserve_amount = dex_state.get_vault_reserve_amount(
+            self.input_vault.amount,
+            self.output_vault.amount,
+            trade_direction,
+        );
+
+        let remaining_tokens = dex_state
+            .vault_reserve_bound
+            .checked_sub(vault_reserve_amount)
+            .unwrap_or_default();
+
+        emit!(SwapEvent {
+            dex_id,
+            input_vault_before: total_input_token_amount,
+            output_vault_before: total_output_token_amount,
+            input_amount: u64::try_from(result.source_amount_swapped).unwrap(),
+            output_amount: u64::try_from(result.destination_amount_swapped).unwrap(),
+            input_transfer_fee,
+            output_transfer_fee,
+            remaining_tokens,
+            base_input: false
+        });
+
+        if dex_state.is_reached_reserve_bound(vault_reserve_amount) {
             dex_state.is_ready_to_launch = true;
             emit!(DexIsReadyToLaunchEvent { dex_id });
         }

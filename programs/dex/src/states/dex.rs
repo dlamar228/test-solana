@@ -1,6 +1,8 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::Mint;
 
+use crate::curve::TradeDirection;
+
 pub const Q32: u128 = (u32::MAX as u128) + 1; // 2^32
 
 #[account(zero_copy(unsafe))]
@@ -18,7 +20,12 @@ pub struct DexState {
 
     pub is_launched: bool,
     pub is_ready_to_launch: bool,
-    pub vault_0_reserve_bound: u64,
+    // if false for vault_0 , true for vault_1
+    pub vault_for_reserve_bound: bool,
+    // if else amount le reserve, true amount ge reserve,
+    pub reserve_bound_ge: bool,
+    // if false condition gte , true for vault_1
+    pub vault_reserve_bound: u64,
 
     /// Mint information for token A
     pub token_0_mint: Pubkey,
@@ -68,7 +75,9 @@ impl DexState {
         token_1_vault: Pubkey,
         token_0_mint: &InterfaceAccount<Mint>,
         token_1_mint: &InterfaceAccount<Mint>,
-        vault_0_reserve_bound: u64,
+        vault_for_reserve_bound: bool,
+        reserve_bound_ge: bool,
+        vault_reserve_bound: u64,
         swap_fee_rate: u64,
         launch_fee_rate: u64,
     ) {
@@ -77,7 +86,9 @@ impl DexState {
         self.token_0_vault = token_0_vault;
         self.token_1_vault = token_1_vault;
         self.is_launched = false;
-        self.vault_0_reserve_bound = vault_0_reserve_bound;
+        self.vault_reserve_bound = vault_reserve_bound;
+        self.vault_for_reserve_bound = vault_for_reserve_bound;
+        self.reserve_bound_ge = reserve_bound_ge;
         self.token_0_mint = token_0_mint.key();
         self.token_1_mint = token_1_mint.key();
         self.token_0_program = *token_0_mint.to_account_info().owner;
@@ -107,5 +118,30 @@ impl DexState {
             token_1_amount as u128 * Q32 / token_0_amount as u128,
             token_0_amount as u128 * Q32 / token_1_amount as u128,
         )
+    }
+    pub fn get_vault_reserve_amount(
+        &self,
+        input_vault: u64,
+        output_vault: u64,
+        trade_direction: TradeDirection,
+    ) -> u64 {
+        let (vault_0, vault_1) = match trade_direction {
+            TradeDirection::ZeroForOne => (input_vault, output_vault),
+            TradeDirection::OneForZero => (output_vault, input_vault),
+        };
+
+        if self.vault_for_reserve_bound {
+            vault_1
+        } else {
+            vault_0
+        }
+    }
+
+    pub fn is_reached_reserve_bound(&self, amount: u64) -> bool {
+        if self.reserve_bound_ge {
+            amount >= self.vault_reserve_bound
+        } else {
+            amount <= self.vault_reserve_bound
+        }
     }
 }

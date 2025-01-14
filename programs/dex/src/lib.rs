@@ -99,7 +99,9 @@ pub mod dex {
         init_amount_0: u64,
         init_amount_1: u64,
         open_time: u64,
-        vault_0_reserve_bound: u64,
+        vault_for_reserve_bound: bool,
+        reserve_bound_ge: bool,
+        vault_reserve_bound: u64,
         swap_fee_rate: u64,
         launch_fee_rate: u64,
     ) -> Result<()> {
@@ -111,7 +113,9 @@ pub mod dex {
             init_amount_0,
             init_amount_1,
             open_time,
-            vault_0_reserve_bound,
+            vault_for_reserve_bound,
+            reserve_bound_ge,
+            vault_reserve_bound,
             swap_fee_rate,
             launch_fee_rate,
         )
