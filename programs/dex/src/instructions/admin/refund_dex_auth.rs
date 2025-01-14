@@ -10,7 +10,7 @@ pub fn refund_dex_auth(ctx: Context<RefundDexAuth>) -> Result<()> {
     let dex_state = ctx.accounts.dex_state.load()?;
 
     // dex authority pda signer seeds
-    let seeds = [AUTH_SEED.as_bytes(), &[dex_state.auth_bump]];
+    let seeds = [DEX_AUTH_SEED.as_bytes(), &[dex_state.auth_bump]];
     let signer_seeds = &[seeds.as_slice()];
 
     invoke_signed(
@@ -38,7 +38,7 @@ pub struct RefundDexAuth<'info> {
     #[account(
         mut,
         seeds = [
-            AUTH_SEED.as_bytes(),
+            DEX_AUTH_SEED.as_bytes(),
         ],
         bump,
     )]

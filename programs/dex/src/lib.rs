@@ -16,14 +16,27 @@ pub mod dex {
 
     use super::*;
 
+    // The protocol of dex, include admin
+    /// # Arguments
+    ///
+    /// * `ctx`- The accounts needed by instruction.
+    ///
+    pub fn initialize_protocol(ctx: Context<InitializeProtocol>) -> Result<()> {
+        instructions::initialize_protocol(ctx)
+    }
+
     // The configuration, include admin
     /// # Arguments
     ///
     /// * `ctx`- The accounts needed by instruction.
     /// * `index` - The index of config, there may be multiple config.
     ///
-    pub fn initialize_config(ctx: Context<CreateConfig>, index: u16) -> Result<()> {
-        instructions::initialize_config(ctx, index)
+    pub fn initialize_config(
+        ctx: Context<InitializeConfig>,
+        admin: Pubkey,
+        index: u16,
+    ) -> Result<()> {
+        instructions::initialize_config(ctx, admin, index)
     }
 
     /// Updates the admin of the config

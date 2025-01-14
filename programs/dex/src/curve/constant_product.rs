@@ -1,9 +1,6 @@
 //! The Uniswap invariantConstantProductCurve::
 
-use crate::{
-    curve::calculator::{RoundDirection, TradingTokenResult},
-    utils::CheckedCeilDiv,
-};
+use crate::utils::CheckedCeilDiv;
 
 /// ConstantProductCurve struct implementing CurveCalculator
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -42,115 +39,15 @@ impl ConstantProductCurve {
         let (source_amount_swapped, _) = numerator.checked_ceil_div(denominator).unwrap();
         source_amount_swapped
     }
-
-    /// Get the amount of trading tokens for the given amount of pool tokens,
-    /// provided the total trading tokens and supply of pool tokens.
-    ///
-    /// The constant product implementation is a simple ratio calculation for how
-    /// many trading tokens correspond to a certain number of pool tokens
-    pub fn lp_tokens_to_trading_tokens(
-        lp_token_amount: u128,
-        lp_token_supply: u128,
-        swap_token_0_amount: u128,
-        swap_token_1_amount: u128,
-        round_direction: RoundDirection,
-    ) -> Option<TradingTokenResult> {
-        let mut token_0_amount = lp_token_amount
-            .checked_mul(swap_token_0_amount)?
-            .checked_div(lp_token_supply)?;
-        let mut token_1_amount = lp_token_amount
-            .checked_mul(swap_token_1_amount)?
-            .checked_div(lp_token_supply)?;
-        let (token_0_amount, token_1_amount) = match round_direction {
-            RoundDirection::Floor => (token_0_amount, token_1_amount),
-            RoundDirection::Ceiling => {
-                let token_0_remainder = lp_token_amount
-                    .checked_mul(swap_token_0_amount)?
-                    .checked_rem(lp_token_supply)?;
-                // Also check for 0 token A and B amount to avoid taking too much
-                // for tiny amounts of pool tokens.  For example, if someone asks
-                // for 1 pool token, which is worth 0.01 token A, we avoid the
-                // ceiling of taking 1 token A and instead return 0, for it to be
-                // rejected later in processing.
-                if token_0_remainder > 0 && token_0_amount > 0 {
-                    token_0_amount += 1;
-                }
-                let token_1_remainder = lp_token_amount
-                    .checked_mul(swap_token_1_amount)?
-                    .checked_rem(lp_token_supply)?;
-                if token_1_remainder > 0 && token_1_amount > 0 {
-                    token_1_amount += 1;
-                }
-                (token_0_amount, token_1_amount)
-            }
-        };
-        Some(TradingTokenResult {
-            token_0_amount,
-            token_1_amount,
-        })
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use {
         super::*,
-        crate::curve::calculator::{
-            test::{
-                check_curve_value_from_swap, check_pool_value_from_deposit,
-                check_pool_value_from_withdraw, total_and_intermediate,
-            },
-            RoundDirection, TradeDirection,
-        },
+        crate::curve::calculator::{test::check_curve_value_from_swap, TradeDirection},
         proptest::prelude::*,
     };
-
-    fn check_pool_token_rate(
-        token_a: u128,
-        token_b: u128,
-        deposit: u128,
-        supply: u128,
-        expected_a: u128,
-        expected_b: u128,
-    ) {
-        let results = ConstantProductCurve::lp_tokens_to_trading_tokens(
-            deposit,
-            supply,
-            token_a,
-            token_b,
-            RoundDirection::Ceiling,
-        )
-        .unwrap();
-        assert_eq!(results.token_0_amount, expected_a);
-        assert_eq!(results.token_1_amount, expected_b);
-    }
-
-    #[test]
-    fn trading_token_conversion() {
-        check_pool_token_rate(2, 49, 5, 10, 1, 25);
-        check_pool_token_rate(100, 202, 5, 101, 5, 10);
-        check_pool_token_rate(5, 501, 2, 10, 1, 101);
-    }
-
-    #[test]
-    fn fail_trading_token_conversion() {
-        let results = ConstantProductCurve::lp_tokens_to_trading_tokens(
-            5,
-            10,
-            u128::MAX,
-            0,
-            RoundDirection::Floor,
-        );
-        assert!(results.is_none());
-        let results = ConstantProductCurve::lp_tokens_to_trading_tokens(
-            5,
-            10,
-            0,
-            u128::MAX,
-            RoundDirection::Floor,
-        );
-        assert!(results.is_none());
-    }
 
     fn test_truncation(
         source_amount: u128,
@@ -229,55 +126,6 @@ mod tests {
                 swap_source_amount as u128,
                 swap_destination_amount as u128,
                 TradeDirection::ZeroForOne
-            );
-        }
-    }
-
-    proptest! {
-        #[test]
-        fn curve_value_does_not_decrease_from_deposit(
-            pool_token_amount in 1..u64::MAX,
-            pool_token_supply in 1..u64::MAX,
-            swap_token_a_amount in 1..u64::MAX,
-            swap_token_b_amount in 1..u64::MAX,
-        ) {
-            let pool_token_amount = pool_token_amount as u128;
-            let pool_token_supply = pool_token_supply as u128;
-            let swap_token_a_amount = swap_token_a_amount as u128;
-            let swap_token_b_amount = swap_token_b_amount as u128;
-            // Make sure we will get at least one trading token out for each
-            // side, otherwise the calculation fails
-            prop_assume!(pool_token_amount * swap_token_a_amount / pool_token_supply >= 1);
-            prop_assume!(pool_token_amount * swap_token_b_amount / pool_token_supply >= 1);
-            check_pool_value_from_deposit(
-                pool_token_amount,
-                pool_token_supply,
-                swap_token_a_amount,
-                swap_token_b_amount,
-            );
-        }
-    }
-
-    proptest! {
-        #[test]
-        fn curve_value_does_not_decrease_from_withdraw(
-            (pool_token_supply, pool_token_amount) in total_and_intermediate(u64::MAX),
-            swap_token_a_amount in 1..u64::MAX,
-            swap_token_b_amount in 1..u64::MAX,
-        ) {
-            let pool_token_amount = pool_token_amount as u128;
-            let pool_token_supply = pool_token_supply as u128;
-            let swap_token_a_amount = swap_token_a_amount as u128;
-            let swap_token_b_amount = swap_token_b_amount as u128;
-            // Make sure we will get at least one trading token out for each
-            // side, otherwise the calculation fails
-            prop_assume!(pool_token_amount * swap_token_a_amount / pool_token_supply >= 1);
-            prop_assume!(pool_token_amount * swap_token_b_amount / pool_token_supply >= 1);
-            check_pool_value_from_withdraw(
-                pool_token_amount,
-                pool_token_supply,
-                swap_token_a_amount,
-                swap_token_b_amount,
             );
         }
     }

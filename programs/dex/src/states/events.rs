@@ -85,6 +85,8 @@ pub struct UpdateDexReserveBoundEvent {
 pub struct InitializeConfigEvent {
     #[index]
     pub config_id: Pubkey,
+    #[index]
+    pub index: u16,
     pub admin: Pubkey,
 }
 
@@ -104,4 +106,11 @@ pub struct UpdateCreateDexEvent {
     pub config_id: Pubkey,
     pub old: bool,
     pub new: bool,
+}
+
+#[event]
+#[cfg_attr(feature = "client", derive(Debug))]
+pub struct UpdateProtocolAdminEvent {
+    pub old: Pubkey,
+    pub new: Pubkey,
 }

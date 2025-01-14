@@ -10,7 +10,7 @@ pub struct Config {
     pub disable_create_dex: bool,
     /// Config index
     pub index: u16,
-    /// Address of the protocol
+    /// Address of the admin
     pub admin: Pubkey,
     /// padding
     pub padding: [u64; 16],

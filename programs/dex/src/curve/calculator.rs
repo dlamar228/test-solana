@@ -175,33 +175,12 @@ impl CurveCalculator {
 
         Some(result)
     }
-
-    /// Get the amount of trading tokens for the given amount of pool tokens,
-    /// provided the total trading tokens and supply of pool tokens.
-    pub fn lp_tokens_to_trading_tokens(
-        lp_token_amount: u128,
-        lp_token_supply: u128,
-        swap_token_0_amount: u128,
-        swap_token_1_amount: u128,
-        round_direction: RoundDirection,
-    ) -> Option<TradingTokenResult> {
-        ConstantProductCurve::lp_tokens_to_trading_tokens(
-            lp_token_amount,
-            lp_token_supply,
-            swap_token_0_amount,
-            swap_token_1_amount,
-            round_direction,
-        )
-    }
 }
 
 /// Test helpers for curves
 #[cfg(test)]
 pub mod test {
-    use {
-        super::*, proptest::prelude::*, spl_math::precise_number::PreciseNumber,
-        spl_math::uint::U256,
-    };
+    use {super::*, proptest::prelude::*, spl_math::precise_number::PreciseNumber};
 
     /// The epsilon for most curves when performing the conversion test,
     /// comparing a one-sided deposit to a swap + deposit.
@@ -265,96 +244,6 @@ pub mod test {
             .checked_mul(swap_token_1_amount)
             .unwrap();
         assert!(new_value >= previous_value);
-    }
-
-    /// Test function checking that a deposit never reduces the value of pool
-    /// tokens.
-    ///
-    /// Since curve calculations use unsigned integers, there is potential for
-    /// truncation at some point, meaning a potential for value to be lost if
-    /// too much is given to the depositor.
-    pub fn check_pool_value_from_deposit(
-        lp_token_amount: u128,
-        lp_token_supply: u128,
-        swap_token_0_amount: u128,
-        swap_token_1_amount: u128,
-    ) {
-        let deposit_result = CurveCalculator::lp_tokens_to_trading_tokens(
-            lp_token_amount,
-            lp_token_supply,
-            swap_token_0_amount,
-            swap_token_1_amount,
-            RoundDirection::Ceiling,
-        )
-        .unwrap();
-        let new_swap_token_0_amount = swap_token_0_amount + deposit_result.token_0_amount;
-        let new_swap_token_1_amount = swap_token_1_amount + deposit_result.token_1_amount;
-        let new_lp_token_supply = lp_token_supply + lp_token_amount;
-
-        // the following inequality must hold:
-        // new_token_a / new_pool_token_supply >= token_a / pool_token_supply
-        // which reduces to:
-        // new_token_a * pool_token_supply >= token_a * new_pool_token_supply
-
-        // These numbers can be just slightly above u64 after the deposit, which
-        // means that their multiplication can be just above the range of u128.
-        // For ease of testing, we bump these up to U256.
-        let lp_token_supply = U256::from(lp_token_supply);
-        let new_lp_token_supply = U256::from(new_lp_token_supply);
-        let swap_token_0_amount = U256::from(swap_token_0_amount);
-        let new_swap_token_0_amount = U256::from(new_swap_token_0_amount);
-        let swap_token_b_amount = U256::from(swap_token_1_amount);
-        let new_swap_token_b_amount = U256::from(new_swap_token_1_amount);
-
-        assert!(
-            new_swap_token_0_amount * lp_token_supply >= swap_token_0_amount * new_lp_token_supply
-        );
-        assert!(
-            new_swap_token_b_amount * lp_token_supply >= swap_token_b_amount * new_lp_token_supply
-        );
-    }
-
-    /// Test function checking that a withdraw never reduces the value of pool
-    /// tokens.
-    ///
-    /// Since curve calculations use unsigned integers, there is potential for
-    /// truncation at some point, meaning a potential for value to be lost if
-    /// too much is given to the depositor.
-    pub fn check_pool_value_from_withdraw(
-        lp_token_amount: u128,
-        lp_token_supply: u128,
-        swap_token_0_amount: u128,
-        swap_token_1_amount: u128,
-    ) {
-        let withdraw_result = CurveCalculator::lp_tokens_to_trading_tokens(
-            lp_token_amount,
-            lp_token_supply,
-            swap_token_0_amount,
-            swap_token_1_amount,
-            RoundDirection::Floor,
-        )
-        .unwrap();
-        let new_swap_token_0_amount = swap_token_0_amount - withdraw_result.token_0_amount;
-        let new_swap_token_1_amount = swap_token_1_amount - withdraw_result.token_1_amount;
-        let new_pool_token_supply = lp_token_supply - lp_token_amount;
-
-        let value = normalized_value(swap_token_0_amount, swap_token_1_amount).unwrap();
-        // since we can get rounding issues on the pool value which make it seem that
-        // the value per token has gone down, we bump it up by an epsilon of 1
-        // to cover all cases
-        let new_value = normalized_value(new_swap_token_0_amount, new_swap_token_1_amount).unwrap();
-
-        // the following inequality must hold:
-        // new_pool_value / new_pool_token_supply >= pool_value / pool_token_supply
-        // which can also be written:
-        // new_pool_value * pool_token_supply >= pool_value * new_pool_token_supply
-
-        let lp_token_supply = PreciseNumber::new(lp_token_supply).unwrap();
-        let new_lp_token_supply = PreciseNumber::new(new_pool_token_supply).unwrap();
-        assert!(new_value
-            .checked_mul(&lp_token_supply)
-            .unwrap()
-            .greater_than_or_equal(&value.checked_mul(&new_lp_token_supply).unwrap()));
     }
 
     prop_compose! {

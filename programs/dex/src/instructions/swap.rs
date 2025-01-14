@@ -33,7 +33,7 @@ pub struct Swap<'info> {
     /// CHECK: dex vault authority
     #[account(
         seeds = [
-            AUTH_SEED.as_bytes(),
+            DEX_AUTH_SEED.as_bytes(),
         ],
         bump,
     )]
@@ -281,7 +281,7 @@ impl<'info> Swapper<'info> {
         )?;
 
         // dex authority pda signer seeds
-        let seeds = [AUTH_SEED.as_bytes(), &[dex_state.auth_bump]];
+        let seeds = [DEX_AUTH_SEED.as_bytes(), &[dex_state.auth_bump]];
         let signer_seeds = &[seeds.as_slice()];
 
         transfer_from_dex_vault_to_user(
@@ -428,7 +428,7 @@ impl<'info> Swapper<'info> {
         )?;
 
         // dex authority pda signer seeds
-        let seeds = [AUTH_SEED.as_bytes(), &[dex_state.auth_bump]];
+        let seeds = [DEX_AUTH_SEED.as_bytes(), &[dex_state.auth_bump]];
         let signer_seeds = &[seeds.as_slice()];
 
         transfer_from_dex_vault_to_user(

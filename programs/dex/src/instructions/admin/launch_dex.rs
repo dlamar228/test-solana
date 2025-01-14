@@ -2,10 +2,7 @@ use crate::states::*;
 use crate::utils::token::*;
 use crate::{curve::Fees, error::ErrorCode};
 
-use anchor_lang::{
-    prelude::*,
-    //solana_program::{program::invoke, system_instruction},
-};
+use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
     token::Token,
@@ -89,7 +86,7 @@ pub fn launch_dex(ctx: Context<Launch>) -> Result<()> {
     };
 
     // dex authority pda signer seeds
-    let seeds = [AUTH_SEED.as_bytes(), &[dex_state.auth_bump]];
+    let seeds = [DEX_AUTH_SEED.as_bytes(), &[dex_state.auth_bump]];
     let signer_seeds = &[seeds.as_slice()];
     
     let cpi_context = CpiContext::new_with_signer(
@@ -160,7 +157,7 @@ pub struct Launch<'info> {
     #[account(
         mut,
         seeds = [
-            AUTH_SEED.as_bytes(),
+            DEX_AUTH_SEED.as_bytes(),
         ],
         bump,
        

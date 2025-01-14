@@ -24,7 +24,7 @@ pub struct InitializeDex<'info> {
     /// CHECK: dex vault authority
     #[account(
         seeds = [
-            AUTH_SEED.as_bytes(),
+            DEX_AUTH_SEED.as_bytes(),
         ],
         bump,
     )]
@@ -237,7 +237,7 @@ pub fn create_dex<'info>(
 
     let (expect_pda_address, bump) = Pubkey::find_program_address(
         &[
-            DEX_SEED.as_bytes(),
+            DEX_STATE_SEED.as_bytes(),
             config.key().as_ref(),
             token_0_mint.key().as_ref(),
             token_1_mint.key().as_ref(),
@@ -256,7 +256,7 @@ pub fn create_dex<'info>(
     let cpi_context = CpiContext::new(system_program.to_account_info(), cpi_accounts);
     anchor_lang::system_program::create_account(
         cpi_context.with_signer(&[&[
-            DEX_SEED.as_bytes(),
+            DEX_STATE_SEED.as_bytes(),
             config.key().as_ref(),
             token_0_mint.key().as_ref(),
             token_1_mint.key().as_ref(),
