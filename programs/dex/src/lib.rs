@@ -165,8 +165,8 @@ pub mod dex {
     /// # Arguments
     ///
     /// * `ctx`- The context of accounts
-    /// * `amount_in` -  input amount to transfer, output to DESTINATION is based on the exchange rate
-    /// * `minimum_amount_out` -  Minimum amount of output token, prevents excessive slippage
+    /// * `amount_in` - input amount to transfer, output to DESTINATION is based on the exchange rate
+    /// * `minimum_amount_out` - Minimum amount of output token, prevents excessive slippage
     ///
     pub fn swap_base_input<'info>(
         ctx: Context<'_, '_, '_, 'info, Swap<'info>>,
@@ -181,8 +181,8 @@ pub mod dex {
     /// # Arguments
     ///
     /// * `ctx`- The context of accounts
-    /// * `max_amount_in` -  input amount prevents excessive slippage
-    /// * `amount_out` -  amount of output token
+    /// * `max_amount_in` - input amount prevents excessive slippage
+    /// * `amount_out` - amount of output token
     ///
     pub fn swap_base_output<'info>(
         ctx: Context<'_, '_, '_, 'info, Swap<'info>>,
@@ -192,11 +192,14 @@ pub mod dex {
         instructions::swap_base_output(&ctx, max_amount_in, amount_out)
     }
 
-    pub fn launch(ctx: Context<Launch>) -> Result<()> {
-        instructions::launch_dex(ctx)
-    }
-
-    pub fn refund_dex_auth(ctx: Context<RefundDexAuth>) -> Result<()> {
-        instructions::refund_dex_auth(ctx)
+    /// Launch dex
+    ///
+    /// # Arguments
+    ///
+    /// * `ctx`- The context of accounts
+    /// * `shared_lamports` - lamports to pay fee
+    ///
+    pub fn launch(ctx: Context<Launch>, shared_lamports: u64) -> Result<()> {
+        instructions::launch_dex(ctx, shared_lamports)
     }
 }

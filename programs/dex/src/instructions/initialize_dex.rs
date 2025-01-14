@@ -17,10 +17,11 @@ use std::ops::Deref;
 #[derive(Accounts)]
 pub struct InitializeDex<'info> {
     /// Address paying to create the dex
-    #[account(mut ,address = config.admin @ ErrorCode::InvalidAdmin)]
+    #[account(mut, constraint = creator.key() == config.admin || creator.key() == protocol.admin @ ErrorCode::InvalidAdmin)]
     pub creator: Signer<'info>,
     /// Which config the dex belongs to.
-    pub config: Box<Account<'info, Config>>,
+    pub config: Box<Account<'info, ConfigState>>,
+    pub protocol: Box<Account<'info, ProtocolState>>,
     /// CHECK: dex vault authority
     #[account(
         seeds = [

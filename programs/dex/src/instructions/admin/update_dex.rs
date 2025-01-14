@@ -85,7 +85,7 @@ pub fn collect_fee(
 #[derive(Accounts)]
 pub struct CollectFee<'info> {
     /// Only admin can collect fee now
-    #[account(address = config.admin)]
+    #[account(address = config.admin @ ErrorCode::InvalidAdmin)]
     pub owner: Signer<'info>,
     /// CHECK: dex vault mint authority
     #[account(
@@ -100,7 +100,7 @@ pub struct CollectFee<'info> {
     pub dex_state: AccountLoader<'info, DexState>,
     /// Config account stores owner
     #[account(address = dex_state.load()?.config)]
-    pub config: Account<'info, Config>,
+    pub config: Account<'info, ConfigState>,
     /// The address that holds dex tokens for token_0
     #[account(
         mut,
@@ -201,10 +201,11 @@ pub fn update_reserve_bound(ctx: Context<UpdateDexState>, reserve_bound: u64) ->
 
 #[derive(Accounts)]
 pub struct UpdateDexState<'info> {
-    #[account(address = config.admin @ ErrorCode::InvalidAdmin)]
+    #[account(mut, constraint = admin.key() == config.admin || admin.key() == protocol.admin @ ErrorCode::InvalidAdmin)]
     pub admin: Signer<'info>,
     #[account(mut)]
     pub dex_state: AccountLoader<'info, DexState>,
     #[account(address = dex_state.load()?.config)]
-    pub config: Account<'info, Config>,
+    pub config: Account<'info, ConfigState>,
+    pub protocol: Box<Account<'info, ProtocolState>>,
 }

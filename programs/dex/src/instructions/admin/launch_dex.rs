@@ -1,14 +1,16 @@
 use crate::states::*;
 use crate::utils::token::*;
 use crate::{curve::Fees, error::ErrorCode};
-
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
     token::Token,
     token_interface::{Mint, TokenAccount, TokenInterface},
 };
-use solana_program::program_pack::Pack;
+use solana_program::{
+    program_pack::Pack,
+    program::{invoke, invoke_signed}, system_instruction
+};
 
 mod raydium {
     pub use raydium_cp_swap::{
@@ -21,7 +23,7 @@ mod raydium {
     };
 }
 
-pub fn launch_dex(ctx: Context<Launch>) -> Result<()> {
+pub fn launch_dex(ctx: Context<Launch>, shared_lamports: u64) -> Result<()> {
     let dex_id = ctx.accounts.dex_state.key();
     let raydium_id = ctx.accounts.pool_state.key();
     let dex_state = &mut ctx.accounts.dex_state.load_mut()?;
@@ -62,6 +64,19 @@ pub fn launch_dex(ctx: Context<Launch>) -> Result<()> {
         ctx.accounts.amm_config.create_pool_fee,
     );
 
+    invoke(
+        &system_instruction::transfer(
+            ctx.accounts.admin.key,
+            &ctx.accounts.dex_authority.key(),
+            shared_lamports,
+        ),
+        &[
+            ctx.accounts.admin.to_account_info(),
+            ctx.accounts.dex_authority.to_account_info(),
+            ctx.accounts.system_program.to_account_info(),
+        ],
+    )?;
+
     let cpi_accounts = raydium_cp_swap::cpi::accounts::Initialize {
         creator: ctx.accounts.dex_authority.to_account_info(),
         amm_config: ctx.accounts.amm_config.to_account_info(),
@@ -96,6 +111,20 @@ pub fn launch_dex(ctx: Context<Launch>) -> Result<()> {
     );
 
     raydium_cp_swap::cpi::initialize(cpi_context, taxed_amount_0, taxed_amount_1, 0)?;
+
+    invoke_signed(
+        &system_instruction::transfer(
+            &ctx.accounts.dex_authority.key(),
+            ctx.accounts.admin.key,
+            ctx.accounts.dex_authority.lamports(),
+        ),
+        &[
+            ctx.accounts.dex_authority.to_account_info(),
+            ctx.accounts.admin.to_account_info(),
+            ctx.accounts.system_program.to_account_info(),
+        ],
+        signer_seeds,
+    )?;
 
     let lp_amount_to_burn = spl_token::state::Account::unpack(&ctx.accounts.creator_lp_token.data.borrow())?.amount;
     token_burn(
@@ -151,8 +180,8 @@ fn get_taxed_amount_before_launch(
 #[derive(Accounts)]
 pub struct Launch<'info> {
     /// Address paying to create the pool. Can be anyone
-    #[account(mut)]
-    pub payer: Signer<'info>,
+    #[account(mut, constraint = admin.key() == dex_config.admin || admin.key() == protocol.admin @ ErrorCode::InvalidAdmin)]
+    pub admin: Signer<'info>,
     /// CHECK: dex vault authority
     #[account(
         mut,
@@ -163,11 +192,12 @@ pub struct Launch<'info> {
        
     )]
     pub dex_authority: UncheckedAccount<'info>,
+    pub protocol: Box<Account<'info, ProtocolState>>,
     /// The program account of the dex in which the swap will be performed
     #[account(mut)]
     pub dex_state: AccountLoader<'info, DexState>,
     #[account(address = dex_state.load()?.config)]
-    pub dex_config: Box<Account<'info, Config>>,
+    pub dex_config: Box<Account<'info, ConfigState>>,
     pub cp_swap_program: Program<'info, raydium::RaydiumCpSwap>,
     /// Which config the pool belongs to.
     pub amm_config: Box<Account<'info, raydium::AmmConfig>>,

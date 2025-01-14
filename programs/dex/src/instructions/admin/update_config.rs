@@ -29,7 +29,7 @@ pub fn initialize_config(ctx: Context<InitializeConfig>, admin: Pubkey, index: u
 #[derive(Accounts)]
 #[instruction(admin: Pubkey, index: u16)]
 pub struct InitializeConfig<'info> {
-    #[account(mut, address = protocol.admin)]
+    #[account(mut, address = protocol.admin @ ErrorCode::InvalidAdmin)]
     pub signer: Signer<'info>,
     #[account(
         seeds = [
@@ -47,9 +47,9 @@ pub struct InitializeConfig<'info> {
         ],
         bump,
         payer = signer,
-        space = Config::LEN
+        space = ConfigState::LEN
     )]
-    pub config: Account<'info, Config>,
+    pub config: Account<'info, ConfigState>,
     pub system_program: Program<'info, System>,
 }
 
@@ -99,8 +99,9 @@ pub fn update_create_dex(ctx: Context<UpdateConfigState>, disable_or_enable: boo
 
 #[derive(Accounts)]
 pub struct UpdateConfigState<'info> {
-    #[account(address = config.admin @ ErrorCode::InvalidAdmin)]
+    #[account(mut, constraint = admin.key() == config.admin || admin.key() == protocol.admin @ ErrorCode::InvalidAdmin)]
     pub admin: Signer<'info>,
     #[account(mut)]
-    pub config: Account<'info, Config>,
+    pub config: Box<Account<'info, ConfigState>>,
+    pub protocol: Box<Account<'info, ProtocolState>>,
 }
