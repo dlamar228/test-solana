@@ -114,6 +114,10 @@ export class RaydiumUtils {
       },
     };
   }
+
+  async getPoolState(state: PublicKey) {
+    return await this.program.provider.connection.getAccountInfo(state);
+  }
 }
 
 export interface RaydiumAccounts {
