@@ -282,10 +282,10 @@ impl<'info> Swapper<'info> {
             trade_direction,
         );
 
-        let remaining_tokens = dex_state
-            .vault_reserve_bound
-            .checked_sub(vault_reserve_amount)
-            .unwrap_or_default();
+        let remaining_tokens = dex_state.get_remaining_tokens(vault_reserve_amount);
+
+        #[cfg(feature = "enable-log")]
+        msg!("swap remaining_tokens:{}", remaining_tokens);
 
         emit!(SwapEvent {
             dex_id,
@@ -423,10 +423,10 @@ impl<'info> Swapper<'info> {
             trade_direction,
         );
 
-        let remaining_tokens = dex_state
-            .vault_reserve_bound
-            .checked_sub(vault_reserve_amount)
-            .unwrap_or_default();
+        let remaining_tokens = dex_state.get_remaining_tokens(vault_reserve_amount);
+
+        #[cfg(feature = "enable-log")]
+        msg!("swap remaining_tokens:{}", remaining_tokens);
 
         emit!(SwapEvent {
             dex_id,

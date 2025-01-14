@@ -118,16 +118,6 @@ impl CurveCalculator {
                 .checked_mul(new_swap_destination_amount)?,
         };
 
-        #[cfg(feature = "enable-log")]
-        msg!(
-            "swap_base_input source_amount_swapped:{},destination_amount_swapped:{},protocol_fee:{},constant_before:{},constant_after:{}",
-            result.source_amount_swapped,
-            result.destination_amount_swapped,
-            result.protocol_fee,
-            result.constant_before,
-            result.constant_after
-        );
-
         Some(result)
     }
 
@@ -162,16 +152,6 @@ impl CurveCalculator {
                 .checked_sub(protocol_fee)?
                 .checked_mul(new_swap_destination_amount)?,
         };
-
-        #[cfg(feature = "enable-log")]
-        msg!(
-            "swap_base_output source_amount_swapped:{},destination_amount_swapped:{},protocol_fee:{},constant_before:{},constant_after:{}",
-            result.source_amount_swapped,
-            result.destination_amount_swapped,
-            result.protocol_fee,
-            result.constant_before,
-            result.constant_after,
-        );
 
         Some(result)
     }
