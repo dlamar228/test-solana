@@ -974,24 +974,6 @@ async function setupSwapOutputTest(
     epoch: BigInt(epoch),
   });
 
-  // console.log(
-  //   "destinationAmountSwapped: ",
-  //   result.swapResult.destinationAmountSwapped.toString()
-  // );
-  // console.log(
-  //   "newSwapDestinationAmount: ",
-  //   result.swapResult.newSwapDestinationAmount.toString()
-  // );
-  // console.log(
-  //   "newSwapSourceAmount: ",
-  //   result.swapResult.newSwapSourceAmount.toString()
-  // );
-  // console.log(
-  //   "sourceAmountSwapped: ",
-  //   result.swapResult.sourceAmountSwapped.toString()
-  // );
-  // console.log("protocolFee: ", result.swapResult.protocolFee.toString());
-
   return result;
 }
 
@@ -1013,6 +995,8 @@ async function setupInputSwapTest(
   minimumAmountOut: BN = new BN(100),
   initAmount0: BN = new BN(2000),
   initAmount1: BN = new BN(5000),
+  vaultForReserveBound: boolean = false,
+  reserveBoundGe: boolean = true,
   reserveBound: BN = new BN(2500),
   swapFeeRate: BN = new BN(25_000),
   launchFeeRate: BN = new BN(10_000)
@@ -1029,6 +1013,8 @@ async function setupInputSwapTest(
     config: dexConfig,
     initAmount0,
     initAmount1,
+    vaultForReserveBound,
+    reserveBoundGe,
     reserveBound,
     openTime: new BN(0),
     mint0: mints.mint0,
@@ -1114,6 +1100,8 @@ async function setupOutputSwapTest(
   amountOutLessFee: BN = new BN(1250),
   initAmount0: BN = new BN(2000),
   initAmount1: BN = new BN(5000),
+  vaultForReserveBound: boolean = false,
+  reserveBoundGe: boolean = true,
   reserveBound: BN = new BN(2500),
   swapFeeRate: BN = new BN(25_000),
   launchFeeRate: BN = new BN(10_000)
@@ -1130,6 +1118,8 @@ async function setupOutputSwapTest(
     config: dexConfig,
     initAmount0,
     initAmount1,
+    vaultForReserveBound,
+    reserveBoundGe,
     reserveBound,
     openTime: new BN(0),
     mint0: mints.mint0,

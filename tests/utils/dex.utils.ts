@@ -16,7 +16,7 @@ import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { ASSOCIATED_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/utils/token";
 import { Mint, TokenUtils, TokenVault } from "./token.utils";
 import { u16ToBytes } from "./utils";
-import { RaydiumAccounts, RaydiumPda } from "./raydium.utils";
+import { RaydiumPda } from "./raydium.utils";
 import { createPoolFeeReceive } from "./raydium.idl";
 import { SYSTEM_PROGRAM_ID } from "@raydium-io/raydium-sdk-v2";
 
@@ -29,6 +29,8 @@ export interface DexCreationArgs {
   config: PublicKey;
   initAmount0: BN;
   initAmount1: BN;
+  vaultForReserveBound: boolean;
+  reserveBoundGe: boolean;
   reserveBound: BN;
   openTime: BN;
   swapFeeRate: BN;
@@ -140,6 +142,8 @@ export class DexUtils {
         args.initAmount0,
         args.initAmount1,
         args.openTime,
+        args.vaultForReserveBound,
+        args.reserveBoundGe,
         args.reserveBound,
         args.swapFeeRate,
         args.launchFeeRate
