@@ -88,12 +88,6 @@ export class SetupSwapTest {
       dexCreationArgs
     );
 
-    let fundTx = await this.dexUtils.fundDexAuth(
-      signer,
-      dexAccounts.auth,
-      LAMPORTS_PER_SOL
-    );
-
     await sleep(1000);
 
     return [dexAccounts, dexCreationArgs];

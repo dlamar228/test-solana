@@ -9,8 +9,6 @@ import {
   SYSVAR_RENT_PUBKEY,
   ComputeBudgetProgram,
   TransactionSignature,
-  Transaction,
-  sendAndConfirmTransaction,
 } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { ASSOCIATED_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/utils/token";
@@ -74,6 +72,7 @@ export interface LaunchDexArgs {
   raydiumAmmConfig: PublicKey;
   raydiumPdaGetter: RaydiumPda;
   dexAccounts: DexAccounts;
+  sharedLamports: BN;
 }
 
 export class DexUtils {
@@ -136,6 +135,7 @@ export class DexUtils {
     );
     let [vault0] = this.pdaGetter.getDexVaultAddress(state, args.mint0.address);
     let [vault1] = this.pdaGetter.getDexVaultAddress(state, args.mint1.address);
+    let [protocol] = this.pdaGetter.getProtocolAddress();
 
     await this.program.methods
       .initializeDex(
@@ -151,6 +151,7 @@ export class DexUtils {
       .accounts({
         creator: signer.publicKey,
         config: args.config,
+        protocol,
         authority: auth,
         dexState: state,
         token0Mint: args.mint0.address,
@@ -182,47 +183,8 @@ export class DexUtils {
         mint: args.mint1,
         address: vault1,
       },
+      protocol,
     };
-  }
-  async fundDexAuth(
-    from: Signer,
-    to: PublicKey,
-    lamports: number
-  ): Promise<TransactionSignature> {
-    let transaction = new Transaction().add(
-      SystemProgram.transfer({
-        fromPubkey: from.publicKey,
-        toPubkey: to,
-        lamports,
-      })
-    );
-    let transferTx = await sendAndConfirmTransaction(
-      this.program.provider.connection,
-      transaction,
-      [from],
-      this.confirmOptions
-    );
-    return transferTx;
-  }
-  async refundDexAuth(
-    admin: Signer,
-    dexState: PublicKey,
-    dexAuthority: PublicKey,
-    config: PublicKey
-  ): Promise<TransactionSignature> {
-    return await this.program.methods
-      .refundDexAuth()
-      .accounts({
-        admin: admin.publicKey,
-        dexAuthority,
-        config,
-        dexState,
-        systemProgram: SYSTEM_PROGRAM_ID,
-      })
-      .preInstructions([
-        ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
-      ])
-      .rpc(this.confirmOptions);
   }
   async swapBaseInput(
     signer: Signer,
@@ -306,13 +268,14 @@ export class DexUtils {
     );
 
     return await this.program.methods
-      .launch()
+      .launch(args.sharedLamports)
       .accounts({
         dexAuthority: args.dexAccounts.auth,
         dexConfig: args.dexAccounts.config,
         dexState: args.dexAccounts.state,
         cpSwapProgram: args.cpSwapProgram,
-        payer: signer.publicKey,
+        admin: signer.publicKey,
+        protocol: args.dexAccounts.protocol,
         ammConfig: args.raydiumAmmConfig,
         authority: auth,
         poolState: state,
@@ -334,7 +297,7 @@ export class DexUtils {
         rent: SYSVAR_RENT_PUBKEY,
       })
       .preInstructions([
-        ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 350000 }),
       ])
       .rpc(this.confirmOptions);
   }
@@ -343,11 +306,13 @@ export class DexUtils {
     config: PublicKey,
     new_admin: PublicKey
   ) {
+    let [protocol] = this.pdaGetter.getProtocolAddress();
     return await this.program.methods
       .updateConfigAdmin(new_admin)
       .accounts({
         admin: signer.publicKey,
         config,
+        protocol,
       })
       .preInstructions([
         ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
@@ -360,12 +325,14 @@ export class DexUtils {
     dexState: PublicKey,
     newFeeRate: BN
   ) {
+    let [protocol] = this.pdaGetter.getProtocolAddress();
     return await this.program.methods
       .updateLaunchFeeRate(newFeeRate)
       .accounts({
         admin: signer.publicKey,
         config,
         dexState,
+        protocol,
       })
       .preInstructions([
         ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
@@ -378,12 +345,14 @@ export class DexUtils {
     dexState: PublicKey,
     newSwapRate: BN
   ) {
+    let [protocol] = this.pdaGetter.getProtocolAddress();
     return await this.program.methods
       .updateSwapFeeRate(newSwapRate)
       .accounts({
         admin: signer.publicKey,
         config,
         dexState,
+        protocol,
       })
       .preInstructions([
         ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
@@ -396,12 +365,14 @@ export class DexUtils {
     dexState: PublicKey,
     newReserveBound: BN
   ) {
+    let [protocol] = this.pdaGetter.getProtocolAddress();
     return await this.program.methods
       .updateReserveBound(newReserveBound)
       .accounts({
         admin: signer.publicKey,
         config,
         dexState,
+        protocol,
       })
       .preInstructions([
         ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
@@ -413,11 +384,13 @@ export class DexUtils {
     config: PublicKey,
     createDex: boolean
   ) {
+    let [protocol] = this.pdaGetter.getProtocolAddress();
     return await this.program.methods
       .updateCreateDex(createDex)
       .accounts({
         admin: signer.publicKey,
         config,
+        protocol,
       })
       .preInstructions([
         ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
@@ -439,7 +412,7 @@ export class DexUtils {
     return await this.program.account.dexState.fetchNullable(dexState);
   }
   async getConfigState(config: PublicKey) {
-    return await this.program.account.config.fetchNullable(config);
+    return await this.program.account.configState.fetchNullable(config);
   }
 }
 
@@ -449,6 +422,7 @@ export interface DexAccounts {
   state: PublicKey;
   vault0: TokenVault;
   vault1: TokenVault;
+  protocol: PublicKey;
 }
 
 export class DexPda {

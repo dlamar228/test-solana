@@ -1,7 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program, BN } from "@coral-xyz/anchor";
 import { Dex } from "../target/types/dex";
-import { Commitment } from "@solana/web3.js";
+import { Commitment, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import {
   DexUtils,
   TokenUtils,
@@ -155,9 +155,10 @@ describe("dex.swap.test", () => {
           raydiumAmmConfig: ammConfigAddress,
           raydiumPdaGetter: raydiumUtils.pdaGetter,
           dexAccounts: swapTest.dexAccounts,
+          sharedLamports: new BN(LAMPORTS_PER_SOL),
         };
 
-        let launchTx = dexUtils.launchDex(signer, launchDexArgs);
+        let launchTx = await dexUtils.launchDex(signer, launchDexArgs);
         await sleep(1000);
 
         let actualLaunchFee = (
@@ -296,9 +297,10 @@ describe("dex.swap.test", () => {
           raydiumAmmConfig: ammConfigAddress,
           raydiumPdaGetter: raydiumUtils.pdaGetter,
           dexAccounts: swapTest.dexAccounts,
+          sharedLamports: new BN(LAMPORTS_PER_SOL),
         };
 
-        let launchTx = dexUtils.launchDex(signer, launchDexArgs);
+        let launchTx = await dexUtils.launchDex(signer, launchDexArgs);
         await sleep(1000);
 
         let actualLaunchFee = (
@@ -615,9 +617,10 @@ describe("dex.swap.test", () => {
           raydiumAmmConfig: ammConfigAddress,
           raydiumPdaGetter: raydiumUtils.pdaGetter,
           dexAccounts: swapTest.dexAccounts,
+          sharedLamports: new BN(LAMPORTS_PER_SOL),
         };
 
-        let launchTx = dexUtils.launchDex(signer, launchDexArgs);
+        let launchTx = await dexUtils.launchDex(signer, launchDexArgs);
         await sleep(1000);
 
         let actualLaunchFee = (
@@ -758,9 +761,10 @@ describe("dex.swap.test", () => {
           raydiumAmmConfig: ammConfigAddress,
           raydiumPdaGetter: raydiumUtils.pdaGetter,
           dexAccounts: swapTest.dexAccounts,
+          sharedLamports: new BN(LAMPORTS_PER_SOL),
         };
 
-        let launchTx = dexUtils.launchDex(signer, launchDexArgs);
+        let launchTx = await dexUtils.launchDex(signer, launchDexArgs);
         await sleep(1000);
 
         let actualLaunchFee = (
