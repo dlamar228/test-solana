@@ -48,7 +48,7 @@ pub mod faucet {
         )
     }
 
-    pub fn initialize_faucet_claim_shard<'info>(
+    pub fn initialize_faucet_claim_shard(
         ctx: Context<InitializeFaucetClaimShard>,
         merkle_root: [u8; 32],
     ) -> Result<()> {
