@@ -222,6 +222,21 @@ export class TokenUtils {
     return result;
   }
 
+  async initializeSplMint(
+    signer: Signer,
+    amount0: number
+  ): Promise<TokenVault> {
+    let mint = await this.createSplMint(signer, 9);
+    let ata = await this.createAta(signer, signer.publicKey, mint.address);
+
+    await this.mintTo(signer, signer, mint.address, ata, amount0);
+
+    return {
+      address: ata,
+      mint,
+    };
+  }
+
   async initializeSplMintPair(
     signer: Signer,
     amount0: number,
