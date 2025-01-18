@@ -7,7 +7,7 @@ import {
   FaucetUtils,
   TokenUtils,
 } from "./utils";
-import { expect, assert } from "chai";
+import { expect } from "chai";
 
 describe("faucet.initialize.test", () => {
   anchor.setProvider(anchor.AnchorProvider.env());

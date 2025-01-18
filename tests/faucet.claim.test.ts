@@ -1,5 +1,11 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Program, BN } from "@coral-xyz/anchor";
+import { Program, BN, Wallet } from "@coral-xyz/anchor";
+import {
+  PublicKey,
+  LAMPORTS_PER_SOL,
+  Connection,
+  Keypair,
+} from "@solana/web3.js";
 import { Faucet } from "../target/types/faucet";
 import {
   FaucetMerkleLeaf,
@@ -9,9 +15,8 @@ import {
   TokenUtils,
 } from "./utils";
 import { expect } from "chai";
-import { Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
 
-describe("faucet.initialize.test", () => {
+describe("faucet.claim.test", () => {
   anchor.setProvider(anchor.AnchorProvider.env());
   const signer = anchor.Wallet.local().payer;
   const faucetProgram = anchor.workspace.Faucet as Program<Faucet>;
@@ -24,45 +29,26 @@ describe("faucet.initialize.test", () => {
     confirmOptions
   );
 
-  it("initialize authority manager", async () => {
-    let authorityManager = await faucetUtils.initializeFaucetAuthorityManager(
-      signer
-    );
-
-    expect(
-      await faucetUtils.isAuthorityManagerInit(authorityManager),
-      "Authority manager wasn't created!"
-    ).to.be.true;
-  });
-
-  it("initialize faucet claim", async () => {
-    let tokenVault = await tokenUtils.initializeSplMint(signer, 100_000_000);
-    await faucetUtils.initializeFaucetAuthorityManager(signer);
-
-    let faucetClaimArgs = {
-      epochClaimStarts: new BN(0),
-      epochClaimEnds: new BN(100_000),
-      totalFaucetAmount: new BN(10000),
-      payerVault: tokenVault,
-    };
-
-    await faucetUtils.initializeFaucetClaim(signer, faucetClaimArgs);
-  });
-
   it("initialize faucet claim shard", async () => {
-    let leafs = [...Array(65535)].map(
-      (_) => new FaucetMerkleLeaf(signer.publicKey, new BN(250))
+    let addresses = [...Array(6)].map((_) => signer);
+
+    let faucetAmount = new BN(50);
+    let leafs = addresses.map(
+      (x) => new FaucetMerkleLeaf(x.publicKey, faucetAmount)
     );
 
     let merkle_tree = new FaucetMerkleTree(leafs);
 
-    let tokenVault = await tokenUtils.initializeSplMint(signer, 100_000_000);
+    let tokenVault = await tokenUtils.initializeSplMint(
+      signer,
+      100_000_000_000
+    );
     await faucetUtils.initializeFaucetAuthorityManager(signer);
 
     let faucetClaimArgs = {
       epochClaimStarts: new BN(0),
       epochClaimEnds: new BN(100_000),
-      totalFaucetAmount: new BN(100_000),
+      totalFaucetAmount: new BN(addresses.length).mul(faucetAmount),
       payerVault: tokenVault,
     };
 
@@ -82,8 +68,7 @@ describe("faucet.initialize.test", () => {
       signer,
       faucetClaimShardArgs
     );
-
-    for (let index = 0; index < 3; index++) {
+    for (let index = 0; index < merkle_tree.tree.getLeafCount(); index++) {
       let leafProof = merkle_tree.getIndexProof(index);
 
       let claimArgs = {
@@ -92,7 +77,7 @@ describe("faucet.initialize.test", () => {
         payerVault: tokenVault,
         index: leafProof.index,
         path: leafProof.proof,
-        amount: new BN(250),
+        amount: faucetAmount,
       };
 
       await faucetUtils.claim(signer, claimArgs);
