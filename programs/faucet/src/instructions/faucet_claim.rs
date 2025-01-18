@@ -46,18 +46,6 @@ pub fn initialize_faucet_claim(
     faucet_claim.shards = 0;
     faucet_claim.bump = ctx.bumps.faucet_claim;
 
-    // let leaf = generate_leaf(&Pubkey::default(), 0);
-    // let keccak = anchor_lang::solana_program::keccak::hashv(&[&leaf]).0;
-    // Pubkey::default().log();
-    // msg!("leaf: {:?}",leaf);
-    // msg!("keccak: {:?}",keccak);
-
-    // let keccak1 =  anchor_lang::solana_program::keccak::hashv(&[Pubkey::default().as_ref()]).0;
-    // let keccak2 =  anchor_lang::solana_program::keccak::hashv(&[&keccak1]).0;
-    // Pubkey::default().log();
-    // msg!("keccak1: {:?}",keccak1);
-    // msg!("keccak2: {:?}",keccak2);
-
     Ok(())
 }
 
@@ -193,13 +181,12 @@ pub fn claim(ctx: Context<Claim>, paths: Vec<[u8;32]>, index: u16, amount: u64) 
     }
 
     let leaf = generate_leaf(ctx.accounts.payer.key, amount);
-    if merkle_proof_verify( faucet_claim_shard.merkle_root,paths, leaf) {
-       faucet_claim_shard.bitmap.enable(index);
-       ctx.accounts.faucet_claim.total_claimed_amount += amount;
-    }
-    else {
+    if !merkle_proof_verify( faucet_claim_shard.merkle_root,paths, leaf) {
         return err!(FaucetError::InvalidProof);
     }
+
+    faucet_claim_shard.bitmap.enable(index);
+    ctx.accounts.faucet_claim.total_claimed_amount += amount;
 
     let token_utils = TokenUtils {
         token_program: ctx.accounts.token_program.to_account_info(),
@@ -232,6 +219,7 @@ pub struct Claim<'info> {
     )]
     pub payer_vault: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(
+        mut,
         seeds = [
             FAUCET_CLAIM_SEED.as_bytes(), mint.key().as_ref(),
         ],

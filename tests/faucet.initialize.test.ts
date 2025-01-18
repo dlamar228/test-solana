@@ -87,12 +87,12 @@ describe("faucet.initialize.test", () => {
     );
 
     expect(
-      await faucetUtils.isShardInit(faucetClaimShard),
+      await faucetUtils.isFaucetClaimShardInit(faucetClaimShard),
       "Faucet claim shard wasn't created!"
     ).to.be.true;
 
     expect(
-      await faucetUtils.getShardMerkleRoot(faucetClaimShard),
+      await faucetUtils.getFaucetClaimShardMerkleRoot(faucetClaimShard),
       "Faucet claim shard merkle root mismatch!"
     ).to.deep.equal(Array.from(merkle_root));
   });

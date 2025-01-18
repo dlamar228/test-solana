@@ -1,11 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Program, BN, Wallet } from "@coral-xyz/anchor";
-import {
-  PublicKey,
-  LAMPORTS_PER_SOL,
-  Connection,
-  Keypair,
-} from "@solana/web3.js";
+import { Program, BN } from "@coral-xyz/anchor";
+
 import { Faucet } from "../target/types/faucet";
 import {
   FaucetMerkleLeaf,

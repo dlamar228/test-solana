@@ -4,13 +4,10 @@ import { Faucet } from "../../target/types/faucet";
 import {
   PublicKey,
   Signer,
-  SystemProgram,
   ConfirmOptions,
-  SYSVAR_RENT_PUBKEY,
-  ComputeBudgetProgram,
   TransactionSignature,
 } from "@solana/web3.js";
-import { Mint, TokenUtils, TokenVault } from "./token.utils";
+import { TokenVault } from "./token.utils";
 import { u16ToBytes } from "./utils";
 
 import MerkleTree from "merkletreejs";
@@ -184,17 +181,26 @@ export class FaucetUtils {
     );
     return state.shards;
   }
-  async isShardInit(faucetClaimShard: PublicKey): Promise<boolean> {
+  async isFaucetClaimShardInit(faucetClaimShard: PublicKey): Promise<boolean> {
     let state = await this.program.account.faucetClaimShard.fetchNullable(
       faucetClaimShard
     );
     return state !== null;
   }
-  async getShardMerkleRoot(faucetClaimShard: PublicKey): Promise<number[]> {
+  async getFaucetClaimShardMerkleRoot(
+    faucetClaimShard: PublicKey
+  ): Promise<number[]> {
     let state = await this.program.account.faucetClaimShard.fetchNullable(
       faucetClaimShard
     );
     return state.merkleRoot;
+  }
+
+  async getFaucetClaimState(faucetClaim: PublicKey) {
+    let state = await this.program.account.faucetClaim.fetchNullable(
+      faucetClaim
+    );
+    return state;
   }
 }
 
