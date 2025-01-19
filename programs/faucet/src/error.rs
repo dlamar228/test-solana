@@ -10,12 +10,12 @@ pub enum ErrorCode {
     InvalidAdminIndex,
     #[msg("Reached shard limit")]
     ShardLimit,
-    #[msg("Invalid start/end claim time")]
-    InvalidFaucetTime,
     #[msg("Invalid token amount")]
     InvalidTokenAmount,
-    #[msg("Faucet not started/finished")]
-    InvalidClaimTime,
+    #[msg("Faucet not started or finished")]
+    InvalidFaucetClaimTime,
+    #[msg("Faucet not finished")]
+    FaucetNotFinished,
     #[msg("Invalid withdraw token amount")]
     InvalidWithdrawTokenAmount,
     #[msg("Tokens already claimed")]

@@ -74,7 +74,7 @@ pub fn claim(ctx: Context<Claim>, paths: Vec<[u8; 32]>, index: u16, amount: u64)
     let now = Clock::get()?.unix_timestamp as u64;
 
     if !ctx.accounts.faucet_claim.is_started(now) || ctx.accounts.faucet_claim.is_finished(now) {
-        return err!(FaucetError::InvalidClaimTime);
+        return err!(FaucetError::InvalidFaucetClaimTime);
     }
 
     let faucet_claim_shard = &mut ctx.accounts.faucet_claim_shard.load_mut()?;
@@ -204,7 +204,7 @@ pub struct DestroyFaucetClaimShard<'info> {
     pub faucet_claim_shard: AccountLoader<'info, FaucetClaimShard>,
     #[account(
         mut,
-        constraint = faucet_claim.is_finished(Clock::get()?.unix_timestamp as u64) @ FaucetError::InvalidAdmin,
+        constraint = faucet_claim.is_finished(Clock::get()?.unix_timestamp as u64) @ FaucetError::FaucetNotFinished,
         close = payer,
         seeds = [
             FAUCET_AUTHORITY_MANAGER_SEED.as_bytes(),

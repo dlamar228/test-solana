@@ -111,7 +111,7 @@ pub fn withdraw_expired_faucet_claim(ctx: Context<WithdrawExpiredFaucetClaim>) -
     let now = Clock::get()?.unix_timestamp as u64;
 
     if !ctx.accounts.faucet_claim.is_finished(now) {
-        return err!(FaucetError::InvalidClaimTime);
+        return err!(FaucetError::FaucetNotFinished);
     }
 
     let amount = ctx.accounts.faucet_vault.amount;
@@ -213,7 +213,7 @@ pub struct DestroyFaucetClaim<'info> {
     pub faucet_claim: Box<Account<'info, FaucetClaim>>,
     #[account(
         mut,
-        constraint = faucet_claim.is_finished(Clock::get()?.unix_timestamp as u64) @ FaucetError::InvalidAdmin,
+        constraint = faucet_claim.is_finished(Clock::get()?.unix_timestamp as u64) @ FaucetError::FaucetNotFinished,
         close = payer,
         seeds = [
             FAUCET_AUTHORITY_MANAGER_SEED.as_bytes(),
