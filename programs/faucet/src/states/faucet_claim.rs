@@ -6,8 +6,8 @@ use bytemuck::{Pod, Zeroable};
 #[derive(Default, Debug)]
 pub struct FaucetClaim {
     pub mint: Pubkey,
-    pub epoch_claim_starts: u64,
-    pub epoch_claim_ends: u64,
+    pub claim_starts: u64,
+    pub claim_ends: u64,
     pub total_faucet_amount: u64,
     pub total_claimed_amount: u64,
     pub shards: u16,
@@ -17,11 +17,15 @@ pub struct FaucetClaim {
 impl FaucetClaim {
     pub const LEN: usize = 8 + std::mem::size_of::<FaucetClaim>();
 
-    pub fn is_finished(&self, epoch: u64) -> bool {
-        epoch >= self.epoch_claim_ends
+    pub fn is_finished(&self, now: u64) -> bool {
+        now >= self.claim_ends
     }
-    pub fn is_started(&self, epoch: u64) -> bool {
-        epoch >= self.epoch_claim_starts
+    pub fn is_started(&self, now: u64) -> bool {
+        now >= self.claim_starts
+    }
+
+    pub fn rest_amount(&self) -> u64 {
+        self.total_faucet_amount - self.total_claimed_amount
     }
 }
 

@@ -14,8 +14,6 @@ import MerkleTree from "merkletreejs";
 import { keccak_256 } from "@noble/hashes/sha3";
 
 export interface InitializeFaucetClaimArgs {
-  epochClaimStarts: BN;
-  epochClaimEnds: BN;
   totalFaucetAmount: BN;
   payerVault: TokenVault;
 }
@@ -86,11 +84,7 @@ export class FaucetUtils {
     );
 
     await this.program.methods
-      .initializeFaucetClaim(
-        args.epochClaimStarts,
-        args.epochClaimEnds,
-        args.totalFaucetAmount
-      )
+      .initializeFaucetClaim(args.totalFaucetAmount)
       .accounts({
         payer: signer.publicKey,
         payerVault: args.payerVault.address,

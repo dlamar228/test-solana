@@ -14,8 +14,10 @@ pub enum ErrorCode {
     InvalidFaucetTime,
     #[msg("Invalid token amount")]
     InvalidTokenAmount,
-    #[msg("Faucet not started or finished")]
+    #[msg("Faucet not started/finished")]
     InvalidClaimTime,
+    #[msg("Invalid withdraw token amount")]
+    InvalidWithdrawTokenAmount,
     #[msg("Tokens already claimed")]
     TokensAlreadyClaimed,
     #[msg("Invalid proof")]

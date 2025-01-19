@@ -43,8 +43,6 @@ describe("faucet.initialize.test", () => {
     await faucetUtils.initializeFaucetAuthorityManager(signer);
 
     let faucetClaimArgs = {
-      epochClaimStarts: new BN(0),
-      epochClaimEnds: new BN(100_000),
       totalFaucetAmount: new BN(10000),
       payerVault: tokenVault,
     };
@@ -63,8 +61,6 @@ describe("faucet.initialize.test", () => {
     await faucetUtils.initializeFaucetAuthorityManager(signer);
 
     let faucetClaimArgs = {
-      epochClaimStarts: new BN(0),
-      epochClaimEnds: new BN(100_000),
       totalFaucetAmount: new BN(100_000),
       payerVault: tokenVault,
     };

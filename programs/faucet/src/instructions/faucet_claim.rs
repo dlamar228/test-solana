@@ -2,7 +2,7 @@ use super::*;
 use crate::states::{
     authority_manager::AuthorityManager,
     faucet_claim::{FaucetClaim, FaucetClaimShard},
-    merkle_proof_verify, generate_leaf,
+    generate_leaf, merkle_proof_verify,
 };
 
 use anchor_spl::{
@@ -12,14 +12,8 @@ use anchor_spl::{
 
 pub fn initialize_faucet_claim(
     ctx: Context<InitializeFaucetClaim>,
-    epoch_claim_starts: u64,
-    epoch_claim_ends: u64,
     total_faucet_amount: u64,
 ) -> Result<()> {
-    if epoch_claim_starts >= epoch_claim_ends {
-        return err!(FaucetError::InvalidFaucetTime);
-    }
-
     if total_faucet_amount == 0 || ctx.accounts.payer_vault.amount < total_faucet_amount {
         return err!(FaucetError::InvalidTokenAmount);
     }
@@ -37,10 +31,13 @@ pub fn initialize_faucet_claim(
         total_faucet_amount,
     )?;
 
+    let claim_starts = Clock::get()?.unix_timestamp as u64;
+    let claim_ends = claim_starts + FAUCET_CLAIM_PERIOD_IN_SECONDS;
+
     let faucet_claim = &mut ctx.accounts.faucet_claim;
     faucet_claim.mint = ctx.accounts.mint.key();
-    faucet_claim.epoch_claim_starts = epoch_claim_starts;
-    faucet_claim.epoch_claim_ends = epoch_claim_ends;
+    faucet_claim.claim_starts = claim_starts;
+    faucet_claim.claim_ends = claim_ends;
     faucet_claim.total_faucet_amount = total_faucet_amount;
     faucet_claim.total_claimed_amount = 0;
     faucet_claim.shards = 0;
@@ -153,13 +150,10 @@ pub struct InitializeFaucetClaimShard<'info> {
         ],
         bump,
         payer = payer,
-        space = FaucetClaimShard::LEN
+        space = FaucetClaimShard::LEN,
     )]
     pub faucet_claim_shard: AccountLoader<'info, FaucetClaimShard>,
-    #[account(mut)]
-    // pub faucet_claim_shard: UncheckedAccount<'info>,
     pub mint: Box<InterfaceAccount<'info, Mint>>,
-
     pub token_program: Interface<'info, TokenInterface>,
     /// To create a new program account
     pub system_program: Program<'info, System>,
@@ -167,10 +161,10 @@ pub struct InitializeFaucetClaimShard<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn claim(ctx: Context<Claim>, paths: Vec<[u8;32]>, index: u16, amount: u64) -> Result<()> {
-    let epoch = Clock::get()?.epoch;
+pub fn claim(ctx: Context<Claim>, paths: Vec<[u8; 32]>, index: u16, amount: u64) -> Result<()> {
+    let now = Clock::get()?.unix_timestamp as u64;
 
-    if !ctx.accounts.faucet_claim.is_started(epoch) || ctx.accounts.faucet_claim.is_finished(epoch) {
+    if !ctx.accounts.faucet_claim.is_started(now) || ctx.accounts.faucet_claim.is_finished(now) {
         return err!(FaucetError::InvalidClaimTime);
     }
 
@@ -181,7 +175,7 @@ pub fn claim(ctx: Context<Claim>, paths: Vec<[u8;32]>, index: u16, amount: u64) 
     }
 
     let leaf = generate_leaf(ctx.accounts.payer.key, amount);
-    if !merkle_proof_verify( faucet_claim_shard.merkle_root,paths, leaf) {
+    if !merkle_proof_verify(faucet_claim_shard.merkle_root, paths, leaf) {
         return err!(FaucetError::InvalidProof);
     }
 
@@ -193,15 +187,18 @@ pub fn claim(ctx: Context<Claim>, paths: Vec<[u8;32]>, index: u16, amount: u64) 
         mint: ctx.accounts.mint.to_account_info(),
         decimals: ctx.accounts.mint.decimals,
     };
-    let seeds = [FAUCET_AUTHORITY.as_bytes(), &[ctx.accounts.authority_manager.authority_bump]];
+    let seeds = [
+        FAUCET_AUTHORITY.as_bytes(),
+        &[ctx.accounts.authority_manager.authority_bump],
+    ];
     let signer_seeds = &[seeds.as_slice()];
 
     token_utils.transfer_signer(
-        ctx.accounts.authority.to_account_info(), 
+        ctx.accounts.authority.to_account_info(),
         ctx.accounts.faucet_vault.to_account_info(),
-        ctx.accounts.payer_vault.to_account_info(), 
-        amount, 
-        signer_seeds
+        ctx.accounts.payer_vault.to_account_info(),
+        amount,
+        signer_seeds,
     )?;
 
     Ok(())
@@ -259,10 +256,83 @@ pub struct Claim<'info> {
     pub faucet_vault: Box<InterfaceAccount<'info, TokenAccount>>,
     pub mint: Box<InterfaceAccount<'info, Mint>>,
     pub token_program: Interface<'info, TokenInterface>,
-    /// Program to create an ATA for receiving position NFT
-    pub associated_token_program: Program<'info, AssociatedToken>,
-    /// To create a new program account
-    pub system_program: Program<'info, System>,
-    /// Sysvar for program account
-    pub rent: Sysvar<'info, Rent>,
+}
+
+pub fn withdraw_expired_faucet_claim(ctx: Context<WithdrawExpiredFaucetClaim>) -> Result<()> {
+    let now = Clock::get()?.unix_timestamp as u64;
+
+    if !ctx.accounts.faucet_claim.is_finished(now) {
+        return err!(FaucetError::InvalidClaimTime);
+    }
+
+    if ctx.accounts.faucet_vault.amount == 0 {
+        return err!(FaucetError::InvalidWithdrawTokenAmount);
+    }
+
+    let token_utils = TokenUtils {
+        token_program: ctx.accounts.token_program.to_account_info(),
+        mint: ctx.accounts.mint.to_account_info(),
+        decimals: ctx.accounts.mint.decimals,
+    };
+
+    let seeds = [
+        FAUCET_AUTHORITY.as_bytes(),
+        &[ctx.accounts.authority_manager.authority_bump],
+    ];
+    let signer_seeds = &[seeds.as_slice()];
+
+    token_utils.transfer_signer(
+        ctx.accounts.authority.to_account_info(),
+        ctx.accounts.faucet_vault.to_account_info(),
+        ctx.accounts.payer_vault.to_account_info(),
+        ctx.accounts.faucet_vault.amount,
+        signer_seeds,
+    )?;
+
+    Ok(())
+}
+
+#[derive(Accounts)]
+pub struct WithdrawExpiredFaucetClaim<'info> {
+    #[account(mut, constraint = authority_manager.is_admin(payer.key) @ FaucetError::InvalidAdmin)]
+    pub payer: Signer<'info>,
+    #[account(
+        mut,
+        token::mint = mint,
+        token::authority = payer,
+        token::token_program = token_program, 
+    )]
+    pub payer_vault: Box<InterfaceAccount<'info, TokenAccount>>,
+    #[account(
+        mut,
+        seeds = [
+            FAUCET_CLAIM_SEED.as_bytes(), mint.key().as_ref(),
+        ],
+        bump = faucet_claim.bump,
+    )]
+    pub faucet_claim: Box<Account<'info, FaucetClaim>>,
+    #[account(
+        seeds = [
+            FAUCET_AUTHORITY_MANAGER_SEED.as_bytes(),
+        ],
+        bump = authority_manager.bump,
+
+    )]
+    pub authority_manager: Box<Account<'info, AuthorityManager>>,
+    /// CHECK: faucet vault authority
+    #[account(
+        seeds = [
+            FAUCET_AUTHORITY.as_bytes(),
+        ],
+        bump = authority_manager.authority_bump,
+    )]
+    pub authority: UncheckedAccount<'info>,
+    #[account(
+        mut,
+        token::mint = mint,
+        token::authority = authority,
+    )]
+    pub faucet_vault: Box<InterfaceAccount<'info, TokenAccount>>,
+    pub mint: Box<InterfaceAccount<'info, Mint>>,
+    pub token_program: Interface<'info, TokenInterface>,
 }
