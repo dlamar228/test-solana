@@ -1,6 +1,7 @@
 use super::*;
 use crate::states::{
     authority_manager::AuthorityManager,
+    events,
     faucet_claim::{FaucetClaim, FaucetClaimShard},
     generate_leaf, merkle_proof_verify,
 };
@@ -23,6 +24,12 @@ pub fn initialize_faucet_claim_shard(
 
     let faucet_claim = &mut ctx.accounts.faucet_claim;
     faucet_claim.shards += 1;
+
+    emit!(events::InitializeFaucetClaimShard {
+        faucet_claim_id: ctx.accounts.faucet_claim.key(),
+        faucet_claim_shard_id: ctx.accounts.faucet_claim_shard.key(),
+        merkle_root
+    });
 
     Ok(())
 }
@@ -103,6 +110,12 @@ pub fn claim(ctx: Context<Claim>, paths: Vec<[u8; 32]>, index: u16, amount: u64)
         signer_seeds,
     )?;
 
+    emit!(events::Claim {
+        address: ctx.accounts.payer.key(),
+        mint: ctx.accounts.mint.key(),
+        amount
+    });
+
     Ok(())
 }
 
@@ -150,7 +163,8 @@ pub struct Claim<'info> {
         bump = authority_manager.authority_bump,
     )]
     pub authority: UncheckedAccount<'info>,
-    #[account(
+    #[
+account(
         mut,
         token::mint = mint,
         token::authority = authority,
@@ -158,4 +172,45 @@ pub struct Claim<'info> {
     pub faucet_vault: Box<InterfaceAccount<'info, TokenAccount>>,
     pub mint: Box<InterfaceAccount<'info, Mint>>,
     pub token_program: Interface<'info, TokenInterface>,
+}
+
+pub fn destroy_faucet_claim_shard(ctx: Context<DestroyFaucetClaimShard>) -> Result<()> {
+    emit!(events::DestroyFaucetClaimShard {
+        faucet_claim_id: ctx.accounts.faucet_claim.key(),
+        faucet_claim_shard_id: ctx.accounts.faucet_claim_shard.key(),
+    });
+    Ok(())
+}
+
+#[derive(Accounts)]
+pub struct DestroyFaucetClaimShard<'info> {
+    #[account(mut, constraint = authority_manager.is_admin(payer.key) @ FaucetError::InvalidAdmin)]
+    pub payer: Signer<'info>,
+    #[account(
+        seeds = [
+            FAUCET_CLAIM_SEED.as_bytes(), faucet_claim.mint.as_ref(),
+        ],
+        bump = faucet_claim.bump,
+    )]
+    pub faucet_claim: Box<Account<'info, FaucetClaim>>,
+    #[account(
+        mut,
+        seeds = [
+            FAUCET_CLAIM_SHARD_SEED.as_bytes(), faucet_claim.key().as_ref(), &faucet_claim_shard.load()?.index.to_be_bytes(),
+        ],
+        bump = faucet_claim_shard.load()?.bump,
+
+    )]
+    pub faucet_claim_shard: AccountLoader<'info, FaucetClaimShard>,
+    #[account(
+        mut,
+        constraint = faucet_claim.is_finished(Clock::get()?.unix_timestamp as u64) @ FaucetError::InvalidAdmin,
+        close = payer,
+        seeds = [
+            FAUCET_AUTHORITY_MANAGER_SEED.as_bytes(),
+        ],
+        bump = authority_manager.bump,
+
+    )]
+    pub authority_manager: Box<Account<'info, AuthorityManager>>,
 }

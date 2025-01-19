@@ -1,5 +1,5 @@
 use super::*;
-use crate::states::{authority_manager::AuthorityManager, faucet_claim::FaucetClaim};
+use crate::states::{authority_manager::AuthorityManager, events, faucet_claim::FaucetClaim};
 
 use anchor_spl::{
     associated_token::AssociatedToken,
@@ -38,6 +38,12 @@ pub fn initialize_faucet_claim(
     faucet_claim.total_claimed_amount = 0;
     faucet_claim.shards = 0;
     faucet_claim.bump = ctx.bumps.faucet_claim;
+
+    emit!(events::InitializeFaucetClaim {
+        faucet_claim_id: ctx.accounts.faucet_claim.key(),
+        mint: ctx.accounts.mint.key(),
+        total_faucet_amount
+    });
 
     Ok(())
 }
@@ -108,7 +114,8 @@ pub fn withdraw_expired_faucet_claim(ctx: Context<WithdrawExpiredFaucetClaim>) -
         return err!(FaucetError::InvalidClaimTime);
     }
 
-    if ctx.accounts.faucet_vault.amount == 0 {
+    let amount = ctx.accounts.faucet_vault.amount;
+    if amount == 0 {
         return err!(FaucetError::InvalidWithdrawTokenAmount);
     }
 
@@ -128,9 +135,15 @@ pub fn withdraw_expired_faucet_claim(ctx: Context<WithdrawExpiredFaucetClaim>) -
         ctx.accounts.authority.to_account_info(),
         ctx.accounts.faucet_vault.to_account_info(),
         ctx.accounts.payer_vault.to_account_info(),
-        ctx.accounts.faucet_vault.amount,
+        amount,
         signer_seeds,
     )?;
+
+    emit!(events::WithdrawExpiredFaucetClaim {
+        faucet_claim_id: ctx.accounts.faucet_claim.key(),
+        mint: ctx.accounts.mint.key(),
+        amount,
+    });
 
     Ok(())
 }

@@ -18,10 +18,10 @@ impl FaucetClaim {
     pub const LEN: usize = 8 + std::mem::size_of::<FaucetClaim>();
 
     pub fn is_finished(&self, now: u64) -> bool {
-        now >= self.claim_ends
+        now > self.claim_ends
     }
     pub fn is_started(&self, now: u64) -> bool {
-        now >= self.claim_starts
+        now > self.claim_starts
     }
 
     pub fn rest_amount(&self) -> u64 {

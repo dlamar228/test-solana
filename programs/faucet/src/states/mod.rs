@@ -10,4 +10,6 @@ pub use authority_manager::*;
 pub mod constant;
 pub use constant::*;
 
+pub mod events;
+
 use anchor_lang::{prelude::*, solana_program::keccak};
