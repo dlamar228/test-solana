@@ -40,6 +40,11 @@ export interface ClaimArgs {
   amount: BN;
 }
 
+export interface WithdrawExpiredFaucetClaimArgs {
+  faucetAccounts: FaucetClaimAccounts;
+  payerVault: TokenVault;
+}
+
 export class FaucetUtils {
   program: Program<Faucet>;
   pdaGetter: FaucetPda;
@@ -145,6 +150,25 @@ export class FaucetUtils {
         authorityManager: args.faucetAccounts.authorityManager,
         faucetClaim: args.faucetAccounts.faucetClaim,
         faucetClaimShard: args.faucetClaimShard,
+        faucetVault: args.faucetAccounts.faucetVault.address,
+        mint: args.payerVault.mint.address,
+        payerVault: args.payerVault.address,
+      })
+      .rpc();
+
+    return tx;
+  }
+  async withdrawExpiredFaucetClaim(
+    signer: Signer,
+    args: WithdrawExpiredFaucetClaimArgs
+  ): Promise<TransactionSignature> {
+    let tx = await this.program.methods
+      .withdrawExpiredFaucetClaim()
+      .accounts({
+        payer: signer.publicKey,
+        authority: args.faucetAccounts.authority,
+        authorityManager: args.faucetAccounts.authorityManager,
+        faucetClaim: args.faucetAccounts.faucetClaim,
         faucetVault: args.faucetAccounts.faucetVault.address,
         mint: args.payerVault.mint.address,
         payerVault: args.payerVault.address,

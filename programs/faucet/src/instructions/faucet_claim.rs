@@ -160,7 +160,6 @@ pub struct WithdrawExpiredFaucetClaim<'info> {
     )]
     pub payer_vault: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(
-        mut,
         seeds = [
             FAUCET_CLAIM_SEED.as_bytes(), mint.key().as_ref(),
         ],
