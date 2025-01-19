@@ -45,6 +45,15 @@ export interface WithdrawExpiredFaucetClaimArgs {
   payerVault: TokenVault;
 }
 
+export interface FaucetClaimDestroyArgs {
+  faucetAccounts: FaucetClaimAccounts;
+}
+
+export interface FaucetClaimShardDestroyArgs {
+  faucetAccounts: FaucetClaimAccounts;
+  faucetClaimShard: PublicKey;
+}
+
 export class FaucetUtils {
   program: Program<Faucet>;
   pdaGetter: FaucetPda;
@@ -172,6 +181,37 @@ export class FaucetUtils {
         faucetVault: args.faucetAccounts.faucetVault.address,
         mint: args.payerVault.mint.address,
         payerVault: args.payerVault.address,
+      })
+      .rpc();
+
+    return tx;
+  }
+  async faucetClaimDestroy(
+    signer: Signer,
+    args: FaucetClaimDestroyArgs
+  ): Promise<TransactionSignature> {
+    let tx = await this.program.methods
+      .destroyFaucetClaim()
+      .accounts({
+        payer: signer.publicKey,
+        authorityManager: args.faucetAccounts.authorityManager,
+        faucetClaim: args.faucetAccounts.faucetClaim,
+      })
+      .rpc();
+
+    return tx;
+  }
+  async faucetClaimShardDestroy(
+    signer: Signer,
+    args: FaucetClaimShardDestroyArgs
+  ): Promise<TransactionSignature> {
+    let tx = await this.program.methods
+      .destroyFaucetClaimShard()
+      .accounts({
+        payer: signer.publicKey,
+        authorityManager: args.faucetAccounts.authorityManager,
+        faucetClaimShard: args.faucetClaimShard,
+        faucetClaim: args.faucetAccounts.faucetClaim,
       })
       .rpc();
 
