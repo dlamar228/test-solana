@@ -41,6 +41,10 @@ pub mod faucet {
         instructions::initialize_faucet_claim(ctx, total_faucet_amount)
     }
 
+    pub fn destroy_faucet_claim(ctx: Context<DestroyFaucetClaim>) -> Result<()> {
+        instructions::destroy_faucet_claim(ctx)
+    }
+
     pub fn initialize_faucet_claim_shard(
         ctx: Context<InitializeFaucetClaimShard>,
         merkle_root: [u8; 32],

@@ -191,3 +191,35 @@ pub struct WithdrawExpiredFaucetClaim<'info> {
     pub mint: Box<InterfaceAccount<'info, Mint>>,
     pub token_program: Interface<'info, TokenInterface>,
 }
+
+
+pub fn destroy_faucet_claim(ctx: Context<DestroyFaucetClaim>) -> Result<()> {
+    emit!(events::DestroyFaucetClaim {
+        faucet_claim_id: ctx.accounts.faucet_claim.key(),
+    });
+    Ok(())
+}
+
+#[derive(Accounts)]
+pub struct DestroyFaucetClaim<'info> {
+    #[account(mut, constraint = authority_manager.is_admin(payer.key) @ FaucetError::InvalidAdmin)]
+    pub payer: Signer<'info>,
+    #[account(
+        seeds = [
+            FAUCET_CLAIM_SEED.as_bytes(), faucet_claim.mint.as_ref(),
+        ],
+        bump = faucet_claim.bump,
+    )]
+    pub faucet_claim: Box<Account<'info, FaucetClaim>>,
+    #[account(
+        mut,
+        constraint = faucet_claim.is_finished(Clock::get()?.unix_timestamp as u64) @ FaucetError::InvalidAdmin,
+        close = payer,
+        seeds = [
+            FAUCET_AUTHORITY_MANAGER_SEED.as_bytes(),
+        ],
+        bump = authority_manager.bump,
+
+    )]
+    pub authority_manager: Box<Account<'info, AuthorityManager>>,
+}
