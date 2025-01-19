@@ -2,9 +2,7 @@ use crate::error::ErrorCode;
 use crate::states::*;
 use anchor_lang::prelude::*;
 
-pub fn initialize_protocol(
-    ctx: Context<InitializeProtocol>,
-) -> Result<()> {
+pub fn initialize_protocol(ctx: Context<InitializeProtocol>) -> Result<()> {
     let protocol = &mut ctx.accounts.protocol;
     protocol.admin = ctx.accounts.signer.key();
 

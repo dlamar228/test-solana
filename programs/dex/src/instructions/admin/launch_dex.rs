@@ -8,8 +8,9 @@ use anchor_spl::{
     token_interface::{Mint, TokenAccount, TokenInterface},
 };
 use solana_program::{
+    program::{invoke, invoke_signed},
     program_pack::Pack,
-    program::{invoke, invoke_signed}, system_instruction
+    system_instruction,
 };
 
 mod raydium {
@@ -103,7 +104,7 @@ pub fn launch_dex(ctx: Context<Launch>, shared_lamports: u64) -> Result<()> {
     // dex authority pda signer seeds
     let seeds = [DEX_AUTH_SEED.as_bytes(), &[dex_state.auth_bump]];
     let signer_seeds = &[seeds.as_slice()];
-    
+
     let cpi_context = CpiContext::new_with_signer(
         ctx.accounts.cp_swap_program.to_account_info(),
         cpi_accounts,
@@ -126,14 +127,15 @@ pub fn launch_dex(ctx: Context<Launch>, shared_lamports: u64) -> Result<()> {
         signer_seeds,
     )?;
 
-    let lp_amount_to_burn = spl_token::state::Account::unpack(&ctx.accounts.creator_lp_token.data.borrow())?.amount;
+    let lp_amount_to_burn =
+        spl_token::state::Account::unpack(&ctx.accounts.creator_lp_token.data.borrow())?.amount;
     token_burn(
         ctx.accounts.dex_authority.to_account_info(),
         ctx.accounts.token_program.to_account_info(),
         ctx.accounts.lp_mint.to_account_info(),
         ctx.accounts.creator_lp_token.to_account_info(),
         lp_amount_to_burn,
-        signer_seeds
+        signer_seeds,
     )?;
 
     emit!(DexLaunchedEvent {
@@ -175,7 +177,6 @@ fn get_taxed_amount_before_launch(
         transfer_fee,
     ))
 }
-
 
 #[derive(Accounts)]
 pub struct Launch<'info> {
