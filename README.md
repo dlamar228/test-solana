@@ -40,3 +40,9 @@ The faucet contract uses Merkle proofs for claims, and only an admin can initial
    **Purpose** : Withdraws the remaining tokens from the faucet. This is allowed only after the claim period ends.</br>
    **Parameters** : None.</br>
    **Returns** : None.
+
+## Faucet Deploy
+
+Cretae *.so files in traget/deploy run: `cargo build-sbf` </br>
+Sync program keys run: `anchor keys sync` </br>
+Deploy faucet contract run: `solana program deploy --program-id ./target/deploy/faucet-keypair.json ./target/deploy/faucet.so --url localhost`
