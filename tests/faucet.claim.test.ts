@@ -25,20 +25,14 @@ describe("faucet.claim.test", () => {
   );
 
   it("initialize faucet claim shard", async () => {
-    let addresses = [...Array(6)].map((_) => signer);
-
-    let faucetAmount = new BN(50);
-    let leafs = addresses.map(
-      (x) => new FaucetMerkleLeaf(x.publicKey, faucetAmount)
-    );
-
-    let merkle_tree = new FaucetMerkleTree(leafs);
-
     let tokenVault = await tokenUtils.initializeSplMint(
       signer,
       100_000_000_000
     );
     await faucetUtils.initializeFaucetAuthorityManager(signer);
+
+    let addresses = [...Array(6)].map((_) => signer);
+    let faucetAmount = new BN(50);
 
     let faucetClaimArgs = {
       epochClaimStarts: new BN(0),
@@ -52,6 +46,17 @@ describe("faucet.claim.test", () => {
       faucetClaimArgs
     );
 
+    let shardAddress = faucetUtils.getShardAddress(
+      faucetAccounts.faucetClaim,
+      0
+    );
+
+    let leafs = addresses.map(
+      (x) => new FaucetMerkleLeaf(shardAddress, x.publicKey, faucetAmount)
+    );
+
+    let merkle_tree = new FaucetMerkleTree(leafs);
+
     let merkle_root = merkle_tree.tree.getRoot();
 
     let faucetClaimShardArgs = {
@@ -63,6 +68,7 @@ describe("faucet.claim.test", () => {
       signer,
       faucetClaimShardArgs
     );
+
     for (let index = 0; index < merkle_tree.tree.getLeafCount(); index++) {
       let leafProof = merkle_tree.getIndexProof(index);
 

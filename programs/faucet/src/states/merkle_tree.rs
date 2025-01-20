@@ -1,7 +1,7 @@
 use super::*;
 
-pub fn generate_leaf(pubkey: &Pubkey, amount: u64) -> [u8; 32] {
-    keccak::hashv(&[pubkey.as_ref(), &amount.to_le_bytes()]).0
+pub fn generate_leaf(shard: &Pubkey, pubkey: &Pubkey, amount: u64) -> [u8; 32] {
+    keccak::hashv(&[shard.as_ref(), pubkey.as_ref(), &amount.to_le_bytes()]).0
 }
 
 pub fn merkle_proof_verify(merkle_root: [u8; 32], proofs: Vec<[u8; 32]>, leaf: [u8; 32]) -> bool {

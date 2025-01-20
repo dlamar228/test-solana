@@ -122,6 +122,14 @@ export class FaucetUtils {
       shards: [],
     };
   }
+  getShardAddress(faucetClaim: PublicKey, index: number) {
+    let [shardAddress] = this.pdaGetter.getFaucetClaimShardAddress(
+      faucetClaim,
+      index
+    );
+
+    return shardAddress;
+  }
   async initializeFaucetClaimShard(
     signer: Signer,
     args: InitializeFaucetClaimShardArgs
@@ -338,16 +346,19 @@ export class FaucetSeeds {
 }
 
 export class FaucetMerkleLeaf {
+  shard: PublicKey;
   address: PublicKey;
   amount: BN;
 
-  constructor(address: PublicKey, amount: BN) {
+  constructor(shard: PublicKey, address: PublicKey, amount: BN) {
+    this.shard = shard;
     this.address = address;
     this.amount = amount;
   }
 
   toBuffer() {
     let data = Buffer.from([
+      ...this.shard.toBuffer(),
       ...this.address.toBuffer(),
       ...this.amount.toArray("le", 8),
     ]);
