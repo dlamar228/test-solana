@@ -192,7 +192,6 @@ pub struct WithdrawExpiredFaucetClaim<'info> {
     pub token_program: Interface<'info, TokenInterface>,
 }
 
-
 pub fn destroy_faucet_claim(ctx: Context<DestroyFaucetClaim>) -> Result<()> {
     emit!(events::DestroyFaucetClaim {
         faucet_claim_id: ctx.accounts.faucet_claim.key(),

@@ -56,9 +56,15 @@ pub mod faucet {
         instructions::destroy_faucet_claim_shard(ctx)
     }
 
-    pub fn claim(ctx: Context<Claim>, paths: Vec<[u8; 32]>, index: u16, amount: u64) -> Result<()> {
-        instructions::claim(ctx, paths, index, amount)
+    pub fn claim(
+        ctx: Context<Claim>,
+        proofs: Vec<[u8; 32]>,
+        index: u16,
+        amount: u64,
+    ) -> Result<()> {
+        instructions::claim(ctx, proofs, index, amount)
     }
+
     pub fn withdraw_expired_faucet_claim(ctx: Context<WithdrawExpiredFaucetClaim>) -> Result<()> {
         instructions::withdraw_expired_faucet_claim(ctx)
     }

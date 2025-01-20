@@ -70,7 +70,7 @@ pub struct InitializeFaucetClaimShard<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn claim(ctx: Context<Claim>, paths: Vec<[u8; 32]>, index: u16, amount: u64) -> Result<()> {
+pub fn claim(ctx: Context<Claim>, proofs: Vec<[u8; 32]>, index: u16, amount: u64) -> Result<()> {
     let now = Clock::get()?.unix_timestamp as u64;
 
     if !ctx.accounts.faucet_claim.is_started(now) || ctx.accounts.faucet_claim.is_finished(now) {
@@ -84,7 +84,7 @@ pub fn claim(ctx: Context<Claim>, paths: Vec<[u8; 32]>, index: u16, amount: u64)
     }
 
     let leaf = generate_leaf(ctx.accounts.payer.key, amount);
-    if !merkle_proof_verify(faucet_claim_shard.merkle_root, paths, leaf) {
+    if !merkle_proof_verify(faucet_claim_shard.merkle_root, proofs, leaf) {
         return err!(FaucetError::InvalidProof);
     }
 
