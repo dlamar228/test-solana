@@ -18,12 +18,8 @@ pub mod faucet {
         instructions::initialize_authority_manager(ctx)
     }
 
-    pub fn remove_admin(
-        ctx: Context<UpdateAuthorityManager>,
-        index: u64,
-        admin: Pubkey,
-    ) -> Result<()> {
-        instructions::remove_admin(ctx, index, admin)
+    pub fn remove_admin(ctx: Context<UpdateAuthorityManager>, index: u64) -> Result<()> {
+        instructions::remove_admin(ctx, index)
     }
 
     pub fn set_admin(
