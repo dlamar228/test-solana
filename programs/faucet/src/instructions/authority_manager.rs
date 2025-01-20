@@ -38,14 +38,15 @@ pub struct InitializeAuthorityManager<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn remove_admin(ctx: Context<UpdateAuthorityManager>, index: u64, admin: Pubkey) -> Result<()> {
+pub fn remove_admin(ctx: Context<UpdateAuthorityManager>, index: u64) -> Result<()> {
     let authority_manager = &mut ctx.accounts.authority_manager;
 
     if authority_manager.is_one_admin() {
         return err!(FaucetError::LastAdmin);
     }
 
-    authority_manager.set(index as usize, admin);
+    authority_manager.set(index as usize, Pubkey::default());
+
     Ok(())
 }
 
