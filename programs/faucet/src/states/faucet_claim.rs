@@ -38,7 +38,7 @@ pub struct FaucetClaimShard {
     pub bump: u8,
     pub merkle_root: [u8; 32],
     pub faucet_claim: Pubkey,
-    pub bitmap: ShardClaimBitMap,
+    pub claims: ShardClaimBitArray,
 }
 
 impl FaucetClaimShard {
@@ -47,11 +47,11 @@ impl FaucetClaimShard {
 
 #[derive(Debug, AnchorSerialize, AnchorDeserialize, Clone, Copy, Pod, Zeroable)]
 #[repr(C)]
-pub struct ShardClaimBitMap {
+pub struct ShardClaimBitArray {
     pub bitmap: [u32; 2048],
 }
 
-impl Default for ShardClaimBitMap {
+impl Default for ShardClaimBitArray {
     fn default() -> Self {
         Self {
             bitmap: [0u32; 2048],
@@ -59,15 +59,13 @@ impl Default for ShardClaimBitMap {
     }
 }
 
-impl ShardClaimBitMap {
-    pub const LEN: usize = std::mem::size_of::<Self>();
+impl ShardClaimBitArray {
     const fn byte_index(index: u16) -> usize {
         (index >> 5) as usize
     }
     const fn bit_offset(index: u16) -> u32 {
         (index & 31) as u32
     }
-
     pub const fn check(&self, index: u16) -> bool {
         self.bitmap[Self::byte_index(index)] & (1 << Self::bit_offset(index)) != 0
     }

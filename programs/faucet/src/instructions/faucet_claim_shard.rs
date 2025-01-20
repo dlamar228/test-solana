@@ -79,7 +79,7 @@ pub fn claim(ctx: Context<Claim>, proofs: Vec<[u8; 32]>, index: u16, amount: u64
 
     let faucet_claim_shard = &mut ctx.accounts.faucet_claim_shard.load_mut()?;
 
-    if faucet_claim_shard.bitmap.check(index) {
+    if faucet_claim_shard.claims.check(index) {
         return err!(FaucetError::TokensAlreadyClaimed);
     }
 
@@ -88,7 +88,7 @@ pub fn claim(ctx: Context<Claim>, proofs: Vec<[u8; 32]>, index: u16, amount: u64
         return err!(FaucetError::InvalidProof);
     }
 
-    faucet_claim_shard.bitmap.enable(index);
+    faucet_claim_shard.claims.enable(index);
     ctx.accounts.faucet_claim.total_claimed_amount += amount;
 
     let token_utils = TokenUtils {
