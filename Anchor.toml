@@ -6,9 +6,9 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-cp_proxy = "3ksKj17cGKP7oZ8YtexAEbvxqNQaBfSB3F5ZCLjBX79X"
-dex = "7E65apY9nbnCLvhfjCPc4V1veuPriHrp8kD3c76tTr4U"
-faucet = "Bw4JFo3Ajs1b8JvTvo1ZaZqT6r3S7rpjkiRTzxMt3oty"
+dex = "5eRYKyectJjwN8kVhmanV6HhnbaMq7yApou63MszV1m5"
+faucet = "HQdHG8NnJdcfb5MTRZvq1SaaFsBcjQ32aDZh1eRnrdwZ"
+launcher = "9ZVY6FrxsgoT29cqTxCPjdVBv2qLTEQHB29pYPnV5LGa"
 
 [registry]
 url = "https://api.apr.dev"
@@ -31,6 +31,9 @@ address = "DNXgeM9EiiaAbaWvwjHj9fQQLAX5ZsfHyvmYUNRAdNC8"
 # cp-swap ammConfig in mainnet
 [[test.validator.clone]]
 address = "D4FPEruKEHrG5TenZ2mpDGEfu1iUvTiqBxvpU8HLBvC2"
+
+[[test.validator.clone]]
+address = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
