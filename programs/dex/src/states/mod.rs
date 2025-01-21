@@ -7,8 +7,8 @@ pub use dex::*;
 pub mod events;
 pub use events::*;
 
-pub mod protocol;
-pub use protocol::*;
+pub mod authority_manager;
+pub use authority_manager::*;
 
 pub mod constant;
 pub use constant::*;

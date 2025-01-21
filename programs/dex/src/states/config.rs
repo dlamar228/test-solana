@@ -1,21 +1,15 @@
 use anchor_lang::prelude::*;
 
-/// Holds the current owner of the factory
 #[account]
 #[derive(Default, Debug)]
 pub struct ConfigState {
-    /// Bump to identify PDA
     pub bump: u8,
-    /// Status to control if new pool can be create
-    pub disable_create_dex: bool,
-    /// Config index
-    pub index: u16,
-    /// Address of the admin
-    pub admin: Pubkey,
-    /// padding
-    pub padding: [u64; 16],
+    pub swap_fee_rate: u64,
+    pub launch_fee_rate: u64,
+    pub initial_reserve: u64,
+    pub vault_reserve_bound: u64,
 }
 
 impl ConfigState {
-    pub const LEN: usize = 8 + std::mem::size_of::<ConfigState>();
+    pub const LEN: usize = 8 + std::mem::size_of::<Self>();
 }

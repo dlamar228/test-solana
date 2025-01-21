@@ -1,8 +1,11 @@
-pub mod initialize_dex;
-pub use initialize_dex::*;
+pub mod dex;
+pub use dex::*;
+
+pub mod authority_manager;
+pub use authority_manager::*;
+
+pub mod config;
+pub use config::*;
 
 pub mod swap;
 pub use swap::*;
-
-pub mod admin;
-pub use admin::*;

@@ -1,4 +1,3 @@
-/// Errors that may be returned by the TokenSwap program.
 use anchor_lang::prelude::*;
 
 #[error_code]
@@ -7,6 +6,8 @@ pub enum ErrorCode {
     NotApproved,
     #[msg("Invalid owner")]
     InvalidAdmin,
+    #[msg("Invalid cpi authority")]
+    InvalidCpiAuthority,
     /// The input token account is empty.
     #[msg("Input token account empty")]
     EmptySupply,

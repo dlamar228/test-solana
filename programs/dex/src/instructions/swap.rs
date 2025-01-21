@@ -4,7 +4,6 @@ use crate::error::ErrorCode;
 use crate::states::*;
 use crate::utils::token::*;
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 use std::cell::RefMut;
 
@@ -30,12 +29,25 @@ pub fn swap_base_output<'info>(
 pub struct Swap<'info> {
     /// The user performing the swap
     pub payer: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [
+            DEX_CONFIG_SEED.as_bytes(),
+        ],
+        bump = config.bump
+    )]
+    pub config: Box<Account<'info, ConfigState>>,
+    #[account(
+        seeds = [DEX_AUTHORITY_MANAGER_SEED.as_bytes()],
+        bump = authority_manager.bump
+    )]
+    pub authority_manager: Box<Account<'info, AuthorityManager>>,
     /// CHECK: dex vault authority
     #[account(
         seeds = [
-            DEX_AUTH_SEED.as_bytes(),
+            DEX_AUTHORITY_SEED.as_bytes(),
         ],
-        bump,
+        bump = authority_manager.authority_bump,
     )]
     pub authority: UncheckedAccount<'info>,
     /// The program account of the dex in which the swap will be performed
@@ -77,6 +89,8 @@ pub struct Swap<'info> {
 
 pub struct Swapper<'info> {
     authority: UncheckedAccount<'info>,
+    authority_manager: Box<Account<'info, AuthorityManager>>,
+    config: Box<Account<'info, ConfigState>>,
     dex_state: AccountLoader<'info, DexState>,
     input_vault: Box<InterfaceAccount<'info, TokenAccount>>,
     output_vault: Box<InterfaceAccount<'info, TokenAccount>>,
@@ -93,6 +107,8 @@ impl<'info> Swapper<'info> {
     pub fn from_ctx(ctx: &Context<'_, '_, '_, 'info, Swap<'info>>) -> Self {
         Self {
             authority: ctx.accounts.authority.clone(),
+            authority_manager: ctx.accounts.authority_manager.clone(),
+            config: ctx.accounts.config.clone(),
             dex_state: ctx.accounts.dex_state.clone(),
             input_vault: ctx.accounts.input_vault.clone(),
             output_vault: ctx.accounts.output_vault.clone(),
@@ -162,13 +178,8 @@ impl<'info> Swapper<'info> {
         })
     }
     pub fn try_swap_base_input(&mut self, amount_in: u64, minimum_amount_out: u64) -> Result<()> {
-        let block_timestamp = solana_program::clock::Clock::get()?.unix_timestamp as u64;
         let dex_id = self.dex_state.key();
         let dex_state = &mut self.dex_state.load_mut()?;
-
-        if block_timestamp < dex_state.open_time {
-            return err!(ErrorCode::NotApproved);
-        }
 
         if dex_state.is_launched {
             return err!(ErrorCode::DexReadyToLaunch);
@@ -194,7 +205,7 @@ impl<'info> Swapper<'info> {
             u128::from(actual_amount_in),
             u128::from(total_input_token_amount),
             u128::from(total_output_token_amount),
-            dex_state.swap_fee_rate,
+            self.config.swap_fee_rate,
         )
         .ok_or(ErrorCode::ZeroTradingTokens)?;
 
@@ -259,7 +270,10 @@ impl<'info> Swapper<'info> {
         )?;
 
         // dex authority pda signer seeds
-        let seeds = [DEX_AUTH_SEED.as_bytes(), &[dex_state.auth_bump]];
+        let seeds = [
+            DEX_AUTHORITY_SEED.as_bytes(),
+            &[self.authority_manager.authority_bump],
+        ];
         let signer_seeds = &[seeds.as_slice()];
 
         transfer_from_dex_vault_to_user(
@@ -304,8 +318,6 @@ impl<'info> Swapper<'info> {
             emit!(DexIsReadyToLaunchEvent { dex_id });
         }
 
-        dex_state.recent_epoch = Clock::get()?.epoch;
-
         Ok(())
     }
     pub fn try_swap_base_output(
@@ -313,12 +325,8 @@ impl<'info> Swapper<'info> {
         max_amount_in: u64,
         amount_out_less_fee: u64,
     ) -> Result<()> {
-        let block_timestamp = solana_program::clock::Clock::get()?.unix_timestamp as u64;
         let dex_id = self.dex_state.key();
         let dex_state = &mut self.dex_state.load_mut()?;
-        if block_timestamp < dex_state.open_time {
-            return err!(ErrorCode::NotApproved);
-        }
 
         if dex_state.is_launched {
             return err!(ErrorCode::DexReadyToLaunch);
@@ -345,7 +353,7 @@ impl<'info> Swapper<'info> {
             u128::from(actual_amount_out),
             u128::from(total_input_token_amount),
             u128::from(total_output_token_amount),
-            dex_state.swap_fee_rate,
+            self.config.swap_fee_rate,
         )
         .ok_or(ErrorCode::ZeroTradingTokens)?;
 
@@ -400,7 +408,10 @@ impl<'info> Swapper<'info> {
         )?;
 
         // dex authority pda signer seeds
-        let seeds = [DEX_AUTH_SEED.as_bytes(), &[dex_state.auth_bump]];
+        let seeds = [
+            DEX_AUTHORITY_SEED.as_bytes(),
+            &[self.authority_manager.authority_bump],
+        ];
         let signer_seeds = &[seeds.as_slice()];
 
         transfer_from_dex_vault_to_user(
@@ -444,8 +455,6 @@ impl<'info> Swapper<'info> {
             dex_state.is_ready_to_launch = true;
             emit!(DexIsReadyToLaunchEvent { dex_id });
         }
-
-        dex_state.recent_epoch = Clock::get()?.epoch;
 
         Ok(())
     }
