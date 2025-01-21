@@ -6,26 +6,11 @@ use anchor_spl::{
     token_interface::{Mint, TokenAccount, TokenInterface},
 };
 
-pub fn initialize_faucet_claim(
-    ctx: Context<InitializeFaucetClaim>,
-    total_faucet_amount: u64,
-) -> Result<()> {
-    if total_faucet_amount == 0 || ctx.accounts.payer_vault.amount < total_faucet_amount {
+pub fn initialize_faucet_claim(ctx: Context<InitializeFaucetClaim>) -> Result<()> {
+    let faucet_amount = ctx.accounts.faucet_vault.amount;
+    if faucet_amount == 0 {
         return err!(FaucetError::InvalidTokenAmount);
     }
-
-    let token_utils = TokenUtils {
-        token_program: ctx.accounts.token_program.to_account_info(),
-        mint: ctx.accounts.mint.to_account_info(),
-        decimals: ctx.accounts.mint.decimals,
-    };
-
-    token_utils.transfer(
-        ctx.accounts.payer.to_account_info(),
-        ctx.accounts.payer_vault.to_account_info(),
-        ctx.accounts.faucet_vault.to_account_info(),
-        total_faucet_amount,
-    )?;
 
     let claim_starts = Clock::get()?.unix_timestamp as u64;
     let claim_ends = claim_starts + FAUCET_CLAIM_PERIOD_IN_SECONDS;
@@ -34,7 +19,7 @@ pub fn initialize_faucet_claim(
     faucet_claim.mint = ctx.accounts.mint.key();
     faucet_claim.claim_starts = claim_starts;
     faucet_claim.claim_ends = claim_ends;
-    faucet_claim.total_faucet_amount = total_faucet_amount;
+    faucet_claim.total_faucet_amount = faucet_amount;
     faucet_claim.total_claimed_amount = 0;
     faucet_claim.shards = 0;
     faucet_claim.bump = ctx.bumps.faucet_claim;
@@ -42,7 +27,7 @@ pub fn initialize_faucet_claim(
     emit!(events::InitializeFaucetClaim {
         faucet_claim_id: ctx.accounts.faucet_claim.key(),
         mint: ctx.accounts.mint.key(),
-        total_faucet_amount
+        total_faucet_amount: faucet_amount
     });
 
     Ok(())
@@ -57,12 +42,6 @@ pub struct InitializeFaucetClaim<'info> {
     )]
     pub mint: Box<InterfaceAccount<'info, Mint>>,
     #[account(
-        mut,
-        token::mint = mint,
-        token::authority = payer,
-    )]
-    pub payer_vault: Box<InterfaceAccount<'info, TokenAccount>>,
-    #[account(
         seeds = [
             FAUCET_AUTHORITY_MANAGER_SEED.as_bytes(),
         ],
@@ -72,18 +51,16 @@ pub struct InitializeFaucetClaim<'info> {
     /// CHECK: faucet vault authority
     #[account(
         seeds = [
-            FAUCET_AUTHORITY.as_bytes(),
+            FAUCET_AUTHORITY_SEED.as_bytes(),
         ],
-        bump,
+        bump = authority_manager.authority_bump,
     )]
     pub authority: UncheckedAccount<'info>,
     #[account(
-        init_if_needed,
-        payer = payer,
         token::mint = mint,
         token::authority = authority,
         token::token_program = token_program,
-        seeds = [FAUCET_VAULT.as_bytes(), faucet_claim.key().as_ref(), mint.key().as_ref()],
+        seeds = [FAUCET_VAULT_SEED.as_bytes(), mint.key().as_ref()],
         bump,
     )]
     pub faucet_vault: Box<InterfaceAccount<'info, TokenAccount>>,
@@ -126,7 +103,7 @@ pub fn withdraw_expired_faucet_claim(ctx: Context<WithdrawExpiredFaucetClaim>) -
     };
 
     let seeds = [
-        FAUCET_AUTHORITY.as_bytes(),
+        FAUCET_AUTHORITY_SEED.as_bytes(),
         &[ctx.accounts.authority_manager.authority_bump],
     ];
     let signer_seeds = &[seeds.as_slice()];
@@ -156,7 +133,7 @@ pub struct WithdrawExpiredFaucetClaim<'info> {
         mut,
         token::mint = mint,
         token::authority = payer,
-        token::token_program = token_program, 
+        token::token_program = token_program,
     )]
     pub payer_vault: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(
@@ -177,7 +154,7 @@ pub struct WithdrawExpiredFaucetClaim<'info> {
     /// CHECK: faucet vault authority
     #[account(
         seeds = [
-            FAUCET_AUTHORITY.as_bytes(),
+            FAUCET_AUTHORITY_SEED.as_bytes(),
         ],
         bump = authority_manager.authority_bump,
     )]

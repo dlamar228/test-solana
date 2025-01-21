@@ -7,7 +7,7 @@ pub mod utils;
 
 use instructions::*;
 
-declare_id!("Bw4JFo3Ajs1b8JvTvo1ZaZqT6r3S7rpjkiRTzxMt3oty");
+declare_id!("HQdHG8NnJdcfb5MTRZvq1SaaFsBcjQ32aDZh1eRnrdwZ");
 
 #[program]
 pub mod faucet {
@@ -30,11 +30,12 @@ pub mod faucet {
         instructions::set_admin(ctx, index, admin)
     }
 
-    pub fn initialize_faucet_claim(
-        ctx: Context<InitializeFaucetClaim>,
-        total_faucet_amount: u64,
-    ) -> Result<()> {
-        instructions::initialize_faucet_claim(ctx, total_faucet_amount)
+    pub fn initialize_faucet_vault(ctx: Context<InitializeFaucetVault>) -> Result<()> {
+        instructions::initialize_faucet_vault(ctx)
+    }
+
+    pub fn initialize_faucet_claim(ctx: Context<InitializeFaucetClaim>) -> Result<()> {
+        instructions::initialize_faucet_claim(ctx)
     }
 
     pub fn destroy_faucet_claim(ctx: Context<DestroyFaucetClaim>) -> Result<()> {

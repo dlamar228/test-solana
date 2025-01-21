@@ -1,6 +1,9 @@
 pub mod authority_manager;
 pub use authority_manager::*;
 
+pub mod faucet_vault;
+pub use faucet_vault::*;
+
 pub mod faucet_claim;
 pub use faucet_claim::*;
 

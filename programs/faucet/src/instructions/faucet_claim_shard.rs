@@ -98,7 +98,7 @@ pub fn claim(ctx: Context<Claim>, proofs: Vec<[u8; 32]>, index: u16, amount: u64
         decimals: ctx.accounts.mint.decimals,
     };
     let seeds = [
-        FAUCET_AUTHORITY.as_bytes(),
+        FAUCET_AUTHORITY_SEED.as_bytes(),
         &[ctx.accounts.authority_manager.authority_bump],
     ];
     let signer_seeds = &[seeds.as_slice()];
@@ -159,13 +159,12 @@ pub struct Claim<'info> {
     /// CHECK: faucet vault authority
     #[account(
         seeds = [
-            FAUCET_AUTHORITY.as_bytes(),
+            FAUCET_AUTHORITY_SEED.as_bytes(),
         ],
         bump = authority_manager.authority_bump,
     )]
     pub authority: UncheckedAccount<'info>,
-    #[
-account(
+    #[account(
         mut,
         token::mint = mint,
         token::authority = authority,

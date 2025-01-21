@@ -27,7 +27,7 @@ pub struct InitializeAuthorityManager<'info> {
     /// CHECK: faucet vault authority
     #[account(
         seeds = [
-            FAUCET_AUTHORITY.as_bytes(),
+            FAUCET_AUTHORITY_SEED.as_bytes(),
         ],
         bump,
     )]
