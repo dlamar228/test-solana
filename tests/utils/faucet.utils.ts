@@ -7,16 +7,11 @@ import {
   ConfirmOptions,
   TransactionSignature,
 } from "@solana/web3.js";
-import { TokenVault } from "./token.utils";
+import { Mint, TokenVault } from "./token.utils";
 import { u16ToBytes } from "./utils";
 
 import MerkleTree from "merkletreejs";
 import { keccak_256 } from "@noble/hashes/sha3";
-
-export interface InitializeFaucetClaimArgs {
-  totalFaucetAmount: BN;
-  payerVault: TokenVault;
-}
 
 export interface FaucetClaimAccounts {
   authority: PublicKey;
@@ -64,7 +59,7 @@ export class FaucetUtils {
     this.confirmOptions = confirmOptions;
     this.pdaGetter = new FaucetPda(program.programId);
   }
-  async initializeFaucetAuthorityManager(signer: Signer) {
+  async initializeAuthorityManager(signer: Signer) {
     let [authority] = this.pdaGetter.getAuthorityAddress();
     let [authorityManager] = this.pdaGetter.getAuthorityManagerAddress();
 
@@ -83,31 +78,70 @@ export class FaucetUtils {
 
     return authorityManager;
   }
+  async AddAdmin(signer: Signer, index: BN, admin: PublicKey) {
+    let [authorityManager] = this.pdaGetter.getAuthorityManagerAddress();
+
+    await this.program.methods
+      .setAdmin(index, admin)
+      .accounts({
+        payer: signer.publicKey,
+        authorityManager,
+      })
+      .rpc();
+
+    return authorityManager;
+  }
+  async removeAdmin(signer: Signer, index: BN) {
+    let [authorityManager] = this.pdaGetter.getAuthorityManagerAddress();
+
+    await this.program.methods
+      .removeAdmin(index)
+      .accounts({
+        payer: signer.publicKey,
+        authorityManager,
+      })
+      .rpc();
+
+    return authorityManager;
+  }
+  async initializeFaucetVault(signer: Signer, mint: Mint) {
+    let [authority] = this.pdaGetter.getAuthorityAddress();
+    let [authorityManager] = this.pdaGetter.getAuthorityManagerAddress();
+    let [faucetVault] = this.pdaGetter.getFaucetVaultAddress(mint.address);
+
+    await this.program.methods
+      .initializeFaucetVault()
+      .accounts({
+        payer: signer.publicKey,
+        authorityManager,
+        authority,
+        mint: mint.address,
+        faucetVault,
+        tokenProgram: mint.program,
+      })
+      .rpc();
+
+    return faucetVault;
+  }
   async initializeFaucetClaim(
     signer: Signer,
-    args: InitializeFaucetClaimArgs
+    mint: Mint
   ): Promise<FaucetClaimAccounts> {
     let [authority] = this.pdaGetter.getAuthorityAddress();
     let [authorityManager] = this.pdaGetter.getAuthorityManagerAddress();
-    let [faucetClaim] = this.pdaGetter.getFaucetClaimAddress(
-      args.payerVault.mint.address
-    );
-    let [faucetVault] = this.pdaGetter.getFaucetVaultAddress(
-      faucetClaim,
-      args.payerVault.mint.address
-    );
+    let [faucetClaim] = this.pdaGetter.getFaucetClaimAddress(mint.address);
+    let [faucetVault] = this.pdaGetter.getFaucetVaultAddress(mint.address);
 
     await this.program.methods
-      .initializeFaucetClaim(args.totalFaucetAmount)
+      .initializeFaucetClaim()
       .accounts({
         payer: signer.publicKey,
-        payerVault: args.payerVault.address,
         authorityManager,
         authority,
         faucetClaim,
-        mint: args.payerVault.mint.address,
+        mint: mint.address,
         faucetVault,
-        tokenProgram: args.payerVault.mint.program,
+        tokenProgram: mint.program,
       })
       .rpc();
 
@@ -117,7 +151,7 @@ export class FaucetUtils {
       faucetClaim,
       faucetVault: {
         address: faucetVault,
-        mint: args.payerVault.mint,
+        mint: mint,
       },
       shards: [],
     };
@@ -232,14 +266,12 @@ export class FaucetUtils {
 
     return state !== null;
   }
-  async geAuthorityManagerAdmins(
-    authorityManager: PublicKey
-  ): Promise<PublicKey[]> {
+  async geAuthorityManager(authorityManager: PublicKey) {
     let state = await this.program.account.authorityManager.fetchNullable(
       authorityManager
     );
 
-    return state.admins;
+    return state;
   }
   async getShardIndex(faucetClaim: PublicKey): Promise<number> {
     let state = await this.program.account.faucetClaim.fetchNullable(
@@ -305,9 +337,9 @@ export class FaucetPda {
       this.programId
     );
   }
-  getFaucetVaultAddress(faucetClaim: PublicKey, mint: PublicKey) {
+  getFaucetVaultAddress(mint: PublicKey) {
     return PublicKey.findProgramAddressSync(
-      [this.seeds.faucetVault, faucetClaim.toBuffer(), mint.toBuffer()],
+      [this.seeds.faucetVault, mint.toBuffer()],
       this.programId
     );
   }

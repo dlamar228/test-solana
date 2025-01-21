@@ -5,12 +5,13 @@ import {
   DexAccounts,
   DexCreationArgs,
   DexUtils,
-  nextIndex,
   SwapBaseInputArgs,
   SwapBaseOutputArgs,
 } from "./dex.utils";
 import { SwapBaseResult, SwapCalculator } from "./curve";
 import { sleep } from "./utils";
+import { FaucetUtils } from "./faucet.utils";
+import { LauncherUtils } from "./launcher.utils";
 
 export interface SetupInputSwap {
   mints: MintPair;
@@ -19,6 +20,8 @@ export interface SetupInputSwap {
   swapBaseInputArgs: SwapBaseInputArgs;
   swapInputExpected: SwapBaseResult;
 }
+
+interface DexSetup {}
 
 export interface SetupOutputSwap {
   mints: MintPair;
@@ -30,6 +33,8 @@ export interface SetupOutputSwap {
 
 export class SetupSwapTest {
   tokenUtils: TokenUtils;
+  faucetUtils: FaucetUtils;
+  launcherUtils: LauncherUtils;
   dexUtils: DexUtils;
   zeroToOne: boolean;
   initAmount0: BN;
@@ -40,9 +45,16 @@ export class SetupSwapTest {
   swapFeeRate: BN;
   launchFeeRate: BN;
 
-  constructor(tokenUtils: TokenUtils, dexUtils: DexUtils) {
+  constructor(
+    tokenUtils: TokenUtils,
+    dexUtils: DexUtils,
+    faucetUtils: FaucetUtils,
+    launcherUtils: LauncherUtils
+  ) {
     this.tokenUtils = tokenUtils;
     this.dexUtils = dexUtils;
+    this.faucetUtils = faucetUtils;
+    this.launcherUtils = launcherUtils;
     this.zeroToOne = true;
     this.initAmount0 = new BN(3000);
     this.initAmount1 = new BN(6000);
@@ -53,42 +65,34 @@ export class SetupSwapTest {
     this.launchFeeRate = new BN(10_000);
   }
 
-  async setupDex(
-    signer: Signer,
-    mints: MintPair
-  ): Promise<[DexAccounts, DexCreationArgs]> {
-    await this.dexUtils.initializeDexProtocol(signer);
-
-    let dexConfigArgs = {
-      index: nextIndex(),
-      admin: signer.publicKey,
-    };
-    let dexConfig = await this.dexUtils.initializeDexConfig(
+  async setupDex(signer: Signer): Promise<[DexAccounts, DexCreationArgs]> {
+    let tokenVault = await this.tokenUtils.initializeSplMint(
       signer,
-      dexConfigArgs
+      100_000_000_000
     );
 
-    let dexCreationArgs = {
-      config: dexConfig,
-      initAmount0: this.initAmount0,
-      initAmount1: this.initAmount1,
-      vaultForReserveBound: this.vaultForReserveBound,
-      reserveBoundGe: this.reserveBoundGe,
-      reserveBound: this.reserveBound,
-      openTime: new BN(0),
-      mint0: mints.mint0,
-      mint1: mints.mint1,
-      signerAta0: mints.ata0,
-      signerAta1: mints.ata1,
-      swapFeeRate: this.swapFeeRate,
-      launchFeeRate: this.launchFeeRate,
-    };
-    let dexAccounts = await this.dexUtils.initializeDex(
-      signer,
-      dexCreationArgs
-    );
+    const [faucetAuthority] = this.faucetUtils.pdaGetter.getAuthorityAddress();
+    const [cpiAuthority] = this.launcherUtils.pdaGetter.getAuthorityAddress();
 
-    await sleep(1000);
+    await this.launcherUtils.initializeAuthorityManager(
+      signer,
+      faucetAuthority
+    );
+    await this.launcherUtils.initializeConfig(signer);
+    await this.faucetUtils.initializeAuthorityManager(signer);
+    await this.dexUtils.initializeAuthorityManager(signer, cpiAuthority);
+    await this.dexUtils.initializeConfig(signer);
+
+    let dex_mint = await this.launcherUtils.createMint(
+      signer,
+      "TEST",
+      "TST",
+      "https://www.google.com"
+    );
+    let fuacetVault = await this.faucetUtils.initializeFaucetVault(
+      signer,
+      dex_mint
+    );
 
     return [dexAccounts, dexCreationArgs];
   }

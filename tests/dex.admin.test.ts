@@ -1,206 +1,97 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program, BN } from "@coral-xyz/anchor";
 import { Dex } from "../target/types/dex";
-import { Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
-import { DexUtils, TokenUtils, nextIndex, sleep } from "./utils";
+import { Launcher } from "../target/types/launcher";
+import { Keypair } from "@solana/web3.js";
+import { DexUtils } from "./utils";
 import { expect } from "chai";
+import { LauncherUtils } from "./utils/launcher.utils";
 
 describe("dex.admin.test", () => {
   anchor.setProvider(anchor.AnchorProvider.env());
   const signer = anchor.Wallet.local().payer;
   const dexProgram = anchor.workspace.Dex as Program<Dex>;
+  const launcherProgram = anchor.workspace.Launcher as Program<Launcher>;
   const confirmOptions = {
     skipPreflight: true,
   };
   const dexUtils = new DexUtils(dexProgram, confirmOptions);
-  const tokenUtils = new TokenUtils(
-    anchor.getProvider().connection,
-    confirmOptions
-  );
+  const launcherUtils = new LauncherUtils(launcherProgram, confirmOptions);
+  const [cpiAuthority] = launcherUtils.pdaGetter.getAuthorityAddress();
 
-  it("Update admin", async () => {
-    let { mint0, mint1, ata0, ata1 } = await tokenUtils.initializeSplMintPair(
-      signer,
-      100_000_000,
-      100_000_000
-    );
-
-    await dexUtils.initializeDexProtocol(signer);
-
-    let dexConfigArgs = {
-      index: nextIndex(),
-      admin: signer.publicKey,
-    };
-
-    let dexConfig = await dexUtils.initializeDexConfig(signer, dexConfigArgs);
-
-    let dexArgs = {
-      config: dexConfig,
-      initAmount0: new BN(2000),
-      initAmount1: new BN(4555),
-      vaultForReserveBound: false,
-      reserveBoundGe: true,
-      reserveBound: new BN(3000),
-      openTime: new BN(0),
-      mint0,
-      mint1,
-      signerAta0: ata0,
-      signerAta1: ata1,
-      swapFeeRate: new BN(0),
-      launchFeeRate: new BN(0),
-    };
-
-    let dexAccounts = await dexUtils.initializeDex(signer, dexArgs);
-    await sleep(1000);
-
-    let new_admin = Keypair.generate().publicKey;
-    await dexUtils.updateDexAdmin(signer, dexAccounts.config, new_admin);
-    await sleep(1000);
-
-    let actual = (await dexUtils.getConfigState(dexAccounts.config)).admin;
-    expect(actual.toString(), "Admin mismatch!").equal(new_admin.toString());
+  it("Should update admin", async () => {
+    await dexUtils.initializeAuthorityManager(signer, cpiAuthority);
+    await dexUtils.updateAuthorityManagerAdmin(signer, signer.publicKey);
   });
 
-  it("Update dex creation", async () => {
-    let { mint0, mint1, ata0, ata1 } = await tokenUtils.initializeSplMintPair(
-      signer,
-      100_000_000,
-      100_000_000
-    );
+  it("Should update swap fee", async () => {
+    await dexUtils.initializeAuthorityManager(signer, cpiAuthority);
+    let dexConfig = await dexUtils.initializeConfig(signer);
 
-    await dexUtils.initializeDexProtocol(signer);
+    let newSwapFeeRate = new BN(12_000);
+    await dexUtils.updateSwapFeeRate(signer, newSwapFeeRate);
 
-    let dexConfigArgs = {
-      index: nextIndex(),
-      admin: signer.publicKey,
-    };
-
-    let dexConfig = await dexUtils.initializeDexConfig(signer, dexConfigArgs);
-
-    let dexArgs = {
-      config: dexConfig,
-      initAmount0: new BN(2000),
-      initAmount1: new BN(4555),
-      vaultForReserveBound: false,
-      reserveBoundGe: true,
-      reserveBound: new BN(3000),
-      openTime: new BN(0),
-      mint0,
-      mint1,
-      signerAta0: ata0,
-      signerAta1: ata1,
-      swapFeeRate: new BN(0),
-      launchFeeRate: new BN(0),
-    };
-
-    let dexAccounts = await dexUtils.initializeDex(signer, dexArgs);
-    await sleep(1000);
-
-    await dexUtils.updateConfigCreateDex(signer, dexAccounts.config, false);
-    await sleep(1000);
-
-    let actual = (await dexUtils.getConfigState(dexAccounts.config))
-      .disableCreateDex;
-    expect(actual, "Balance mismatch!").equal(false);
-  });
-
-  it("Update swap fee", async () => {
-    let { mint0, mint1, ata0, ata1 } = await tokenUtils.initializeSplMintPair(
-      signer,
-      100_000_000,
-      100_000_000
-    );
-
-    await dexUtils.initializeDexProtocol(signer);
-
-    let dexConfigArgs = {
-      index: nextIndex(),
-      admin: signer.publicKey,
-    };
-
-    let dexConfig = await dexUtils.initializeDexConfig(signer, dexConfigArgs);
-
-    let dexArgs = {
-      config: dexConfig,
-      initAmount0: new BN(2000),
-      initAmount1: new BN(4555),
-      vaultForReserveBound: false,
-      reserveBoundGe: true,
-      reserveBound: new BN(3000),
-      openTime: new BN(0),
-      mint0,
-      mint1,
-      signerAta0: ata0,
-      signerAta1: ata1,
-      swapFeeRate: new BN(1),
-      launchFeeRate: new BN(0),
-    };
-
-    let dexAccounts = await dexUtils.initializeDex(signer, dexArgs);
-    await sleep(1000);
-
-    let newFeeRate = new BN(10_000);
-    await dexUtils.updateDexSwapFeeRate(
-      signer,
-      dexAccounts.config,
-      dexAccounts.state,
-      newFeeRate
-    );
-    await sleep(1000);
-
-    let actual = (await dexUtils.getDexState(dexAccounts.state)).swapFeeRate;
+    let actual = (await dexUtils.getConfigState(dexConfig)).swapFeeRate;
     expect(actual.toNumber(), "Swap fee rate mismatch!").equal(
-      newFeeRate.toNumber()
+      newSwapFeeRate.toNumber()
     );
   });
 
-  it("Update launch fee", async () => {
-    let { mint0, mint1, ata0, ata1 } = await tokenUtils.initializeSplMintPair(
-      signer,
-      100_000_000,
-      100_000_000
-    );
+  it("Should update launch fee", async () => {
+    await dexUtils.initializeAuthorityManager(signer, cpiAuthority);
+    let dexConfig = await dexUtils.initializeConfig(signer);
 
-    await dexUtils.initializeDexProtocol(signer);
+    let newLaunchFeeRate = new BN(12_000);
+    await dexUtils.updateLaunchFeeRate(signer, newLaunchFeeRate);
 
-    let dexConfigArgs = {
-      index: nextIndex(),
-      admin: signer.publicKey,
-    };
-
-    let dexConfig = await dexUtils.initializeDexConfig(signer, dexConfigArgs);
-
-    let dexArgs = {
-      config: dexConfig,
-      initAmount0: new BN(2000),
-      initAmount1: new BN(4555),
-      vaultForReserveBound: false,
-      reserveBoundGe: true,
-      reserveBound: new BN(3000),
-      openTime: new BN(0),
-      mint0,
-      mint1,
-      signerAta0: ata0,
-      signerAta1: ata1,
-      swapFeeRate: new BN(1),
-      launchFeeRate: new BN(1),
-    };
-
-    let dexAccounts = await dexUtils.initializeDex(signer, dexArgs);
-    await sleep(1000);
-
-    let newLaunchRate = new BN(10_000);
-    await dexUtils.updateDexLaunchFeeRate(
-      signer,
-      dexAccounts.config,
-      dexAccounts.state,
-      newLaunchRate
-    );
-    await sleep(1000);
-
-    let actual = (await dexUtils.getDexState(dexAccounts.state)).launchFeeRate;
+    let actual = (await dexUtils.getConfigState(dexConfig)).launchFeeRate;
     expect(actual.toNumber(), "Launch fee rate mismatch!").equal(
-      newLaunchRate.toNumber()
+      newLaunchFeeRate.toNumber()
     );
+  });
+
+  it("Should update initial reserve", async () => {
+    await dexUtils.initializeAuthorityManager(signer, cpiAuthority);
+    let dexConfig = await dexUtils.initializeConfig(signer);
+
+    let newInitialReserve = new BN(3 * 10 ** 9);
+    await dexUtils.updateInitialReserve(signer, newInitialReserve);
+
+    let actual = (await dexUtils.getConfigState(dexConfig)).initialReserve;
+    expect(actual.toNumber(), "Initial reserve mismatch!").equal(
+      newInitialReserve.toNumber()
+    );
+  });
+
+  it("Should update vault reserve bound", async () => {
+    await dexUtils.initializeAuthorityManager(signer, cpiAuthority);
+    let dexConfig = await dexUtils.initializeConfig(signer);
+
+    let newVaultReserveBound = new BN(205_000_001).mul(new BN(10 ** 9));
+    await dexUtils.updateVaultReserveBound(signer, newVaultReserveBound);
+    let actual = (await dexUtils.getConfigState(dexConfig)).vaultReserveBound;
+
+    expect(actual.toString(), "Vault reserve bound mismatch!").to.deep.equal(
+      newVaultReserveBound.toString()
+    );
+  });
+
+  it("Should update cpi authority", async () => {
+    let authorityManager = await dexUtils.initializeAuthorityManager(
+      signer,
+      cpiAuthority
+    );
+    await dexUtils.initializeConfig(signer);
+
+    let newCpiAuthority = new Keypair().publicKey;
+    await dexUtils.updateAuthorityManagerCpiAuthority(signer, newCpiAuthority);
+    let actual = (await dexUtils.getAuthorityManagerState(authorityManager))
+      .cpiAuthority;
+
+    expect(actual.toString(), "Cpi authority mismatch!").to.deep.equal(
+      newCpiAuthority.toString()
+    );
+
+    await dexUtils.updateAuthorityManagerCpiAuthority(signer, cpiAuthority);
   });
 });

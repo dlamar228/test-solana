@@ -30,7 +30,7 @@ describe("dex.initialize.test", () => {
       admin: signer.publicKey,
     };
 
-    let dexConfig = await dexUtils.initializeDexConfig(signer, dexConfigArgs);
+    let dexConfig = await dexUtils.initializeConfig(signer, dexConfigArgs);
 
     let dexArgs = {
       config: dexConfig,
@@ -65,7 +65,7 @@ describe("dex.initialize.test", () => {
       admin: signer.publicKey,
     };
 
-    let dexConfig = await dexUtils.initializeDexConfig(signer, dexConfigArgs);
+    let dexConfig = await dexUtils.initializeConfig(signer, dexConfigArgs);
 
     let dexArgs = {
       config: dexConfig,

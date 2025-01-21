@@ -85,106 +85,46 @@ export class DexUtils {
     this.confirmOptions = confirmOptions;
     this.pdaGetter = new DexPda(program.programId);
   }
-  async initializeDexProtocol(signer: Signer) {
-    let [protocol] = this.pdaGetter.getProtocolAddress();
+  async initializeAuthorityManager(signer: Signer, cpi_authority: PublicKey) {
+    let [authority] = this.pdaGetter.getAuthorityAddress();
+    let [authorityManager] = this.pdaGetter.getAuthorityManagerAddress();
 
-    let protocolState = await this.getProtocolState(protocol);
-    if (protocolState != null) {
-      return protocol;
+    let authorityManagerState = await this.getAuthorityManagerState(
+      authorityManager
+    );
+    if (authorityManagerState != null) {
+      return authorityManager;
     }
 
     await this.program.methods
-      .initializeProtocol()
+      .initializeAuthorityManager(cpi_authority)
       .accounts({
-        signer: signer.publicKey,
-        protocol,
-        systemProgram: SYSTEM_PROGRAM_ID,
+        payer: signer.publicKey,
+        authorityManager,
+        authority,
       })
-      .preInstructions([
-        ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
-      ])
       .rpc();
-    return protocol;
+    return authorityManager;
   }
-  async initializeDexConfig(protocolAdmin: Signer, args: ConfigCreationArgs) {
-    let [protocol] = this.pdaGetter.getProtocolAddress();
-    let [config] = this.pdaGetter.getConfigStateAddress(args.index);
-    await this.program.methods
-      .initializeConfig(args.admin, args.index)
-      .accounts({
-        signer: protocolAdmin.publicKey,
-        protocol,
-        config,
-        systemProgram: SYSTEM_PROGRAM_ID,
-      })
-      .preInstructions([
-        ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
-      ])
-      .rpc();
-    return config;
-  }
-  async initializeDex(
-    signer: Signer,
-    args: DexCreationArgs
-  ): Promise<DexAccounts> {
-    let [auth] = this.pdaGetter.getAuthorityAddress();
-    let [state] = this.pdaGetter.getDexStateAddress(
-      args.config,
-      args.mint0.address,
-      args.mint1.address
-    );
-    let [vault0] = this.pdaGetter.getDexVaultAddress(state, args.mint0.address);
-    let [vault1] = this.pdaGetter.getDexVaultAddress(state, args.mint1.address);
-    let [protocol] = this.pdaGetter.getProtocolAddress();
+  async initializeConfig(payer: Signer) {
+    let [authorityManager] = this.pdaGetter.getAuthorityManagerAddress();
+    let [config] = this.pdaGetter.getConfigStateAddress();
+
+    let configState = await this.getConfigState(config);
+    if (configState != null) {
+      return config;
+    }
 
     await this.program.methods
-      .initializeDex(
-        args.initAmount0,
-        args.initAmount1,
-        args.openTime,
-        args.vaultForReserveBound,
-        args.reserveBoundGe,
-        args.reserveBound,
-        args.swapFeeRate,
-        args.launchFeeRate
-      )
+      .initializeConfig()
       .accounts({
-        creator: signer.publicKey,
-        config: args.config,
-        protocol,
-        authority: auth,
-        dexState: state,
-        token0Mint: args.mint0.address,
-        token1Mint: args.mint1.address,
-        creatorToken0: args.signerAta0,
-        creatorToken1: args.signerAta1,
-        token0Vault: vault0,
-        token1Vault: vault1,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        token0Program: args.mint0.program,
-        token1Program: args.mint1.program,
-        associatedTokenProgram: ASSOCIATED_PROGRAM_ID,
-        systemProgram: SystemProgram.programId,
-        rent: SYSVAR_RENT_PUBKEY,
+        payer: payer.publicKey,
+        authorityManager,
+        config,
       })
-      .preInstructions([
-        ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
-      ])
       .rpc();
-    return {
-      auth,
-      config: args.config,
-      state,
-      vault0: {
-        mint: args.mint0,
-        address: vault0,
-      },
-      vault1: {
-        mint: args.mint1,
-        address: vault1,
-      },
-      protocol,
-    };
+
+    return config;
   }
   async swapBaseInput(
     signer: Signer,
@@ -200,16 +140,15 @@ export class DexUtils {
         inputTokenProgram: args.inputTokenProgram,
         outputTokenProgram: args.outputTokenProgram,
         // dex accounts
-        authority: args.dexAccounts.auth,
+        authority: args.dexAccounts.authority,
         dexState: args.dexAccounts.state,
         inputVault: args.inputVault,
         outputVault: args.outputVault,
         inputTokenMint: args.inputToken,
         outputTokenMint: args.outputToken,
+        config: args.dexAccounts.config,
+        authorityManager: args.dexAccounts.authorityManager,
       })
-      .preInstructions([
-        ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
-      ])
       .rpc(this.confirmOptions);
   }
   async swapBaseOutput(
@@ -226,12 +165,14 @@ export class DexUtils {
         inputTokenProgram: args.inputTokenProgram,
         outputTokenProgram: args.outputTokenProgram,
         // dex accounts
-        authority: args.dexAccounts.auth,
+        authority: args.dexAccounts.authority,
         dexState: args.dexAccounts.state,
         inputVault: args.inputVault,
         outputVault: args.outputVault,
         inputTokenMint: args.inputToken,
         outputTokenMint: args.outputToken,
+        config: args.dexAccounts.config,
+        authorityManager: args.dexAccounts.authorityManager,
       })
       .preInstructions([
         ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
@@ -260,7 +201,7 @@ export class DexUtils {
     let [lpMint] = args.raydiumPdaGetter.getLpMintAddress(state);
     let [creatorLpToken] = PublicKey.findProgramAddressSync(
       [
-        args.dexAccounts.auth.toBuffer(),
+        args.dexAccounts.authority.toBuffer(),
         TOKEN_PROGRAM_ID.toBuffer(),
         lpMint.toBuffer(),
       ],
@@ -270,12 +211,12 @@ export class DexUtils {
     return await this.program.methods
       .launch(args.sharedLamports)
       .accounts({
-        dexAuthority: args.dexAccounts.auth,
+        dexAuthority: args.dexAccounts.authority,
         dexConfig: args.dexAccounts.config,
         dexState: args.dexAccounts.state,
         cpSwapProgram: args.cpSwapProgram,
-        admin: signer.publicKey,
-        protocol: args.dexAccounts.protocol,
+        payer: signer.publicKey,
+        dexAuthorityManager: args.dexAccounts.authorityManager,
         ammConfig: args.raydiumAmmConfig,
         authority: auth,
         poolState: state,
@@ -301,102 +242,96 @@ export class DexUtils {
       ])
       .rpc(this.confirmOptions);
   }
-  async updateDexAdmin(
-    signer: Signer,
-    config: PublicKey,
-    new_admin: PublicKey
-  ) {
-    let [protocol] = this.pdaGetter.getProtocolAddress();
+  async updateAuthorityManagerAdmin(signer: Signer, new_admin: PublicKey) {
+    let [authorityManager] = this.pdaGetter.getAuthorityManagerAddress();
     return await this.program.methods
-      .updateConfigAdmin(new_admin)
+      .updateAuthorityManagerAdmin(new_admin)
       .accounts({
-        admin: signer.publicKey,
-        config,
-        protocol,
+        payer: signer.publicKey,
+        authorityManager,
       })
-      .preInstructions([
-        ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
-      ])
       .rpc(this.confirmOptions);
   }
-  async updateDexLaunchFeeRate(
+  async updateAuthorityManagerCpiAuthority(
     signer: Signer,
-    config: PublicKey,
-    dexState: PublicKey,
-    newFeeRate: BN
+    cpi_authority: PublicKey
   ) {
-    let [protocol] = this.pdaGetter.getProtocolAddress();
+    let [authorityManager] = this.pdaGetter.getAuthorityManagerAddress();
+    return await this.program.methods
+      .updateAuthorityManagerCpiAuthority(cpi_authority)
+      .accounts({
+        payer: signer.publicKey,
+        authorityManager,
+      })
+      .rpc(this.confirmOptions);
+  }
+  async updateLaunchFeeRate(signer: Signer, newFeeRate: BN) {
+    let [config] = this.pdaGetter.getConfigStateAddress();
+    let [authorityManager] = this.pdaGetter.getAuthorityManagerAddress();
     return await this.program.methods
       .updateLaunchFeeRate(newFeeRate)
       .accounts({
-        admin: signer.publicKey,
+        payer: signer.publicKey,
         config,
-        dexState,
-        protocol,
+        authorityManager,
       })
-      .preInstructions([
-        ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
-      ])
       .rpc(this.confirmOptions);
   }
-  async updateDexSwapFeeRate(
-    signer: Signer,
-    config: PublicKey,
-    dexState: PublicKey,
-    newSwapRate: BN
-  ) {
-    let [protocol] = this.pdaGetter.getProtocolAddress();
+  async updateSwapFeeRate(signer: Signer, newSwapRate: BN) {
+    let [config] = this.pdaGetter.getConfigStateAddress();
+    let [authorityManager] = this.pdaGetter.getAuthorityManagerAddress();
     return await this.program.methods
       .updateSwapFeeRate(newSwapRate)
       .accounts({
-        admin: signer.publicKey,
+        payer: signer.publicKey,
+        authorityManager,
         config,
-        dexState,
-        protocol,
       })
-      .preInstructions([
-        ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
-      ])
+      .rpc(this.confirmOptions);
+  }
+  async updateInitialReserve(signer: Signer, initialReserve: BN) {
+    let [config] = this.pdaGetter.getConfigStateAddress();
+    let [authorityManager] = this.pdaGetter.getAuthorityManagerAddress();
+    return await this.program.methods
+      .updateInitialReserve(initialReserve)
+      .accounts({
+        payer: signer.publicKey,
+        authorityManager,
+        config,
+      })
+      .rpc(this.confirmOptions);
+  }
+  async updateVaultReserveBound(signer: Signer, vaultReserveBound: BN) {
+    let [config] = this.pdaGetter.getConfigStateAddress();
+    let [authorityManager] = this.pdaGetter.getAuthorityManagerAddress();
+    return await this.program.methods
+      .updateVaultReserveBound(vaultReserveBound)
+      .accounts({
+        payer: signer.publicKey,
+        authorityManager,
+        config,
+      })
       .rpc(this.confirmOptions);
   }
   async updateDexReserveBound(
     signer: Signer,
-    config: PublicKey,
     dexState: PublicKey,
     newReserveBound: BN
   ) {
-    let [protocol] = this.pdaGetter.getProtocolAddress();
+    let [authorityManager] = this.pdaGetter.getAuthorityManagerAddress();
     return await this.program.methods
       .updateReserveBound(newReserveBound)
       .accounts({
-        admin: signer.publicKey,
-        config,
+        payer: signer.publicKey,
         dexState,
-        protocol,
+        authorityManager,
       })
       .preInstructions([
         ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
       ])
       .rpc(this.confirmOptions);
   }
-  async updateConfigCreateDex(
-    signer: Signer,
-    config: PublicKey,
-    createDex: boolean
-  ) {
-    let [protocol] = this.pdaGetter.getProtocolAddress();
-    return await this.program.methods
-      .updateCreateDex(createDex)
-      .accounts({
-        admin: signer.publicKey,
-        config,
-        protocol,
-      })
-      .preInstructions([
-        ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
-      ])
-      .rpc(this.confirmOptions);
-  }
+
   async dexIsReadyToLaunch(dexState: PublicKey) {
     return (await this.program.account.dexState.fetchNullable(dexState))
       .isReadyToLaunch;
@@ -405,8 +340,10 @@ export class DexUtils {
     return (await this.program.account.dexState.fetchNullable(dexState))
       .isLaunched;
   }
-  async getProtocolState(protocol: PublicKey) {
-    return await this.program.account.protocolState.fetchNullable(protocol);
+  async getAuthorityManagerState(authorityManager: PublicKey) {
+    return await this.program.account.authorityManager.fetchNullable(
+      authorityManager
+    );
   }
   async getDexState(dexState: PublicKey) {
     return await this.program.account.dexState.fetchNullable(dexState);
@@ -417,12 +354,12 @@ export class DexUtils {
 }
 
 export interface DexAccounts {
-  auth: PublicKey;
+  authority: PublicKey;
+  authorityManager: PublicKey;
   config: PublicKey;
   state: PublicKey;
   vault0: TokenVault;
   vault1: TokenVault;
-  protocol: PublicKey;
 }
 
 export class DexPda {
@@ -433,9 +370,9 @@ export class DexPda {
     this.programId = programId;
     this.seeds = new DexSeeds();
   }
-  getProtocolAddress() {
+  getAuthorityManagerAddress() {
     return PublicKey.findProgramAddressSync(
-      [this.seeds.dexProtocol],
+      [this.seeds.dexAuthorityManager],
       this.programId
     );
   }
@@ -445,15 +382,15 @@ export class DexPda {
       this.programId
     );
   }
-  getConfigStateAddress(index: number) {
+  getConfigStateAddress() {
     return PublicKey.findProgramAddressSync(
-      [this.seeds.dexConfig, u16ToBytes(index)],
+      [this.seeds.dexConfig],
       this.programId
     );
   }
-  getDexStateAddress(amm: PublicKey, mint0: PublicKey, mint1: PublicKey) {
+  getDexStateAddress(mint0: PublicKey, mint1: PublicKey) {
     return PublicKey.findProgramAddressSync(
-      [this.seeds.dexState, amm.toBuffer(), mint0.toBuffer(), mint1.toBuffer()],
+      [this.seeds.dexState, mint0.toBuffer(), mint1.toBuffer()],
       this.programId
     );
   }
@@ -466,15 +403,15 @@ export class DexPda {
 }
 
 export class DexSeeds {
-  dexProtocol: Buffer;
+  dexAuthorityManager: Buffer;
   dexAuthority: Buffer;
   dexConfig: Buffer;
   dexState: Buffer;
   dexVault: Buffer;
 
   constructor() {
-    this.dexProtocol = this.toSeed("dex_protocol");
-    this.dexAuthority = this.toSeed("dex_auth");
+    this.dexAuthorityManager = this.toSeed("dex_authority_manager");
+    this.dexAuthority = this.toSeed("dex_authority");
     this.dexConfig = this.toSeed("dex_config");
     this.dexState = this.toSeed("dex_state");
     this.dexVault = this.toSeed("dex_vault");
