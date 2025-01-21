@@ -8,7 +8,9 @@
         "@raydium-io/raydium-sdk-v2": "^0.1.94-alpha",
         "@solana/spl-token": "^0.4.9",
         "merkletreejs": "^0.4.1",
-        "@noble/hashes": "^1.7.1"
+        "@noble/hashes": "^1.7.1",
+        "@metaplex-foundation/js": "^0.20.1"
+        
     },
     "devDependencies": {
         "@types/bn.js": "^5.1.0",
