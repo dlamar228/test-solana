@@ -15,6 +15,12 @@ pub fn initialize_authority_manager(
     authority_manager.authority_bump = ctx.bumps.authority;
     authority_manager.faucet_authority = faucet_authority;
 
+    emit!(InitializeAuthorityManagerEvent {
+        authority_manager_id: ctx.accounts.authority_manager.key(),
+        admin_id: ctx.accounts.payer.key(),
+        faucet_authority_id: faucet_authority,
+    });
+
     Ok(())
 }
 
@@ -49,7 +55,13 @@ pub fn update_authority_manager_admin(
     require_keys_neq!(new_admin, Pubkey::default());
 
     let authority_manager = &mut ctx.accounts.authority_manager;
+    let old_admin_id = authority_manager.admin;
     authority_manager.admin = new_admin;
+
+    emit!(UpdateAuthorityManagerAdminEvent {
+        old_admin_id,
+        new_admin_id: new_admin,
+    });
 
     Ok(())
 }
@@ -61,7 +73,13 @@ pub fn update_authority_manager_faucet_authority(
     require_keys_neq!(faucet_authority, Pubkey::default());
 
     let authority_manager = &mut ctx.accounts.authority_manager;
+    let old_faucet_authority_id = authority_manager.faucet_authority;
     authority_manager.faucet_authority = faucet_authority;
+
+    emit!(UpdateAuthorityManagerFaucetAuthorityEvent {
+        old_faucet_authority_id,
+        nwe_faucet_authority_id: faucet_authority
+    });
 
     Ok(())
 }
@@ -91,13 +109,21 @@ pub fn withdraw_team_tokens(ctx: Context<WithdrawTeamTokens>) -> Result<()> {
         token_program: ctx.accounts.token_program.to_account_info(),
     };
 
+    let amount = ctx.accounts.team_vault.amount;
     token_utils.transfer_signer(
         ctx.accounts.authority.to_account_info(),
         ctx.accounts.team_vault.to_account_info(),
         ctx.accounts.recipient.to_account_info(),
-        ctx.accounts.team_vault.amount,
+        amount,
         signer_seeds,
     )?;
+
+    emit!(WithdrawTeamTokensEvent {
+        admin_id: ctx.accounts.payer.key(),
+        mint_id: ctx.accounts.mint.key(),
+        recipient_id: ctx.accounts.recipient.key(),
+        amount,
+    });
 
     Ok(())
 }
@@ -106,6 +132,7 @@ pub fn withdraw_team_tokens(ctx: Context<WithdrawTeamTokens>) -> Result<()> {
 pub struct WithdrawTeamTokens<'info> {
     #[account(address = authority_manager.admin @ ErrorCode::InvalidAdmin)]
     pub payer: Signer<'info>,
+    /// CHECK: launcher authority account
     #[account(
         mut,
         seeds = [

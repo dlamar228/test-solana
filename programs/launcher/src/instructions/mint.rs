@@ -62,7 +62,6 @@ pub fn initialize_mint(
 pub struct InitializeMint<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
-
     #[account(
         seeds = [LAUNCHER_AUTHORITY_MANAGER_SEED.as_bytes()],
         bump = authority_manager.bump,
@@ -73,10 +72,9 @@ pub struct InitializeMint<'info> {
     #[account(
         mut,
         seeds = [LAUNCHER_AUTHORITY_SEED.as_bytes()],
-        bump= authority_manager.authority_bump,
+        bump = authority_manager.authority_bump,
     )]
     pub authority: UncheckedAccount<'info>,
-
     #[account(
         init,
         payer = payer,

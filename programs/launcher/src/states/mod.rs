@@ -7,4 +7,7 @@ pub use config::*;
 pub mod constant;
 pub use constant::*;
 
+pub mod events;
+pub use events::*;
+
 use anchor_lang::prelude::*;

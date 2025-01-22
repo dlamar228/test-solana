@@ -1,7 +1,5 @@
-use crate::{
-    states::{AuthorityManager, ConfigState},
-    utils::TokenUtils,
-};
+use crate::states::*;
+use crate::utils::TokenUtils;
 
 use super::*;
 
@@ -78,6 +76,9 @@ pub fn cpi_initialize_dex(ctx: Context<CpiInitializeDex>) -> Result<()> {
         )
     };
 
+    let mint_zero_id = mint_zero.key();
+    let mint_one_id = mint_one.key();
+
     let cpi_accounts = dex::cpi::accounts::InitializeDex {
         cpi_authority: ctx.accounts.authority.to_account_info(),
         payer: ctx.accounts.payer.to_account_info(),
@@ -111,6 +112,14 @@ pub fn cpi_initialize_dex(ctx: Context<CpiInitializeDex>) -> Result<()> {
         vault_for_reserve_bound,
         false,
     )?;
+
+    emit!(InitializeDexEvent {
+        dex_id: ctx.accounts.dex_state.key(),
+        payer_id: ctx.accounts.payer.key(),
+        mint_zero_id,
+        mint_one_id,
+        team_tokens_amount: ctx.accounts.config.team_tokens,
+    });
 
     Ok(())
 }
@@ -250,11 +259,6 @@ pub fn cpi_initialize_dex_with_faucet(ctx: Context<CpiInitializeDexWithFaucet>) 
         signer_seeds,
     )?;
 
-    msg!(
-        "mint_authority > mint {}",
-        ctx.accounts.mint_authority.key() > ctx.accounts.mint.key()
-    );
-
     let vault_for_reserve_bound;
     let (
         payer_vault_zero,
@@ -268,16 +272,12 @@ pub fn cpi_initialize_dex_with_faucet(ctx: Context<CpiInitializeDexWithFaucet>) 
     ) = if ctx.accounts.mint_authority.key() > ctx.accounts.mint.key() {
         vault_for_reserve_bound = true;
         (
-            //
             ctx.accounts.payer_vault.to_account_info(),
             ctx.accounts.payer_vault_authority.to_account_info(),
-            //
             ctx.accounts.mint.to_account_info(),
             ctx.accounts.mint_authority.to_account_info(),
-            //
             ctx.accounts.token_program.to_account_info(),
             ctx.accounts.token_program_authority.to_account_info(),
-            //
             ctx.accounts.dex_vault.to_account_info(),
             ctx.accounts.dex_vault_authority.to_account_info(),
         )
@@ -294,6 +294,9 @@ pub fn cpi_initialize_dex_with_faucet(ctx: Context<CpiInitializeDexWithFaucet>) 
             ctx.accounts.dex_vault.to_account_info(),
         )
     };
+
+    let mint_zero_id = mint_zero.key();
+    let mint_one_id = mint_one.key();
 
     let cpi_accounts = dex::cpi::accounts::InitializeDex {
         cpi_authority: ctx.accounts.authority.to_account_info(),
@@ -328,6 +331,15 @@ pub fn cpi_initialize_dex_with_faucet(ctx: Context<CpiInitializeDexWithFaucet>) 
         vault_for_reserve_bound,
         false,
     )?;
+
+    emit!(InitializeDexWithFaucetEvent {
+        dex_id: ctx.accounts.dex_state.key(),
+        payer_id: ctx.accounts.payer.key(),
+        mint_zero_id,
+        mint_one_id,
+        team_tokens_amount: ctx.accounts.config.team_tokens,
+        faucet_tokens_amount: ctx.accounts.config.faucet_tokens,
+    });
 
     Ok(())
 }
