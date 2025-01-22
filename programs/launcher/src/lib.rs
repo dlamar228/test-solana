@@ -68,4 +68,8 @@ pub mod launcher {
     ) -> Result<()> {
         instructions::initialize_mint(ctx, name, symbol, uri)
     }
+
+    pub fn withdraw_team_tokens(ctx: Context<WithdrawTeamTokens>) -> Result<()> {
+        instructions::withdraw_team_tokens(ctx)
+    }
 }

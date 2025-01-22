@@ -194,11 +194,10 @@ pub fn create_dex<'info>(
     AccountLoad::<DexState>::try_from_unchecked(&crate::id(), dex_account_info)
 }
 
-
 #[derive(Accounts)]
 pub struct InitializeDex<'info> {
     #[account(
-        address = authority_manager.cpi_authority @ ErrorCode::InvalidCpiAuthority, 
+        address = authority_manager.cpi_authority @ ErrorCode::InvalidCpiAuthority,
     )]
     pub cpi_authority: Signer<'info>,
     /// Address paying to create the dex

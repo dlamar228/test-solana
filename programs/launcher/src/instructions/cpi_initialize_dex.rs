@@ -5,17 +5,10 @@ use crate::{
 
 use super::*;
 
-use anchor_lang::solana_program::{
-    program::{invoke, invoke_signed},
-    program_pack::Pack,
-    system_instruction,
-};
-
 use anchor_spl::{
     associated_token::AssociatedToken,
     token::Token,
-    token_2022::spl_token_2022,
-    token_interface::{Mint, Token2022, TokenAccount, TokenInterface},
+    token_interface::{Mint, TokenAccount, TokenInterface},
 };
 
 pub fn cpi_initialize_dex(ctx: Context<CpiInitializeDex>) -> Result<()> {

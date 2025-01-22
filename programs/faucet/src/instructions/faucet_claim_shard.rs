@@ -128,7 +128,7 @@ pub struct Claim<'info> {
         mut,
         token::mint = mint,
         token::authority = payer,
-        token::token_program = token_program, 
+        token::token_program = token_program,
     )]
     pub payer_vault: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(

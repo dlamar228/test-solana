@@ -1,16 +1,5 @@
-use crate::error::ErrorCode;
 use anchor_lang::prelude::*;
-use anchor_spl::{
-    token::Token,
-    token_2022::{
-        self,
-        spl_token_2022::{
-            self,
-            extension::{transfer_fee::TransferFeeConfig, StateWithExtensions},
-        },
-    },
-    token_interface::spl_token_2022::extension::BaseStateWithExtensions,
-};
+use anchor_spl::token_2022;
 
 pub struct TokenUtils<'info> {
     pub token_program: AccountInfo<'info>,
