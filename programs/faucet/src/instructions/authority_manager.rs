@@ -1,11 +1,17 @@
 use super::*;
-use crate::states::authority_manager::AuthorityManager;
+use crate::states::*;
 
 pub fn initialize_authority_manager(ctx: Context<InitializeAuthorityManager>) -> Result<()> {
-    let authority_manager = ctx.accounts.authority_manager.as_mut();
+    let authority_manager_id = ctx.accounts.authority_manager.key();
+    let authority_manager = &mut ctx.accounts.authority_manager;
     authority_manager.bump = ctx.bumps.authority_manager;
     authority_manager.authority_bump = ctx.bumps.authority;
     authority_manager.set(0, ctx.accounts.payer.key());
+
+    emit!(InitializeAuthorityManagerEvent {
+        authority_manager_id,
+        admin_id: ctx.accounts.payer.key(),
+    });
 
     Ok(())
 }
@@ -45,7 +51,13 @@ pub fn remove_admin(ctx: Context<UpdateAuthorityManager>, index: u64) -> Result<
         return err!(FaucetError::LastAdmin);
     }
 
+    let removed_admin_id = authority_manager.admins[index as usize];
     authority_manager.set(index as usize, Pubkey::default());
+
+    emit!(RemoveAuthorityManagerAdminEvent {
+        admin_id: ctx.accounts.payer.key(),
+        removed_admin_id,
+    });
 
     Ok(())
 }
@@ -58,6 +70,11 @@ pub fn set_admin(ctx: Context<UpdateAuthorityManager>, index: u64, admin: Pubkey
     }
 
     authority_manager.set(index as usize, admin);
+
+    emit!(SetAuthorityManagerAdminEvent {
+        admin_id: ctx.accounts.payer.key(),
+        set_admin_id: admin,
+    });
 
     Ok(())
 }

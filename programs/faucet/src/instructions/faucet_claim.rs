@@ -1,5 +1,5 @@
 use super::*;
-use crate::states::{authority_manager::AuthorityManager, events, faucet_claim::FaucetClaim};
+use crate::states::*;
 
 use anchor_spl::{
     associated_token::AssociatedToken,
@@ -24,9 +24,9 @@ pub fn initialize_faucet_claim(ctx: Context<InitializeFaucetClaim>) -> Result<()
     faucet_claim.shards = 0;
     faucet_claim.bump = ctx.bumps.faucet_claim;
 
-    emit!(events::InitializeFaucetClaim {
+    emit!(InitializeFaucetClaimEvent {
         faucet_claim_id: ctx.accounts.faucet_claim.key(),
-        mint: ctx.accounts.mint.key(),
+        mint_id: ctx.accounts.mint.key(),
         total_faucet_amount: faucet_amount
     });
 
@@ -116,9 +116,9 @@ pub fn withdraw_expired_faucet_claim(ctx: Context<WithdrawExpiredFaucetClaim>) -
         signer_seeds,
     )?;
 
-    emit!(events::WithdrawExpiredFaucetClaim {
+    emit!(WithdrawExpiredFaucetClaimEvent {
         faucet_claim_id: ctx.accounts.faucet_claim.key(),
-        mint: ctx.accounts.mint.key(),
+        mint_id: ctx.accounts.mint.key(),
         amount,
     });
 
@@ -170,7 +170,8 @@ pub struct WithdrawExpiredFaucetClaim<'info> {
 }
 
 pub fn destroy_faucet_claim(ctx: Context<DestroyFaucetClaim>) -> Result<()> {
-    emit!(events::DestroyFaucetClaim {
+    emit!(DestroyFaucetClaimEvent {
+        admin_id: ctx.accounts.payer.key(),
         faucet_claim_id: ctx.accounts.faucet_claim.key(),
     });
     Ok(())
