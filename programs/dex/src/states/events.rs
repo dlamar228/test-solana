@@ -2,12 +2,89 @@ use anchor_lang::prelude::*;
 
 #[event]
 #[cfg_attr(feature = "client", derive(Debug))]
-pub struct InitializeDexEvent {
+pub struct InitializeAuthorityManagerEvent {
+    #[index]
+    pub authority_manager_id: Pubkey,
+    #[index]
+    pub admin_id: Pubkey,
+    pub cpi_authority_id: Pubkey,
+}
+
+#[event]
+#[cfg_attr(feature = "client", derive(Debug))]
+pub struct UpdateAuthorityManagerAdminEvent {
+    #[index]
+    pub old_admin_id: Pubkey,
+    #[index]
+    pub new_admin_id: Pubkey,
+}
+
+#[event]
+#[cfg_attr(feature = "client", derive(Debug))]
+pub struct UpdateAuthorityManagerCpiAuthorityEvent {
+    #[index]
+    pub old_cpi_authority_id: Pubkey,
+    #[index]
+    pub new_cpi_authority_id: Pubkey,
+}
+
+#[event]
+#[cfg_attr(feature = "client", derive(Debug))]
+pub struct InitializeConfigEvent {
+    #[index]
+    pub admin_id: Pubkey,
     #[index]
     pub config_id: Pubkey,
+    pub swap_fee_rate: u64,
+    pub launch_fee_rate: u64,
+    pub initial_reserve: u64,
+    pub vault_reserve_bound: u64,
+}
+
+#[event]
+#[cfg_attr(feature = "client", derive(Debug))]
+pub struct UpdateConfigSwapFeeRateEvent {
+    #[index]
+    pub admin_id: Pubkey,
+    pub old_swap_fee_rate: u64,
+    pub new_swap_fee_rate: u64,
+}
+
+#[event]
+#[cfg_attr(feature = "client", derive(Debug))]
+pub struct UpdateConfigLaunchFeeRateEvent {
+    #[index]
+    pub admin_id: Pubkey,
+    pub old_launch_fee_rate: u64,
+    pub new_launch_fee_rate: u64,
+}
+
+#[event]
+#[cfg_attr(feature = "client", derive(Debug))]
+pub struct UpdateConfigInitialReserveEvent {
+    #[index]
+    pub admin_id: Pubkey,
+    pub old_initial_reserve: u64,
+    pub new_initial_reserve: u64,
+}
+
+#[event]
+#[cfg_attr(feature = "client", derive(Debug))]
+pub struct UpdateConfigVaultReserveBoundEvent {
+    #[index]
+    pub admin_id: Pubkey,
+    pub old_vault_reserve_bound: u64,
+    pub new_vault_reserve_bound: u64,
+}
+
+#[event]
+#[cfg_attr(feature = "client", derive(Debug))]
+pub struct InitializeDexEvent {
     #[index]
     pub dex_id: Pubkey,
-    pub signer: Pubkey,
+    pub payer_id: Pubkey,
+    pub mint_zero: Pubkey,
+    pub mint_one: Pubkey,
 }
 
 /// Emitted when swap
@@ -44,6 +121,8 @@ pub struct DexLaunchedEvent {
     pub dex_id: Pubkey,
     #[index]
     pub raydium_id: Pubkey,
+    #[index]
+    pub admin_id: Pubkey,
     pub amount_0: u64,
     pub amount_1: u64,
     pub launch_fees_0: u64,
@@ -55,62 +134,11 @@ pub struct DexLaunchedEvent {
 
 #[event]
 #[cfg_attr(feature = "client", derive(Debug))]
-pub struct UpdateDexLaunchFeeRateEvent {
+pub struct WithdrawDexFeeEvent {
+    #[index]
+    pub admin_id: Pubkey,
     #[index]
     pub dex_id: Pubkey,
-    pub old: u64,
-    pub new: u64,
-}
-
-#[event]
-#[cfg_attr(feature = "client", derive(Debug))]
-pub struct UpdateDexSwapFeeRateEvent {
-    #[index]
-    pub dex_id: Pubkey,
-    pub old: u64,
-    pub new: u64,
-}
-
-#[event]
-#[cfg_attr(feature = "client", derive(Debug))]
-pub struct UpdateDexReserveBoundEvent {
-    #[index]
-    pub dex_id: Pubkey,
-    pub old: u64,
-    pub new: u64,
-}
-
-#[event]
-#[cfg_attr(feature = "client", derive(Debug))]
-pub struct InitializeConfigEvent {
-    #[index]
-    pub config_id: Pubkey,
-    #[index]
-    pub index: u16,
-    pub admin: Pubkey,
-}
-
-#[event]
-#[cfg_attr(feature = "client", derive(Debug))]
-pub struct UpdateConfigAdminEvent {
-    #[index]
-    pub config_id: Pubkey,
-    pub old: Pubkey,
-    pub new: Pubkey,
-}
-
-#[event]
-#[cfg_attr(feature = "client", derive(Debug))]
-pub struct UpdateCreateDexEvent {
-    #[index]
-    pub config_id: Pubkey,
-    pub old: bool,
-    pub new: bool,
-}
-
-#[event]
-#[cfg_attr(feature = "client", derive(Debug))]
-pub struct UpdateProtocolAdminEvent {
-    pub old: Pubkey,
-    pub new: Pubkey,
+    pub token_zero_amount: u64,
+    pub token_one_amount: u64,
 }

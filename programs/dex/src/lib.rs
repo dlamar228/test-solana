@@ -64,12 +64,8 @@ pub mod dex {
         instructions::update_initial_reserve(ctx, initial_reserve)
     }
 
-    pub fn collect_protocol_fee(
-        ctx: Context<CollectFee>,
-        amount_0_requested: u64,
-        amount_1_requested: u64,
-    ) -> Result<()> {
-        instructions::collect_fee(ctx, amount_0_requested, amount_1_requested)
+    pub fn collect_protocol_fee(ctx: Context<WithdrawDexFee>) -> Result<()> {
+        instructions::withdraw_dex_fee(ctx)
     }
 
     pub fn initialize_dex(
@@ -79,10 +75,6 @@ pub mod dex {
         reserve_bound_ge: bool,
     ) -> Result<()> {
         instructions::initialize_dex(ctx, init_amount, vault_for_reserve_bound, reserve_bound_ge)
-    }
-
-    pub fn update_reserve_bound(ctx: Context<UpdateDexState>, reserve_bound: u64) -> Result<()> {
-        instructions::update_reserve_bound(ctx, reserve_bound)
     }
 
     /// Swap the tokens in the pool base input amount

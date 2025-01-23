@@ -19,7 +19,7 @@ client = []
 default = ["enable-log"]
 
 [dependencies]
-raydium-cp-swap = { git = "https://github.com/raydium-io/raydium-cp-swap", features = ["no-entrypoint", "cpi", "enable-log"]}
+raydium-cp-swap = { git = "https://github.com/raydium-io/raydium-cp-swap", features = ["no-entrypoint", "cpi"]}
 solana-program = ">=1.16, <1.18"
 anchor-lang = { version = "0.29.0", features = ["init-if-needed"] }
 anchor-spl = { version = "0.29.0", features = ["metadata"] }
@@ -31,7 +31,6 @@ bytemuck = { version = "1.4.0", features = ["derive", "min_const_generics"] }
 arrayref = { version = "0.3.6" }
 
 [dev-dependencies]
-raydium-cp-swap = { git = "https://github.com/raydium-io/raydium-cp-swap", features = ["no-entrypoint", "cpi", "enable-log"]}
 quickcheck = "0.9"
 proptest = "1.0"
 rand = "0.8.5"

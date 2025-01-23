@@ -186,10 +186,12 @@ pub fn create_dex<'info>(
         &crate::id(),
     )?;
 
-    // emit!(InitializeDexEvent {
-    //     signer: payer.key(),
-    //     dex_id: dex_account_info.key(),
-    // });
+    emit!(InitializeDexEvent {
+        dex_id: dex_account_info.key(),
+        payer_id: payer.key(),
+        mint_zero: token_0_mint.key(),
+        mint_one: token_1_mint.key(),
+    });
 
     AccountLoad::<DexState>::try_from_unchecked(&crate::id(), dex_account_info)
 }
@@ -282,17 +284,15 @@ pub struct InitializeDex<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn collect_fee(
-    ctx: Context<CollectFee>,
-    amount_0_requested: u64,
-    amount_1_requested: u64,
-) -> Result<()> {
-    require_gt!(ctx.accounts.token_0_vault.amount, 0);
-    require_gt!(ctx.accounts.token_1_vault.amount, 0);
-
+pub fn withdraw_dex_fee(ctx: Context<WithdrawDexFee>) -> Result<()> {
+    let dex_id = ctx.accounts.dex_state.key();
     let mut dex_state = ctx.accounts.dex_state.load_mut()?;
-    let mut amount_0 = amount_0_requested.min(dex_state.swap_fees_token_0);
-    let mut amount_1 = amount_1_requested.min(dex_state.swap_fees_token_1);
+    let mut amount_0 = dex_state.swap_fees_token_0;
+    let mut amount_1 = dex_state.swap_fees_token_1;
+
+    if amount_0 == 0 || amount_1 == 1 {
+        //return err!();
+    }
 
     dex_state.swap_fees_token_0 = dex_state
         .swap_fees_token_0
@@ -352,11 +352,18 @@ pub fn collect_fee(
         signer_seeds,
     )?;
 
+    emit!(WithdrawDexFeeEvent {
+        admin_id: ctx.accounts.payer.key(),
+        dex_id,
+        token_zero_amount: amount_0,
+        token_one_amount: amount_1
+    });
+
     Ok(())
 }
 
 #[derive(Accounts)]
-pub struct CollectFee<'info> {
+pub struct WithdrawDexFee<'info> {
     /// Only admin can collect fee now
     #[account(address = authority_manager.admin @ ErrorCode::InvalidAdmin)]
     pub payer: Signer<'info>,
@@ -408,25 +415,6 @@ pub struct CollectFee<'info> {
     pub token_program: Program<'info, Token>,
     /// The SPL program 2022 to perform token transfers
     pub token_program_2022: Program<'info, Token2022>,
-}
-
-pub fn update_reserve_bound(ctx: Context<UpdateDexState>, reserve_bound: u64) -> Result<()> {
-    let dex_id = ctx.accounts.dex_state.key();
-    let dex_state = &mut ctx.accounts.dex_state.load_mut()?;
-    let old = dex_state.vault_reserve_bound;
-
-    #[cfg(feature = "enable-log")]
-    msg!("update_reserve_bound, old:{}, new:{}", old, reserve_bound,);
-
-    emit!(UpdateDexReserveBoundEvent {
-        dex_id,
-        old,
-        new: reserve_bound,
-    });
-
-    dex_state.vault_reserve_bound = reserve_bound;
-
-    Ok(())
 }
 
 #[derive(Accounts)]
@@ -558,6 +546,7 @@ pub fn launch_dex(ctx: Context<LaunchDex>, shared_lamports: u64) -> Result<()> {
     emit!(DexLaunchedEvent {
         dex_id,
         raydium_id,
+        admin_id: ctx.accounts.payer.key(),
         amount_0: taxed_amount_0,
         amount_1: taxed_amount_1,
         launch_fees_0,

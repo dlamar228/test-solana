@@ -298,9 +298,6 @@ impl<'info> Swapper<'info> {
 
         let remaining_tokens = dex_state.get_remaining_tokens(vault_reserve_amount);
 
-        #[cfg(feature = "enable-log")]
-        msg!("swap remaining_tokens:{}", remaining_tokens);
-
         emit!(SwapEvent {
             dex_id,
             input_vault_before: total_input_token_amount,
@@ -435,9 +432,6 @@ impl<'info> Swapper<'info> {
         );
 
         let remaining_tokens = dex_state.get_remaining_tokens(vault_reserve_amount);
-
-        #[cfg(feature = "enable-log")]
-        msg!("swap remaining_tokens:{}", remaining_tokens);
 
         emit!(SwapEvent {
             dex_id,

@@ -1,9 +1,11 @@
+use super::*;
+
 use crate::curve::MAX_FEE_RATE_VALUE;
 use crate::error::ErrorCode;
 use crate::states::*;
-use anchor_lang::prelude::*;
 
 pub fn initialize_config(ctx: Context<InitializeConfigState>) -> Result<()> {
+    let config_id = ctx.accounts.config.key();
     let config = &mut ctx.accounts.config;
     config.bump = ctx.bumps.config;
     config.swap_fee_rate = 10_000;
@@ -11,11 +13,14 @@ pub fn initialize_config(ctx: Context<InitializeConfigState>) -> Result<()> {
     config.initial_reserve = 2 * 10u64.pow(9);
     config.vault_reserve_bound = 205_000_000 * 10u64.pow(9);
 
-    // emit!(InitializeConfigEvent {
-    //     config_id,
-    //     index,
-    //     admin: config.admin,
-    // });
+    emit!(InitializeConfigEvent {
+        admin_id: ctx.accounts.payer.key(),
+        config_id,
+        swap_fee_rate: config.swap_fee_rate,
+        launch_fee_rate: config.launch_fee_rate,
+        initial_reserve: config.initial_reserve,
+        vault_reserve_bound: config.vault_reserve_bound,
+    });
 
     Ok(())
 }
@@ -46,47 +51,32 @@ pub struct InitializeConfigState<'info> {
 
 pub fn update_swap_fee_rate(ctx: Context<UpdateConfigState>, swap_fee_rate: u64) -> Result<()> {
     assert!(swap_fee_rate <= MAX_FEE_RATE_VALUE);
-    // let dex_id = ctx.accounts.dex_state.key();
-    // let dex_state = &mut ctx.accounts.dex_state.load_mut()?;
 
-    // let old = dex_state.swap_fee_rate;
-    // #[cfg(feature = "enable-log")]
-    // msg!("update_swap_fee_rate, old:{}, new:{}", old, swap_fee_rate,);
-
-    // emit!(UpdateDexSwapFeeRateEvent {
-    //     dex_id,
-    //     old,
-    //     new: swap_fee_rate,
-    // });
     let config = &mut ctx.accounts.config;
+    let old_swap_fee_rate = config.swap_fee_rate;
     config.swap_fee_rate = swap_fee_rate;
+
+    emit!(UpdateConfigSwapFeeRateEvent {
+        admin_id: ctx.accounts.payer.key(),
+        old_swap_fee_rate,
+        new_swap_fee_rate: swap_fee_rate,
+    });
 
     Ok(())
 }
 
 pub fn update_launch_fee_rate(ctx: Context<UpdateConfigState>, launch_fee_rate: u64) -> Result<()> {
     assert!(launch_fee_rate <= MAX_FEE_RATE_VALUE);
-    // let dex_id = ctx.accounts.dex_state.key();
-    // let dex_state = &mut ctx.accounts.dex_state.load_mut()?;
-
-    // let old = dex_state.launch_fee_rate;
-    // #[cfg(feature = "enable-log")]
-    // msg!(
-    //     "update_launch_fee_rate, old:{}, new:{}",
-    //     old,
-    //     launch_fee_rate,
-    // );
-
-    // emit!(UpdateDexLaunchFeeRateEvent {
-    //     dex_id,
-    //     old,
-    //     new: launch_fee_rate,
-    // });
-
-    // dex_state.launch_fee_rate = launch_fee_rate;
 
     let config = &mut ctx.accounts.config;
+    let old_launch_fee_rate = config.launch_fee_rate;
     config.launch_fee_rate = launch_fee_rate;
+
+    emit!(UpdateConfigLaunchFeeRateEvent {
+        admin_id: ctx.accounts.payer.key(),
+        old_launch_fee_rate,
+        new_launch_fee_rate: launch_fee_rate,
+    });
 
     Ok(())
 }
@@ -95,34 +85,29 @@ pub fn update_vault_reserve_bound(
     ctx: Context<UpdateConfigState>,
     vault_reserve_bound: u64,
 ) -> Result<()> {
-    // let dex_id = ctx.accounts.dex_state.key();
-    // let dex_state = &mut ctx.accounts.dex_state.load_mut()?;
-
-    // let old = dex_state.launch_fee_rate;
-    // #[cfg(feature = "enable-log")]
-    // msg!(
-    //     "update_launch_fee_rate, old:{}, new:{}",
-    //     old,
-    //     launch_fee_rate,
-    // );
-
-    // emit!(UpdateDexLaunchFeeRateEvent {
-    //     dex_id,
-    //     old,
-    //     new: launch_fee_rate,
-    // });
-
-    // dex_state.launch_fee_rate = launch_fee_rate;
-
     let config = &mut ctx.accounts.config;
+    let old_vault_reserve_bound = config.vault_reserve_bound;
     config.vault_reserve_bound = vault_reserve_bound;
+
+    emit!(UpdateConfigVaultReserveBoundEvent {
+        admin_id: ctx.accounts.payer.key(),
+        old_vault_reserve_bound,
+        new_vault_reserve_bound: vault_reserve_bound,
+    });
 
     Ok(())
 }
 
 pub fn update_initial_reserve(ctx: Context<UpdateConfigState>, initial_reserve: u64) -> Result<()> {
     let config = &mut ctx.accounts.config;
+    let old_initial_reserve = config.initial_reserve;
     config.initial_reserve = initial_reserve;
+
+    emit!(UpdateConfigInitialReserveEvent {
+        admin_id: ctx.accounts.payer.key(),
+        old_initial_reserve,
+        new_initial_reserve: initial_reserve,
+    });
 
     Ok(())
 }
