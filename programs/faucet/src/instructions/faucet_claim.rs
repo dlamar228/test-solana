@@ -15,6 +15,7 @@ pub fn initialize_faucet_claim(ctx: Context<InitializeFaucetClaim>) -> Result<()
     let claim_starts = Clock::get()?.unix_timestamp as u64;
     let claim_ends = claim_starts + FAUCET_CLAIM_PERIOD_IN_SECONDS;
 
+    let faucet_claim_id = ctx.accounts.faucet_claim.key();
     let faucet_claim = &mut ctx.accounts.faucet_claim;
     faucet_claim.mint = ctx.accounts.mint.key();
     faucet_claim.claim_starts = claim_starts;
@@ -25,7 +26,7 @@ pub fn initialize_faucet_claim(ctx: Context<InitializeFaucetClaim>) -> Result<()
     faucet_claim.bump = ctx.bumps.faucet_claim;
 
     emit!(InitializeFaucetClaimEvent {
-        faucet_claim_id: ctx.accounts.faucet_claim.key(),
+        faucet_claim_id,
         mint_id: ctx.accounts.mint.key(),
         total_faucet_amount: faucet_amount
     });
