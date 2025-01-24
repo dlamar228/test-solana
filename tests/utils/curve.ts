@@ -288,18 +288,18 @@ export class SwapCalculator {
   Q32 = new BN(4294967296);
 
   calculateTradeAmountsAndPriceBeforeSwap(
-    inputProtocolFee: BN,
-    outputProtocolFee: BN,
+    inputTokenFee: BN,
+    outputTokenFee: BN,
     inputVault: BN,
     outputVault: BN
   ): SwapCalculation {
     let totalInputTokenAmount = this.curve.checkedSub(
       inputVault,
-      inputProtocolFee
+      inputTokenFee
     );
     let totalOutputTokenAmount = this.curve.checkedSub(
       outputVault,
-      outputProtocolFee
+      outputTokenFee
     );
     let tokenInputPriceX64 = this.tokenPriceX32(totalInputTokenAmount);
     let tokenOutputPriceX64 = this.tokenPriceX32(totalOutputTokenAmount);
