@@ -76,7 +76,6 @@ describe("launcher.admin.test", () => {
       "TST",
       "https://www.google.com"
     );
-    let faucetVault = await faucetUtils.initializeFaucetVault(signer, dex_mint);
 
     let launcherInitializeDexArgs = {
       dexUtils,
