@@ -13,14 +13,22 @@ import {
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { ASSOCIATED_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/utils/token";
 import { Mint, TokenUtils, TokenVault } from "./token.utils";
-import { u16ToBytes } from "./utils";
 import { RaydiumPda } from "./raydium.utils";
 import { createPoolFeeReceive } from "./raydium.idl";
-import { SYSTEM_PROGRAM_ID } from "@raydium-io/raydium-sdk-v2";
+//import { SYSTEM_PROGRAM_ID } from "@raydium-io/raydium-sdk-v2";
 
-export interface ConfigCreationArgs {
-  admin: PublicKey;
-  index: number;
+export interface DexAccounts {
+  authority: PublicKey;
+  authorityManager: PublicKey;
+  config: PublicKey;
+  vault_zero: TokenVault;
+  vault_one: TokenVault;
+  dex: PublicKey;
+}
+
+export interface UserVaults {
+  user_zero: TokenVault;
+  user_one: TokenVault;
 }
 
 export interface DexCreationArgs {
@@ -141,7 +149,7 @@ export class DexUtils {
         outputTokenProgram: args.outputTokenProgram,
         // dex accounts
         authority: args.dexAccounts.authority,
-        dexState: args.dexAccounts.state,
+        dexState: args.dexAccounts.dex,
         inputVault: args.inputVault,
         outputVault: args.outputVault,
         inputTokenMint: args.inputToken,
@@ -166,7 +174,7 @@ export class DexUtils {
         outputTokenProgram: args.outputTokenProgram,
         // dex accounts
         authority: args.dexAccounts.authority,
-        dexState: args.dexAccounts.state,
+        dexState: args.dexAccounts.dex,
         inputVault: args.inputVault,
         outputVault: args.outputVault,
         inputTokenMint: args.inputToken,
@@ -186,16 +194,16 @@ export class DexUtils {
     let [auth] = args.raydiumPdaGetter.getAuthAddress();
     let [state] = args.raydiumPdaGetter.getStateAddress(
       args.raydiumAmmConfig,
-      args.dexAccounts.vault0.mint.address,
-      args.dexAccounts.vault1.mint.address
+      args.dexAccounts.vault_zero.mint.address,
+      args.dexAccounts.vault_one.mint.address
     );
     let [vault0] = args.raydiumPdaGetter.getVaultAddress(
       state,
-      args.dexAccounts.vault0.mint.address
+      args.dexAccounts.vault_zero.mint.address
     );
     let [vault1] = args.raydiumPdaGetter.getVaultAddress(
       state,
-      args.dexAccounts.vault1.mint.address
+      args.dexAccounts.vault_one.mint.address
     );
     let [oracle] = args.raydiumPdaGetter.getOracleAddress(state);
     let [lpMint] = args.raydiumPdaGetter.getLpMintAddress(state);
@@ -213,22 +221,22 @@ export class DexUtils {
       .accounts({
         dexAuthority: args.dexAccounts.authority,
         dexConfig: args.dexAccounts.config,
-        dexState: args.dexAccounts.state,
+        dexState: args.dexAccounts.dex,
         cpSwapProgram: args.cpSwapProgram,
         payer: signer.publicKey,
         dexAuthorityManager: args.dexAccounts.authorityManager,
         ammConfig: args.raydiumAmmConfig,
         authority: auth,
         poolState: state,
-        token0Mint: args.dexAccounts.vault0.mint.address,
-        token1Mint: args.dexAccounts.vault1.mint.address,
-        creatorToken0: args.dexAccounts.vault0.address,
-        creatorToken1: args.dexAccounts.vault1.address,
+        token0Mint: args.dexAccounts.vault_zero.mint.address,
+        token1Mint: args.dexAccounts.vault_one.mint.address,
+        creatorToken0: args.dexAccounts.vault_zero.address,
+        creatorToken1: args.dexAccounts.vault_one.address,
         token0Vault: vault0,
         token1Vault: vault1,
         tokenProgram: TOKEN_PROGRAM_ID,
-        token0Program: args.dexAccounts.vault0.mint.program,
-        token1Program: args.dexAccounts.vault0.mint.program,
+        token0Program: args.dexAccounts.vault_zero.mint.program,
+        token1Program: args.dexAccounts.vault_one.mint.program,
         associatedTokenProgram: ASSOCIATED_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
         observationState: oracle,
@@ -313,25 +321,6 @@ export class DexUtils {
       })
       .rpc(this.confirmOptions);
   }
-  async updateDexReserveBound(
-    signer: Signer,
-    dexState: PublicKey,
-    newReserveBound: BN
-  ) {
-    let [authorityManager] = this.pdaGetter.getAuthorityManagerAddress();
-    return await this.program.methods
-      .updateReserveBound(newReserveBound)
-      .accounts({
-        payer: signer.publicKey,
-        dexState,
-        authorityManager,
-      })
-      .preInstructions([
-        ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
-      ])
-      .rpc(this.confirmOptions);
-  }
-
   async dexIsReadyToLaunch(dexState: PublicKey) {
     return (await this.program.account.dexState.fetchNullable(dexState))
       .isReadyToLaunch;
@@ -351,15 +340,6 @@ export class DexUtils {
   async getConfigState(config: PublicKey) {
     return await this.program.account.configState.fetchNullable(config);
   }
-}
-
-export interface DexAccounts {
-  authority: PublicKey;
-  authorityManager: PublicKey;
-  config: PublicKey;
-  state: PublicKey;
-  vault0: TokenVault;
-  vault1: TokenVault;
 }
 
 export class DexPda {
@@ -420,10 +400,4 @@ export class DexSeeds {
   toSeed(seed: string) {
     return Buffer.from(anchor.utils.bytes.utf8.encode(seed));
   }
-}
-
-var index = 0;
-export function nextIndex() {
-  index += 1;
-  return index;
 }

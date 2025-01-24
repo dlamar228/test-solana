@@ -21,7 +21,7 @@ import {
 import { Mint, TokenUtils, TokenVault } from "./token.utils";
 import { u16ToBytes } from "./utils";
 import { getATAAddress, SYSTEM_PROGRAM_ID } from "@raydium-io/raydium-sdk-v2";
-import { DexUtils } from "./dex.utils";
+import { DexAccounts, DexUtils } from "./dex.utils";
 import { FaucetUtils } from "./faucet.utils";
 
 const TOKEN_METADATA_PROGRAM_ID = new anchor.web3.PublicKey(
@@ -144,7 +144,10 @@ export class LauncherUtils {
 
     return tx;
   }
-  async initializeDex(signer: Signer, args: InitializeDexArgs) {
+  async initializeDex(
+    signer: Signer,
+    args: InitializeDexArgs
+  ): Promise<DexAccounts> {
     let payerVaultAuthority = getAssociatedTokenAddressSync(
       args.mintAuthority.address,
       signer.publicKey,
@@ -195,13 +198,14 @@ export class LauncherUtils {
       args.mintAuthority.address
     );
 
-    let [faucetVault] = args.faucetUtils.pdaGetter.getFaucetVaultAddress(
-      args.mintAuthority.address
-    );
     let [faucetAuthority] = args.faucetUtils.pdaGetter.getAuthorityAddress();
 
     if (args.hasFaucet) {
-      let tx = await this.program.methods
+      let faucetVault = await args.faucetUtils.initializeFaucetVault(
+        signer,
+        args.mintAuthority
+      );
+      await this.program.methods
         .initializeDexWithFaucet()
         .accounts({
           payer: signer.publicKey,
@@ -225,15 +229,12 @@ export class LauncherUtils {
           faucetVault,
           payerVault: args.payerVault.address,
         })
-        .signers([signer])
         .preInstructions([
           ComputeBudgetProgram.setComputeUnitLimit({ units: 500000 }),
         ])
         .rpc();
-
-      return tx;
     } else {
-      let tx = await this.program.methods
+      await this.program.methods
         .initializeDex()
         .accounts({
           payer: signer.publicKey,
@@ -256,14 +257,40 @@ export class LauncherUtils {
           teamVault,
           payerVault: args.payerVault.address,
         })
-        .signers([signer])
         .preInstructions([
           ComputeBudgetProgram.setComputeUnitLimit({ units: 500000 }),
         ])
         .rpc();
-
-      return tx;
     }
+
+    let vault_zero = {
+      address: dexVault,
+      mint: args.payerVault.mint,
+    };
+    let vault_one = {
+      address: dexVaultAuthority,
+      mint: args.mintAuthority,
+    };
+
+    if (mint_0 == args.mintAuthority.address) {
+      vault_zero = {
+        address: dexVaultAuthority,
+        mint: args.mintAuthority,
+      };
+      vault_one = {
+        address: dexVault,
+        mint: args.payerVault.mint,
+      };
+    }
+
+    return {
+      authority: dexAuthority,
+      authorityManager: dexAuthorityManager,
+      config: dexConfig,
+      vault_zero,
+      vault_one,
+      dex: dexState,
+    };
   }
   async createMint(
     signer: Signer,

@@ -164,8 +164,8 @@ export class TokenUtils {
     owner: PublicKey,
     mint: PublicKey,
     allowOwnerOffCurve = false,
-    commitment = "processed" as Commitment,
-    program = TOKEN_PROGRAM_ID as PublicKey
+    program = TOKEN_PROGRAM_ID as PublicKey,
+    commitment = "processed" as Commitment
   ) {
     const account = await getOrCreateAssociatedTokenAccount(
       this.connection,
@@ -276,16 +276,16 @@ export class TokenUtils {
       signer.publicKey,
       mint0.address,
       false,
-      this.confirmOptions.commitment,
-      mint0.program
+      mint0.program,
+      this.confirmOptions.commitment
     );
     let ata1 = await this.createAta(
       signer,
       signer.publicKey,
       mint1.address,
       false,
-      this.confirmOptions.commitment,
-      mint1.program
+      mint1.program,
+      this.confirmOptions.commitment
     );
 
     await this.mintTo(
