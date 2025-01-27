@@ -287,8 +287,8 @@ export class LauncherUtils {
       authority: dexAuthority,
       authorityManager: dexAuthorityManager,
       config: dexConfig,
-      vault_zero,
-      vault_one,
+      vaultZero: vault_zero,
+      vaultOne: vault_one,
       dex: dexState,
     };
   }

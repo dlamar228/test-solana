@@ -21,8 +21,8 @@ export interface DexAccounts {
   authority: PublicKey;
   authorityManager: PublicKey;
   config: PublicKey;
-  vault_zero: TokenVault;
-  vault_one: TokenVault;
+  vaultZero: TokenVault;
+  vaultOne: TokenVault;
   dex: PublicKey;
 }
 
@@ -194,16 +194,16 @@ export class DexUtils {
     let [auth] = args.raydiumPdaGetter.getAuthAddress();
     let [state] = args.raydiumPdaGetter.getStateAddress(
       args.raydiumAmmConfig,
-      args.dexAccounts.vault_zero.mint.address,
-      args.dexAccounts.vault_one.mint.address
+      args.dexAccounts.vaultZero.mint.address,
+      args.dexAccounts.vaultOne.mint.address
     );
     let [vault0] = args.raydiumPdaGetter.getVaultAddress(
       state,
-      args.dexAccounts.vault_zero.mint.address
+      args.dexAccounts.vaultZero.mint.address
     );
     let [vault1] = args.raydiumPdaGetter.getVaultAddress(
       state,
-      args.dexAccounts.vault_one.mint.address
+      args.dexAccounts.vaultOne.mint.address
     );
     let [oracle] = args.raydiumPdaGetter.getOracleAddress(state);
     let [lpMint] = args.raydiumPdaGetter.getLpMintAddress(state);
@@ -228,15 +228,15 @@ export class DexUtils {
         ammConfig: args.raydiumAmmConfig,
         authority: auth,
         poolState: state,
-        token0Mint: args.dexAccounts.vault_zero.mint.address,
-        token1Mint: args.dexAccounts.vault_one.mint.address,
-        creatorToken0: args.dexAccounts.vault_zero.address,
-        creatorToken1: args.dexAccounts.vault_one.address,
+        token0Mint: args.dexAccounts.vaultZero.mint.address,
+        token1Mint: args.dexAccounts.vaultOne.mint.address,
+        creatorToken0: args.dexAccounts.vaultZero.address,
+        creatorToken1: args.dexAccounts.vaultOne.address,
         token0Vault: vault0,
         token1Vault: vault1,
         tokenProgram: TOKEN_PROGRAM_ID,
-        token0Program: args.dexAccounts.vault_zero.mint.program,
-        token1Program: args.dexAccounts.vault_one.mint.program,
+        token0Program: args.dexAccounts.vaultZero.mint.program,
+        token1Program: args.dexAccounts.vaultOne.mint.program,
         associatedTokenProgram: ASSOCIATED_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
         observationState: oracle,
