@@ -24,7 +24,7 @@ pub struct UpdateAuthorityManagerFaucetAuthorityEvent {
     #[index]
     pub old_faucet_authority_id: Pubkey,
     #[index]
-    pub nwe_faucet_authority_id: Pubkey,
+    pub new_faucet_authority_id: Pubkey,
 }
 
 #[event]

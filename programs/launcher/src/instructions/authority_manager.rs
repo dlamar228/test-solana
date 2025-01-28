@@ -78,7 +78,7 @@ pub fn update_authority_manager_faucet_authority(
 
     emit!(UpdateAuthorityManagerFaucetAuthorityEvent {
         old_faucet_authority_id,
-        nwe_faucet_authority_id: faucet_authority
+        new_faucet_authority_id: faucet_authority
     });
 
     Ok(())
