@@ -1,24 +1,10 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program, BN } from "@coral-xyz/anchor";
-import {
-  Connection,
-  Keypair,
-  PublicKey,
-  SystemProgram,
-  Transaction,
-} from "@solana/web3.js";
-import {
-  TOKEN_PROGRAM_ID,
-  createAccount,
-  getAssociatedTokenAddressSync,
-  createAssociatedTokenAccount,
-} from "@solana/spl-token";
 import { Faucet } from "../target/types/faucet";
 import {
   FaucetMerkleLeaf,
   FaucetMerkleTree,
   FaucetUtils,
-  sleep,
   TokenUtils,
 } from "./utils";
 import { expect } from "chai";
