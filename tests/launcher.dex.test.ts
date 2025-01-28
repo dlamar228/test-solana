@@ -6,7 +6,7 @@ import { Faucet } from "../target/types/faucet";
 import { DexUtils, FaucetUtils, TokenUtils } from "./utils";
 import { LauncherUtils } from "./utils/launcher.utils";
 
-describe("launcher.admin.test", () => {
+describe("launcher.dex.test", () => {
   anchor.setProvider(anchor.AnchorProvider.env());
   const signer = anchor.Wallet.local().payer;
   const launcherProgram = anchor.workspace.Launcher as Program<Launcher>;
