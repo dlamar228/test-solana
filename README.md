@@ -5,7 +5,7 @@ The purpose of the project is to create a faucet and a DEX to collect liquidity 
 3. **Faucet**: This contract provides an option for airdrops. 
 
 # LAUNCHER
-The Launcher contract manage Dex creation, token mint creation for Dex and how much tokens will get Dex, team and Faucet. Contract does not store used mints, created Dex. Instead, someone must parse events to obtain this data.
+The Launcher contract manage Dex creation, token mint creation for Dex and how much tokens will get Dex, team and Faucet. The passed tokens will be sorted. Contract does not store used mints, created Dex. Instead, someone must parse events to obtain this data.
 
 ## METHODS
 - **initialize_authority_manager** :</br>
