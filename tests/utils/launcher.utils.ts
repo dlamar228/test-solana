@@ -324,6 +324,25 @@ export class LauncherUtils {
       program: TOKEN_PROGRAM_ID,
     };
   }
+  async withdrawTeamTokens(signer: Signer, vault: TokenVault) {
+    let [authority] = this.pdaGetter.getAuthorityAddress();
+    let [authorityManager] = this.pdaGetter.getAuthorityManagerAddress();
+    let [teamVault] = this.pdaGetter.getTeamVaultAddress(vault.mint.address);
+    let tx = await this.program.methods
+      .withdrawTeamTokens()
+      .accounts({
+        admin: signer.publicKey,
+        authority,
+        authorityManager,
+        teamVault,
+        recipient: vault.address,
+        mint: vault.mint.address,
+        tokenProgram: vault.mint.program,
+      })
+      .rpc();
+
+    return tx;
+  }
   async getAuthorityManagerState(authorityManager: PublicKey) {
     return await this.program.account.authorityManager.fetchNullable(
       authorityManager

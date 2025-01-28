@@ -240,8 +240,6 @@ export class SetupSwapTest {
     let amountIn = vaultBalance.div(new BN(10));
     let minimumAmountOut = new BN(1);
 
-    let pairK = await this.getPairK();
-
     if (launch) {
       amountIn = vaultBalance;
     }
@@ -254,15 +252,16 @@ export class SetupSwapTest {
     launch: boolean,
     zeroToOne: boolean
   ): Promise<[BN, BN]> {
-    let vaultBalance = await this.getAtaBalance(atas, zeroToOne);
-    let vaultBalance = await this.getAtaBalance(atas, zeroToOne);
-    let maxAmountIn = vaultBalance;
-    let amountOutLessFee = vaultBalance.div(new BN(10));
-
-    if (launch) {
-      amountOutLessFee = vaultBalance;
-    }
-    return [maxAmountIn, amountOutLessFee];
+    // let pairK = await this.getPairK();
+    // let vaultBalance = await this.getAtaBalance(atas, zeroToOne);
+    // let vaultBalance = await this.getAtaBalance(atas, zeroToOne);
+    // let maxAmountIn = vaultBalance;
+    // let amountOutLessFee = vaultBalance.div(new BN(10));
+    // if (launch) {
+    //   amountOutLessFee = vaultBalance;
+    // }
+    // return [maxAmountIn, amountOutLessFee];
+    return [new BN(0), new BN(0)];
   }
 
   async getAtaBalance(atas: Atas, zeroToOne: boolean) {

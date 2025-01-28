@@ -126,7 +126,7 @@ export class DexUtils {
     await this.program.methods
       .initializeConfig()
       .accounts({
-        payer: payer.publicKey,
+        admin: payer.publicKey,
         authorityManager,
         config,
       })

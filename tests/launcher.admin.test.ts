@@ -1,9 +1,10 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program, BN } from "@coral-xyz/anchor";
-import { Launcher } from "../target/types/launcher";
+import { Dex } from "../target/types/dex";
 import { Faucet } from "../target/types/faucet";
+import { Launcher } from "../target/types/launcher";
 import { Keypair } from "@solana/web3.js";
-import { FaucetUtils } from "./utils";
+import { DexUtils, FaucetUtils, SetupSwapTest, TokenUtils } from "./utils";
 import { expect } from "chai";
 import { LauncherUtils } from "./utils/launcher.utils";
 
@@ -12,12 +13,18 @@ describe("launcher.admin.test", () => {
   const signer = anchor.Wallet.local().payer;
   const launcherProgram = anchor.workspace.Launcher as Program<Launcher>;
   const faucetProgram = anchor.workspace.Faucet as Program<Faucet>;
+  const dexProgram = anchor.workspace.Dex as Program<Dex>;
   const confirmOptions = {
     skipPreflight: true,
   };
   const faucetUtils = new FaucetUtils(faucetProgram, confirmOptions);
   const launcherUtils = new LauncherUtils(launcherProgram, confirmOptions);
+  const dexUtils = new DexUtils(dexProgram, confirmOptions);
   const [faucetAuthority] = faucetUtils.pdaGetter.getAuthorityAddress();
+  const tokenUtils = new TokenUtils(
+    anchor.getProvider().connection,
+    confirmOptions
+  );
 
   it("Should update admin", async () => {
     await launcherUtils.initializeAuthorityManager(signer, faucetAuthority);
@@ -73,5 +80,21 @@ describe("launcher.admin.test", () => {
       signer,
       faucetAuthority
     );
+  });
+  it("Should withdraw team tokens", async () => {
+    let swapInputTemplate = new SetupSwapTest(
+      tokenUtils,
+      dexUtils,
+      faucetUtils,
+      launcherUtils
+    );
+
+    let swapTest = await swapInputTemplate.setupSwapBaseInput(signer);
+
+    let vault = swapTest.vaultForReserveBound
+      ? swapTest.atas.vaultOne
+      : swapTest.atas.vaultZero;
+
+    await launcherUtils.withdrawTeamTokens(signer, vault);
   });
 });

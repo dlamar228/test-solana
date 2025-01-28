@@ -135,7 +135,7 @@ export class FaucetUtils {
     await this.program.methods
       .initializeFaucetClaim()
       .accounts({
-        payer: signer.publicKey,
+        admin: signer.publicKey,
         authorityManager,
         authority,
         faucetClaim,
@@ -178,7 +178,7 @@ export class FaucetUtils {
     let tx = await this.program.methods
       .initializeFaucetClaimShard(merkleRootArray)
       .accounts({
-        payer: signer.publicKey,
+        admin: signer.publicKey,
         authorityManager: args.faucetAccounts.authorityManager,
         faucetClaim: args.faucetAccounts.faucetClaim,
         faucetClaimShard: shardAddress,
