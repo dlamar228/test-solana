@@ -1,3 +1,4 @@
+use crate::errors::ErrorCode;
 use crate::states::*;
 use crate::utils::TokenUtils;
 
@@ -10,6 +11,10 @@ use anchor_spl::{
 };
 
 pub fn cpi_initialize_dex(ctx: Context<CpiInitializeDex>) -> Result<()> {
+    if ctx.accounts.mint_authority.supply != 0 {
+        err!(ErrorCode::NotAllowed);
+    }
+
     let seeds = [
         LAUNCHER_AUTHORITY_SEED.as_bytes(),
         &[ctx.accounts.authority_manager.authority_bump],
@@ -224,6 +229,10 @@ pub struct CpiInitializeDex<'info> {
 }
 
 pub fn cpi_initialize_dex_with_faucet(ctx: Context<CpiInitializeDexWithFaucet>) -> Result<()> {
+    if ctx.accounts.mint_authority.supply != 0 {
+        err!(ErrorCode::NotAllowed);
+    }
+
     let seeds = [
         LAUNCHER_AUTHORITY_SEED.as_bytes(),
         &[ctx.accounts.authority_manager.authority_bump],

@@ -6,4 +6,6 @@ pub enum ErrorCode {
     InvalidAdmin,
     #[msg("Invalid token amount")]
     InvalidTokenAmount,
+    #[msg("Not allowed")]
+    NotAllowed,
 }
