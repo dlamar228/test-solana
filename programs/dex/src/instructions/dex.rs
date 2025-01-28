@@ -417,15 +417,6 @@ pub struct WithdrawDexFee<'info> {
     pub token_program_2022: Program<'info, Token2022>,
 }
 
-#[derive(Accounts)]
-pub struct UpdateDexState<'info> {
-    #[account(mut, address = authority_manager.admin @ ErrorCode::InvalidAdmin)]
-    pub payer: Signer<'info>,
-    #[account(mut)]
-    pub dex_state: AccountLoader<'info, DexState>,
-    pub authority_manager: Box<Account<'info, AuthorityManager>>,
-}
-
 pub fn launch_dex(ctx: Context<LaunchDex>, shared_lamports: u64) -> Result<()> {
     let dex_id = ctx.accounts.dex_state.key();
     let raydium_id = ctx.accounts.pool_state.key();
