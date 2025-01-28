@@ -85,6 +85,8 @@ pub struct InitializeDexEvent {
     pub payer_id: Pubkey,
     pub mint_zero: Pubkey,
     pub mint_one: Pubkey,
+    pub token_zero_amount: u64,
+    pub token_one_amount: u64,
 }
 
 /// Emitted when swap

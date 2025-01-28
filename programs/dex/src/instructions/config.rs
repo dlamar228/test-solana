@@ -49,7 +49,10 @@ pub struct InitializeConfigState<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn update_swap_fee_rate(ctx: Context<UpdateConfigState>, swap_fee_rate: u64) -> Result<()> {
+pub fn update_config_swap_fee_rate(
+    ctx: Context<UpdateConfigState>,
+    swap_fee_rate: u64,
+) -> Result<()> {
     assert!(swap_fee_rate <= MAX_FEE_RATE_VALUE);
 
     let config = &mut ctx.accounts.config;
@@ -57,7 +60,7 @@ pub fn update_swap_fee_rate(ctx: Context<UpdateConfigState>, swap_fee_rate: u64)
     config.swap_fee_rate = swap_fee_rate;
 
     emit!(UpdateConfigSwapFeeRateEvent {
-        admin_id: ctx.accounts.payer.key(),
+        admin_id: ctx.accounts.admin.key(),
         old_swap_fee_rate,
         new_swap_fee_rate: swap_fee_rate,
     });
@@ -65,7 +68,10 @@ pub fn update_swap_fee_rate(ctx: Context<UpdateConfigState>, swap_fee_rate: u64)
     Ok(())
 }
 
-pub fn update_launch_fee_rate(ctx: Context<UpdateConfigState>, launch_fee_rate: u64) -> Result<()> {
+pub fn update_config_launch_fee_rate(
+    ctx: Context<UpdateConfigState>,
+    launch_fee_rate: u64,
+) -> Result<()> {
     assert!(launch_fee_rate <= MAX_FEE_RATE_VALUE);
 
     let config = &mut ctx.accounts.config;
@@ -73,7 +79,7 @@ pub fn update_launch_fee_rate(ctx: Context<UpdateConfigState>, launch_fee_rate: 
     config.launch_fee_rate = launch_fee_rate;
 
     emit!(UpdateConfigLaunchFeeRateEvent {
-        admin_id: ctx.accounts.payer.key(),
+        admin_id: ctx.accounts.admin.key(),
         old_launch_fee_rate,
         new_launch_fee_rate: launch_fee_rate,
     });
@@ -81,7 +87,7 @@ pub fn update_launch_fee_rate(ctx: Context<UpdateConfigState>, launch_fee_rate: 
     Ok(())
 }
 
-pub fn update_vault_reserve_bound(
+pub fn update_config_vault_reserve_bound(
     ctx: Context<UpdateConfigState>,
     vault_reserve_bound: u64,
 ) -> Result<()> {
@@ -90,7 +96,7 @@ pub fn update_vault_reserve_bound(
     config.vault_reserve_bound = vault_reserve_bound;
 
     emit!(UpdateConfigVaultReserveBoundEvent {
-        admin_id: ctx.accounts.payer.key(),
+        admin_id: ctx.accounts.admin.key(),
         old_vault_reserve_bound,
         new_vault_reserve_bound: vault_reserve_bound,
     });
@@ -98,13 +104,16 @@ pub fn update_vault_reserve_bound(
     Ok(())
 }
 
-pub fn update_initial_reserve(ctx: Context<UpdateConfigState>, initial_reserve: u64) -> Result<()> {
+pub fn update_config_initial_reserve(
+    ctx: Context<UpdateConfigState>,
+    initial_reserve: u64,
+) -> Result<()> {
     let config = &mut ctx.accounts.config;
     let old_initial_reserve = config.initial_reserve;
     config.initial_reserve = initial_reserve;
 
     emit!(UpdateConfigInitialReserveEvent {
-        admin_id: ctx.accounts.payer.key(),
+        admin_id: ctx.accounts.admin.key(),
         old_initial_reserve,
         new_initial_reserve: initial_reserve,
     });
@@ -115,7 +124,7 @@ pub fn update_initial_reserve(ctx: Context<UpdateConfigState>, initial_reserve: 
 #[derive(Accounts)]
 pub struct UpdateConfigState<'info> {
     #[account(mut, address = authority_manager.admin @ ErrorCode::InvalidAdmin)]
-    pub payer: Signer<'info>,
+    pub admin: Signer<'info>,
     #[account(
         mut,
         seeds = [DEX_CONFIG_SEED.as_bytes(),],

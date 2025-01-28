@@ -75,6 +75,8 @@ pub fn initialize_dex(
         ][..]],
     )?;
 
+    let dex_id = ctx.accounts.dex_state.key();
+
     let dex_state_loader = create_dex(
         &ctx.accounts.payer.to_account_info(),
         &ctx.accounts.dex_state.to_account_info(),
@@ -142,6 +144,15 @@ pub fn initialize_dex(
         ctx.accounts.config.vault_reserve_bound,
     );
 
+    emit!(InitializeDexEvent {
+        dex_id,
+        payer_id: ctx.accounts.payer.key(),
+        mint_zero: ctx.accounts.mint_zero.key(),
+        mint_one: ctx.accounts.mint_one.key(),
+        token_zero_amount: init_amount_zero,
+        token_one_amount: init_amount_one,
+    });
+
     Ok(())
 }
 
@@ -185,13 +196,6 @@ pub fn create_dex<'info>(
         DexState::LEN as u64,
         &crate::id(),
     )?;
-
-    emit!(InitializeDexEvent {
-        dex_id: dex_account_info.key(),
-        payer_id: payer.key(),
-        mint_zero: token_0_mint.key(),
-        mint_one: token_1_mint.key(),
-    });
 
     AccountLoad::<DexState>::try_from_unchecked(&crate::id(), dex_account_info)
 }
@@ -290,10 +294,6 @@ pub fn withdraw_dex_fee(ctx: Context<WithdrawDexFee>) -> Result<()> {
     let mut amount_0 = dex_state.swap_fees_token_0;
     let mut amount_1 = dex_state.swap_fees_token_1;
 
-    if amount_0 == 0 || amount_1 == 1 {
-        //return err!();
-    }
-
     dex_state.swap_fees_token_0 = dex_state
         .swap_fees_token_0
         .checked_sub(amount_0)
@@ -353,7 +353,7 @@ pub fn withdraw_dex_fee(ctx: Context<WithdrawDexFee>) -> Result<()> {
     )?;
 
     emit!(WithdrawDexFeeEvent {
-        admin_id: ctx.accounts.payer.key(),
+        admin_id: ctx.accounts.admin.key(),
         dex_id,
         token_zero_amount: amount_0,
         token_one_amount: amount_1
@@ -366,7 +366,7 @@ pub fn withdraw_dex_fee(ctx: Context<WithdrawDexFee>) -> Result<()> {
 pub struct WithdrawDexFee<'info> {
     /// Only admin can collect fee now
     #[account(address = authority_manager.admin @ ErrorCode::InvalidAdmin)]
-    pub payer: Signer<'info>,
+    pub admin: Signer<'info>,
     #[account(
         seeds = [DEX_AUTHORITY_MANAGER_SEED.as_bytes()],
         bump = authority_manager.bump

@@ -39,32 +39,35 @@ pub mod dex {
         instructions::initialize_config(ctx)
     }
 
-    pub fn update_swap_fee_rate(ctx: Context<UpdateConfigState>, swap_fee_rate: u64) -> Result<()> {
-        instructions::update_swap_fee_rate(ctx, swap_fee_rate)
+    pub fn update_config_swap_fee_rate(
+        ctx: Context<UpdateConfigState>,
+        swap_fee_rate: u64,
+    ) -> Result<()> {
+        instructions::update_config_swap_fee_rate(ctx, swap_fee_rate)
     }
 
-    pub fn update_launch_fee_rate(
+    pub fn update_config_launch_fee_rate(
         ctx: Context<UpdateConfigState>,
         launch_fee_rate: u64,
     ) -> Result<()> {
-        instructions::update_launch_fee_rate(ctx, launch_fee_rate)
+        instructions::update_config_launch_fee_rate(ctx, launch_fee_rate)
     }
 
-    pub fn update_vault_reserve_bound(
+    pub fn update_config_vault_reserve_bound(
         ctx: Context<UpdateConfigState>,
         vault_reserve_bound: u64,
     ) -> Result<()> {
-        instructions::update_vault_reserve_bound(ctx, vault_reserve_bound)
+        instructions::update_config_vault_reserve_bound(ctx, vault_reserve_bound)
     }
 
-    pub fn update_initial_reserve(
+    pub fn update_config_initial_reserve(
         ctx: Context<UpdateConfigState>,
         initial_reserve: u64,
     ) -> Result<()> {
-        instructions::update_initial_reserve(ctx, initial_reserve)
+        instructions::update_config_initial_reserve(ctx, initial_reserve)
     }
 
-    pub fn collect_protocol_fee(ctx: Context<WithdrawDexFee>) -> Result<()> {
+    pub fn withdraw_dex_fee(ctx: Context<WithdrawDexFee>) -> Result<()> {
         instructions::withdraw_dex_fee(ctx)
     }
 
