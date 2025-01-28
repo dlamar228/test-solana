@@ -14,7 +14,7 @@ pub fn initialize_config(ctx: Context<InitializeConfigState>) -> Result<()> {
     config.vault_reserve_bound = 205_000_000 * 10u64.pow(9);
 
     emit!(InitializeConfigEvent {
-        admin_id: ctx.accounts.payer.key(),
+        admin_id: ctx.accounts.admin.key(),
         config_id,
         swap_fee_rate: config.swap_fee_rate,
         launch_fee_rate: config.launch_fee_rate,
@@ -28,7 +28,7 @@ pub fn initialize_config(ctx: Context<InitializeConfigState>) -> Result<()> {
 #[derive(Accounts)]
 pub struct InitializeConfigState<'info> {
     #[account(mut, address = authority_manager.admin @ ErrorCode::InvalidAdmin)]
-    pub payer: Signer<'info>,
+    pub admin: Signer<'info>,
     #[account(
         seeds = [
             DEX_AUTHORITY_MANAGER_SEED.as_bytes()
@@ -42,7 +42,7 @@ pub struct InitializeConfigState<'info> {
             DEX_CONFIG_SEED.as_bytes()
         ],
         bump,
-        payer = payer,
+        payer = admin,
         space = ConfigState::LEN
     )]
     pub config: Account<'info, ConfigState>,

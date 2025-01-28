@@ -22,7 +22,7 @@ pub fn initialize_faucet_claim_shard(
     faucet_claim.shards += 1;
 
     emit!(InitializeFaucetClaimShardEvent {
-        admin_id: ctx.accounts.payer.key(),
+        admin_id: ctx.accounts.admin.key(),
         faucet_claim_id: ctx.accounts.faucet_claim.key(),
         faucet_claim_shard_id,
         merkle_root
@@ -33,8 +33,8 @@ pub fn initialize_faucet_claim_shard(
 
 #[derive(Accounts)]
 pub struct InitializeFaucetClaimShard<'info> {
-    #[account(mut, constraint = authority_manager.is_admin(payer.key) @ FaucetError::InvalidAdmin)]
-    pub payer: Signer<'info>,
+    #[account(mut, constraint = authority_manager.is_admin(admin.key) @ FaucetError::InvalidAdmin)]
+    pub admin: Signer<'info>,
     #[account(
         seeds = [
             FAUCET_AUTHORITY_MANAGER_SEED.as_bytes(),
@@ -55,7 +55,7 @@ pub struct InitializeFaucetClaimShard<'info> {
             FAUCET_CLAIM_SHARD_SEED.as_bytes(), faucet_claim.key().as_ref(), &faucet_claim.shards.to_be_bytes(),
         ],
         bump,
-        payer = payer,
+        payer = admin,
         space = FaucetClaimShard::LEN,
     )]
     pub faucet_claim_shard: AccountLoader<'info, FaucetClaimShard>,

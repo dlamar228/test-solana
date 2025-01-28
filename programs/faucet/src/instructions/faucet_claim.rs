@@ -36,8 +36,8 @@ pub fn initialize_faucet_claim(ctx: Context<InitializeFaucetClaim>) -> Result<()
 
 #[derive(Accounts)]
 pub struct InitializeFaucetClaim<'info> {
-    #[account(mut, constraint = authority_manager.is_admin(payer.key) @ FaucetError::InvalidAdmin)]
-    pub payer: Signer<'info>,
+    #[account(mut, constraint = authority_manager.is_admin(admin.key) @ FaucetError::InvalidAdmin)]
+    pub admin: Signer<'info>,
     #[account(
         mint::token_program = token_program,
     )]
@@ -71,7 +71,7 @@ pub struct InitializeFaucetClaim<'info> {
             FAUCET_CLAIM_SEED.as_bytes(), mint.key().as_ref(),
         ],
         bump,
-        payer = payer,
+        payer = admin,
         space = FaucetClaim::LEN
     )]
     pub faucet_claim: Box<Account<'info, FaucetClaim>>,

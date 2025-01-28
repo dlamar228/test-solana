@@ -119,7 +119,7 @@ pub fn withdraw_team_tokens(ctx: Context<WithdrawTeamTokens>) -> Result<()> {
     )?;
 
     emit!(WithdrawTeamTokensEvent {
-        admin_id: ctx.accounts.payer.key(),
+        admin_id: ctx.accounts.admin.key(),
         mint_id: ctx.accounts.mint.key(),
         recipient_id: ctx.accounts.recipient.key(),
         amount,
@@ -131,7 +131,7 @@ pub fn withdraw_team_tokens(ctx: Context<WithdrawTeamTokens>) -> Result<()> {
 #[derive(Accounts)]
 pub struct WithdrawTeamTokens<'info> {
     #[account(address = authority_manager.admin @ ErrorCode::InvalidAdmin)]
-    pub payer: Signer<'info>,
+    pub admin: Signer<'info>,
     /// CHECK: launcher authority account
     #[account(
         mut,
