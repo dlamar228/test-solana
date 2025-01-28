@@ -277,9 +277,9 @@ export class DexUtils {
     let [config] = this.pdaGetter.getConfigStateAddress();
     let [authorityManager] = this.pdaGetter.getAuthorityManagerAddress();
     return await this.program.methods
-      .updateLaunchFeeRate(newFeeRate)
+      .updateConfigLaunchFeeRate(newFeeRate)
       .accounts({
-        payer: signer.publicKey,
+        admin: signer.publicKey,
         config,
         authorityManager,
       })
@@ -289,9 +289,9 @@ export class DexUtils {
     let [config] = this.pdaGetter.getConfigStateAddress();
     let [authorityManager] = this.pdaGetter.getAuthorityManagerAddress();
     return await this.program.methods
-      .updateSwapFeeRate(newSwapRate)
+      .updateConfigSwapFeeRate(newSwapRate)
       .accounts({
-        payer: signer.publicKey,
+        admin: signer.publicKey,
         authorityManager,
         config,
       })
@@ -301,9 +301,9 @@ export class DexUtils {
     let [config] = this.pdaGetter.getConfigStateAddress();
     let [authorityManager] = this.pdaGetter.getAuthorityManagerAddress();
     return await this.program.methods
-      .updateInitialReserve(initialReserve)
+      .updateConfigInitialReserve(initialReserve)
       .accounts({
-        payer: signer.publicKey,
+        admin: signer.publicKey,
         authorityManager,
         config,
       })
@@ -313,9 +313,9 @@ export class DexUtils {
     let [config] = this.pdaGetter.getConfigStateAddress();
     let [authorityManager] = this.pdaGetter.getAuthorityManagerAddress();
     return await this.program.methods
-      .updateVaultReserveBound(vaultReserveBound)
+      .updateConfigVaultReserveBound(vaultReserveBound)
       .accounts({
-        payer: signer.publicKey,
+        admin: signer.publicKey,
         authorityManager,
         config,
       })
