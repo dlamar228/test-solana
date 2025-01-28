@@ -336,9 +336,9 @@ The Dex contract allows swaps using SPL and Token2022 interfaces. Only mints wit
       }
    ```
    **Returns** : None.</br>
-- **launch** :</br>
+- **launch_dex** :</br>
    **Purpose** : Create standard Raydium AMM, calculate launch fee and burn LP tokens.</br>
-   **Parameters** : None.</br>
+   **Parameters** : Shared lamports to send authority. Used to pay for standard Raydium AMM creation.</br>
    **Event** :
    ```rust
       pub struct DexLaunchedEvent {

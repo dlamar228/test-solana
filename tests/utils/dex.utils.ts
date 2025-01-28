@@ -217,7 +217,7 @@ export class DexUtils {
     );
 
     return await this.program.methods
-      .launch(args.sharedLamports)
+      .launchDex(args.sharedLamports)
       .accounts({
         dexAuthority: args.dexAccounts.authority,
         dexConfig: args.dexAccounts.config,

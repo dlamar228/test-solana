@@ -112,7 +112,7 @@ pub mod dex {
         instructions::swap_base_output(&ctx, max_amount_in, amount_out)
     }
 
-    pub fn launch(ctx: Context<LaunchDex>, shared_lamports: u64) -> Result<()> {
+    pub fn launch_dex(ctx: Context<LaunchDex>, shared_lamports: u64) -> Result<()> {
         instructions::launch_dex(ctx, shared_lamports)
     }
 }
