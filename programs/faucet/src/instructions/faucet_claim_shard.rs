@@ -81,7 +81,7 @@ pub fn claim(ctx: Context<Claim>, proofs: Vec<[u8; 32]>, index: u16, amount: u64
         return err!(FaucetError::TokensAlreadyClaimed);
     }
 
-    let leaf = generate_leaf(&shard_id, ctx.accounts.payer.key, amount);
+    let leaf = generate_leaf(&shard_id, ctx.accounts.payer.key, index, amount);
     if !merkle_proof_verify(faucet_claim_shard.merkle_root, proofs, leaf) {
         return err!(FaucetError::InvalidProof);
     }

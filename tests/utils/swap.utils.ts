@@ -119,7 +119,13 @@ export class SetupSwapTest {
     );
 
     let leafs = [...Array(1)].map(
-      (_) => new FaucetMerkleLeaf(shardAddress, signer.publicKey, faucetAmount)
+      (_, index) =>
+        new FaucetMerkleLeaf(
+          shardAddress,
+          signer.publicKey,
+          new BN(index),
+          faucetAmount
+        )
     );
     let merkle_tree = new FaucetMerkleTree(leafs);
     let merkle_root = merkle_tree.tree.getRoot();
@@ -134,7 +140,7 @@ export class SetupSwapTest {
       faucetClaimShardArgs
     );
 
-    let leafProof = merkle_tree.getIndexProof(0);
+    let leafProof = merkle_tree.getLeafProof(new BN(0));
 
     let claimArgs = {
       faucetAccounts,

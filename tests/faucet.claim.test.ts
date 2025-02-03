@@ -54,7 +54,13 @@ describe("faucet.claim.test", () => {
     );
 
     let leafs = [...Array(65535)].map(
-      (_) => new FaucetMerkleLeaf(shardAddress, signer.publicKey, new BN(250))
+      (value, index) =>
+        new FaucetMerkleLeaf(
+          shardAddress,
+          signer.publicKey,
+          new BN(index),
+          new BN(250)
+        )
     );
     let merkle_tree = new FaucetMerkleTree(leafs);
     let merkle_root = merkle_tree.tree.getRoot();
@@ -115,7 +121,13 @@ describe("faucet.claim.test", () => {
     );
 
     let leafs = addresses.map(
-      (x) => new FaucetMerkleLeaf(shardAddress, x.publicKey, faucetAmount)
+      (value, index) =>
+        new FaucetMerkleLeaf(
+          shardAddress,
+          value.publicKey,
+          new BN(index),
+          faucetAmount
+        )
     );
 
     let merkle_tree = new FaucetMerkleTree(leafs);
@@ -133,13 +145,12 @@ describe("faucet.claim.test", () => {
     );
 
     for (let index = 0; index < merkle_tree.tree.getLeafCount(); index++) {
-      let leafProof = merkle_tree.getIndexProof(index);
-
+      let leafProof = merkle_tree.getLeafProof(new BN(index));
       let claimArgs = {
         faucetAccounts,
         faucetClaimShard,
         payerVault: tokenVault,
-        index: leafProof.index,
+        index,
         path: leafProof.proof,
         amount: faucetAmount,
       };

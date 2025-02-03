@@ -313,6 +313,7 @@ export interface FaucetAccounts {
 
 export interface LeafProof {
   index: number;
+  customIndex: BN;
   leaf: ArrayBufferLike;
   proof: Array<Buffer<ArrayBufferLike>>;
 }
@@ -380,18 +381,21 @@ export class FaucetSeeds {
 export class FaucetMerkleLeaf {
   shard: PublicKey;
   address: PublicKey;
+  index: BN;
   amount: BN;
 
-  constructor(shard: PublicKey, address: PublicKey, amount: BN) {
+  constructor(shard: PublicKey, address: PublicKey, index: BN, amount: BN) {
     this.shard = shard;
     this.address = address;
     this.amount = amount;
+    this.index = index;
   }
 
   toBuffer() {
     let data = Buffer.from([
       ...this.shard.toBuffer(),
       ...this.address.toBuffer(),
+      ...this.index.toArray("le", 2),
       ...this.amount.toArray("le", 8),
     ]);
 
@@ -418,8 +422,8 @@ export class FaucetMerkleTree {
     );
   }
 
-  getLeaf(address: PublicKey): FaucetMerkleLeaf | null {
-    let leaf = this.leafs.find((x) => x.address.equals(address));
+  getLeaf(customIndex: BN): FaucetMerkleLeaf | null {
+    let leaf = this.leafs.find((x) => x.index.eq(customIndex));
     if (!leaf) {
       return null;
     }
@@ -427,18 +431,18 @@ export class FaucetMerkleTree {
     return leaf;
   }
 
-  getIndexProof(index: number): LeafProof | null {
-    let keccak = this.tree.getLeaf(index);
-    let proof = this.tree.getProof(keccak, index).map((x) => x.data);
-    return {
-      index,
-      leaf: keccak,
-      proof,
-    };
-  }
+  // getIndexProof(index: number): LeafProof | null {
+  //   let keccak = this.tree.getLeaf(index);
+  //   let proof = this.tree.getProof(keccak, index).map((x) => x.data);
+  //   return {
+  //     index,
+  //     leaf: keccak,
+  //     proof,
+  //   };
+  // }
 
-  getLeafProof(address: PublicKey): LeafProof | null {
-    let leaf = this.getLeaf(address);
+  getLeafProof(customIndex: BN): LeafProof | null {
+    let leaf = this.getLeaf(customIndex);
     if (!leaf) {
       return null;
     }
@@ -453,13 +457,14 @@ export class FaucetMerkleTree {
 
     return {
       index,
+      customIndex: customIndex,
       leaf: keccak,
       proof,
     };
   }
 
-  verify_address(address: PublicKey): boolean | null {
-    let leaf = this.getLeaf(address);
+  verify_custom_index(customIndex: BN): boolean | null {
+    let leaf = this.getLeaf(customIndex);
     if (!leaf) {
       return null;
     }
