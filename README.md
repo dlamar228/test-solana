@@ -142,9 +142,9 @@ The Launcher contract manage Dex creation, token mint creation for Dex and how m
    **Returns** : None.</br>
 
 ## DEPLOY
-Create *.so files in traget/deploy run: `cargo build-sbf` </br>
 Sync program keys run: `anchor keys sync` </br>
-Deploy Dex contract run: `solana program deploy --program-id ./target/deploy/dex-keypair.json ./target/deploy/ex.so --url localhost`
+Create *.so files in target/deploy run: `cargo build-sbf` </br>
+Deploy Dex contract run: `solana program deploy --program-id ./target/deploy/launcher-keypair.json ./target/deploy/launcher.so --url localhost`
 
 # DEX
 The Dex contract allows swaps using SPL and Token2022 interfaces. Only mints with extensions such as TransferFeeConfig, MetadataPointer, and TokenMetadata are permitted. When the vault reserve threshold is reached, swaps are halted, and the contract waits for the admin to launch and create a Raydium AMM.
@@ -360,8 +360,8 @@ The Dex contract allows swaps using SPL and Token2022 interfaces. Only mints wit
    **Returns** : None.</br>
 
 ## DEPLOY
-Create *.so files in traget/deploy run: `cargo build-sbf` </br>
 Sync program keys run: `anchor keys sync` </br>
+Create *.so files in target/deploy run: `cargo build-sbf` </br>
 Deploy Dex contract run: `solana program deploy --program-id ./target/deploy/dex-keypair.json ./target/deploy/dex.so --url localhost`
 
 
@@ -494,6 +494,6 @@ The Faucet contract does not store used mints, created faucet claims, or faucet 
    **Returns** : None.</br>
 
 ## DEPLOY
-Create *.so files in traget/deploy run: `cargo build-sbf` </br>
 Sync program keys run: `anchor keys sync` </br>
+Create *.so files in target/deploy run: `cargo build-sbf` </br>
 Deploy Faucet contract run: `solana program deploy --program-id ./target/deploy/faucet-keypair.json ./target/deploy/faucet.so --url localhost`
