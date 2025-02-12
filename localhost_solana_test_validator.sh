@@ -32,7 +32,13 @@ solana-test-validator \
   --clone CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C \
   --clone DNXgeM9EiiaAbaWvwjHj9fQQLAX5ZsfHyvmYUNRAdNC8 \
   --clone D4FPEruKEHrG5TenZ2mpDGEfu1iUvTiqBxvpU8HLBvC2 \
+  --clone TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA \
+  --clone TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb \
+  --clone ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL \
+  --clone 9pan9bMn5HatX4EJdBwg9VgCa7Uz5HL8N1m5D3NdXejP \
+  --clone So11111111111111111111111111111111111111112 \
   --clone metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s \
+  --clone PwDiXFxQsGra4sFFTT8r1QWRMd4vfumiWC1jfWNfdYT \
   > validator.log 2>&1 &
 
 # Store the PID of the background process
