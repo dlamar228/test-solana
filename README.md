@@ -2,7 +2,9 @@
 The purpose of the project is to create a faucet and a DEX to collect liquidity for the creation of a standard Raydium AMM. To reach this was written 3 contracts:
 1. **Launcher**: This is the main contract that enables anyone to create a Dex with a pair of two token mints. It mints tokens for teams and the faucet, while the remaining tokens are supplied to the Dex. 
 2. **Dex**: This is the main contract that enables anyone to create a Dex with a pair of two token mints. It mints tokens for teams and the faucet, while the remaining tokens are supplied to the Dex.
-3. **Faucet**: This contract provides an option for airdrops. 
+3. **Faucet**: This contract provides an option for airdrops.
+
+To run on localhost for test with deployed contract do: `./localhost_solana_test_validator.sh`. Script will build contract, load raydium and token meta accounts and run solana test validator with logs in `validator.log` and `transaction.log` files. 
 
 # LAUNCHER
 The Launcher contract manage Dex creation, token mint creation for Dex and how much tokens will get Dex, team and Faucet. The passed tokens will be sorted. Contract does not store used mints, created Dex. Instead, someone must parse events to obtain this data.
