@@ -307,7 +307,8 @@ impl<'info> Swapper<'info> {
             input_transfer_fee,
             output_transfer_fee,
             remaining_tokens,
-            base_input: true
+            base_input: true,
+            trade_direction: trade_direction.into(),
         });
 
         if dex_state.is_reached_reserve_bound(vault_reserve_amount) {
@@ -442,7 +443,8 @@ impl<'info> Swapper<'info> {
             input_transfer_fee,
             output_transfer_fee,
             remaining_tokens,
-            base_input: false
+            base_input: false,
+            trade_direction: trade_direction.into(),
         });
 
         if dex_state.is_reached_reserve_bound(vault_reserve_amount) {

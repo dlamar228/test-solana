@@ -133,6 +133,8 @@ pub fn initialize_dex(
 
     CurveCalculator::validate_supply(token_0_vault.amount, token_1_vault.amount)?;
 
+    let vault_reserve_bound = ctx.accounts.config.vault_reserve_bound;
+
     dex_state.initialize(
         ctx.accounts.payer.key(),
         ctx.accounts.dex_vault_zero.key(),
@@ -141,7 +143,7 @@ pub fn initialize_dex(
         &ctx.accounts.mint_one,
         vault_for_reserve_bound,
         reserve_bound_ge,
-        ctx.accounts.config.vault_reserve_bound,
+        vault_reserve_bound,
     );
 
     emit!(InitializeDexEvent {
@@ -149,8 +151,10 @@ pub fn initialize_dex(
         payer_id: ctx.accounts.payer.key(),
         mint_zero: ctx.accounts.mint_zero.key(),
         mint_one: ctx.accounts.mint_one.key(),
-        token_zero_amount: init_amount_zero,
-        token_one_amount: init_amount_one,
+        token_zero_amount: token_0_vault.amount,
+        token_one_amount: token_1_vault.amount,
+        reserve_bound: vault_reserve_bound,
+        vault_for_reserve_bound,
     });
 
     Ok(())

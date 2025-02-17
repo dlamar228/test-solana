@@ -23,6 +23,15 @@ pub enum TradeDirection {
     OneForZero,
 }
 
+impl From<TradeDirection> for bool {
+    fn from(val: TradeDirection) -> Self {
+        match val {
+            TradeDirection::ZeroForOne => false,
+            TradeDirection::OneForZero => true,
+        }
+    }
+}
+
 /// The direction to round.  Used for pool token to trading token conversions to
 /// avoid losing value on any deposit or withdrawal.
 #[repr(C)]

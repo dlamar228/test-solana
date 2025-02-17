@@ -87,6 +87,8 @@ pub struct InitializeDexEvent {
     pub mint_one: Pubkey,
     pub token_zero_amount: u64,
     pub token_one_amount: u64,
+    pub reserve_bound: u64,
+    pub vault_for_reserve_bound: bool,
 }
 
 /// Emitted when swap
@@ -107,6 +109,7 @@ pub struct SwapEvent {
     pub output_transfer_fee: u64,
     pub remaining_tokens: u64,
     pub base_input: bool,
+    pub trade_direction: bool,
 }
 
 #[event]
