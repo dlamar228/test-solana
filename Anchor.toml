@@ -6,9 +6,9 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-dex = "5eRYKyectJjwN8kVhmanV6HhnbaMq7yApou63MszV1m5"
-faucet = "HQdHG8NnJdcfb5MTRZvq1SaaFsBcjQ32aDZh1eRnrdwZ"
-launcher = "9ZVY6FrxsgoT29cqTxCPjdVBv2qLTEQHB29pYPnV5LGa"
+dex = "8PTUyQsde4zDXUcAStXJFHkAUtcWnDJsPgGRZGp4PMCb"
+faucet = "6yVS7ahq8DptF32N5LDcgjRi78xCWhPV8URQ4Eg6Ftk7"
+launcher = "4rWe4F9bpyy98MTAePXKNBXmGd3XJfzGPYwXKtrTHWmc"
 
 [registry]
 url = "https://api.apr.dev"
