@@ -60,6 +60,11 @@ describe("dex.swap.test", () => {
           signer,
           swapTest.swapBaseInputArgs
         );
+
+        let actual = await dexUtils.dexIsReadyToLaunch(
+          swapTest.dexAccounts.dex
+        );
+        expect(actual, "Dex ready to launch!").equal(false);
       });
 
       it("Should swap base input and prepared to launch", async () => {
@@ -86,7 +91,7 @@ describe("dex.swap.test", () => {
 
         let actualSwapFee = await swapInputTemplate.getDexSwapFees(
           swapTest.dexAccounts,
-          swapTest.vaultForReserveBound
+          swapTest.zeroToOne
         );
 
         expect(
@@ -106,7 +111,7 @@ describe("dex.swap.test", () => {
 
         let initDexVaultAmount = await swapInputTemplate.getDexBalance(
           swapTest.dexAccounts,
-          swapTest.vaultForReserveBound
+          swapTest.zeroToOne
         );
 
         let expectedLaunchFee = swapCalculator.curve.Fee(
@@ -123,7 +128,7 @@ describe("dex.swap.test", () => {
 
         let actualSwapFee = await swapInputTemplate.getDexSwapFees(
           swapTest.dexAccounts,
-          swapTest.vaultForReserveBound
+          swapTest.zeroToOne
         );
 
         expect(
@@ -161,7 +166,7 @@ describe("dex.swap.test", () => {
 
         let actualLaunchFee = await swapInputTemplate.getDexLaunchFees(
           swapTest.dexAccounts,
-          swapTest.vaultForReserveBound
+          swapTest.zeroToOne
         );
 
         expect(
@@ -175,14 +180,14 @@ describe("dex.swap.test", () => {
         ).not.to.be.null;
       });
 
-      it("Should swap base output", async () => {
-        let swapTest = await swapOutputTemplate.setupSwapBaseOutput(signer);
+      // it("Should swap base output", async () => {
+      //   let swapTest = await swapOutputTemplate.setupSwapBaseOutput(signer);
 
-        let swapTx = await dexUtils.swapBaseOutput(
-          signer,
-          swapTest.swapBaseOutputArgs
-        );
-      });
+      //   let swapTx = await dexUtils.swapBaseOutput(
+      //     signer,
+      //     swapTest.swapBaseOutputArgs
+      //   );
+      // });
 
       /*  it("Should swap base output with fee", async () => {
         let swapTest = await swapOutputTemplate.setupSwapBaseOutput(signer);

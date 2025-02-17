@@ -87,9 +87,9 @@ pub fn initialize_dex(
     let dex_state = &mut dex_state_loader.load_init()?;
 
     let (init_amount_zero, init_amount_one) = if vault_for_reserve_bound {
-        (ctx.accounts.config.initial_reserve, init_amount)
-    } else {
         (init_amount, ctx.accounts.config.initial_reserve)
+    } else {
+        (ctx.accounts.config.initial_reserve, init_amount)
     };
 
     transfer_from_user_to_dex_vault(

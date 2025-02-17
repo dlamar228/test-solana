@@ -366,7 +366,7 @@ impl<'info> DexInitializer<'info> {
             dex_vault_zero,
             dex_vault_one,
         ) = if self.mint_authority.key() > self.mint.key() {
-            vault_for_reserve_bound = true;
+            vault_for_reserve_bound = false;
             (
                 self.payer_vault.to_account_info(),
                 self.payer_vault_authority.to_account_info(),
@@ -378,7 +378,7 @@ impl<'info> DexInitializer<'info> {
                 self.dex_vault_authority.to_account_info(),
             )
         } else {
-            vault_for_reserve_bound = false;
+            vault_for_reserve_bound = true;
             (
                 self.payer_vault_authority.to_account_info(),
                 self.payer_vault.to_account_info(),
@@ -441,7 +441,7 @@ impl<'info> DexInitializer<'info> {
             cpi_context,
             rest_token_amount,
             sorted_mints.vault_for_reserve_bound,
-            false,
+            true,
         )?;
 
         if self.faucet_vault.is_some() {

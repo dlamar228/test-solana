@@ -23,6 +23,7 @@ export interface SetupInputSwap {
   swapInputExpected: SwapBaseResult;
   atas: Atas;
   vaultForReserveBound: boolean;
+  zeroToOne: boolean;
 }
 
 export interface Atas {
@@ -243,7 +244,7 @@ export class SetupSwapTest {
     zeroToOne: boolean
   ): Promise<[BN, BN]> {
     let vaultBalance = await this.getAtaBalance(atas, zeroToOne);
-    let amountIn = vaultBalance.div(new BN(10));
+    let amountIn = new BN(1000);
     let minimumAmountOut = new BN(1);
 
     if (launch) {
@@ -316,13 +317,15 @@ export class SetupSwapTest {
       await this.dexUtils.getDexState(dexAccounts.dex)
     ).vaultForReserveBound;
 
+    let zeroToOne = !vaultForReserveBound;
+
     let [amountIn, minimumAmountOut] = await this.getSwapInputParams(
       atas,
       launch,
-      vaultForReserveBound
+      zeroToOne
     );
 
-    let swapBaseInputArgs = vaultForReserveBound
+    let swapBaseInputArgs = zeroToOne
       ? {
           inputToken: dexAccounts.vaultZero.mint.address,
           inputTokenProgram: dexAccounts.vaultZero.mint.program,
@@ -354,7 +357,7 @@ export class SetupSwapTest {
       dexAccounts,
       amountIn,
       minimumAmountOut,
-      vaultForReserveBound
+      zeroToOne
     );
 
     return {
@@ -363,6 +366,7 @@ export class SetupSwapTest {
       swapInputExpected,
       atas,
       vaultForReserveBound,
+      zeroToOne,
     };
   }
 

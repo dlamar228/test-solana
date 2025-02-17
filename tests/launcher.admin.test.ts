@@ -91,7 +91,7 @@ describe("launcher.admin.test", () => {
 
     let swapTest = await swapInputTemplate.setupSwapBaseInput(signer);
 
-    let vault = swapTest.vaultForReserveBound
+    let vault = !swapTest.vaultForReserveBound
       ? swapTest.atas.vaultOne
       : swapTest.atas.vaultZero;
 
