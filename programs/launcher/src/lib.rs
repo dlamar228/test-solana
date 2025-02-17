@@ -52,12 +52,16 @@ pub mod launcher {
         instructions::update_config_faucet_tokens(ctx, faucet_tokens)
     }
 
-    pub fn initialize_dex(ctx: Context<CpiInitializeDex>) -> Result<()> {
-        instructions::cpi_initialize_dex(ctx)
+    pub fn initialize_dex<'info>(
+        ctx: Context<'_, '_, '_, 'info, CpiInitializeDex<'info>>,
+    ) -> Result<()> {
+        instructions::cpi_initialize_dex(&ctx)
     }
 
-    pub fn initialize_dex_with_faucet(ctx: Context<CpiInitializeDexWithFaucet>) -> Result<()> {
-        instructions::cpi_initialize_dex_with_faucet(ctx)
+    pub fn initialize_dex_with_faucet<'info>(
+        ctx: Context<'_, '_, '_, 'info, CpiInitializeDexWithFaucet<'info>>,
+    ) -> Result<()> {
+        instructions::cpi_initialize_dex_with_faucet(&ctx)
     }
 
     pub fn initialize_mint(
