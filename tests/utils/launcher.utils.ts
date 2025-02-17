@@ -247,7 +247,6 @@ export class LauncherUtils {
           mintAuthority: args.mintAuthority.address,
           tokenProgramPayer: args.payerVault.mint.program,
           tokenProgramAuthority: args.mintAuthority.program,
-          faucetAuthority,
           teamVault,
           payerVault: args.payerVault.address,
         })
