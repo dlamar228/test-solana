@@ -53,8 +53,6 @@ pub fn initialize_mint(
         None,  // Collection details
     )?;
 
-    ctx.accounts.mint.key().log();
-
     Ok(())
 }
 
