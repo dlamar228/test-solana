@@ -26,8 +26,8 @@ pub enum TradeDirection {
 impl From<TradeDirection> for bool {
     fn from(val: TradeDirection) -> Self {
         match val {
-            TradeDirection::ZeroForOne => false,
-            TradeDirection::OneForZero => true,
+            TradeDirection::ZeroForOne => true,
+            TradeDirection::OneForZero => false,
         }
     }
 }
