@@ -434,6 +434,7 @@ The Faucet contract does not store used mints, created faucet claims, or faucet 
     pub struct DestroyFaucetClaimEvent {
         #[index]
         pub faucet_claim_id: Pubkey,
+        pub mint_id: Pubkey,
     }
    ```
    **Returns** : None.</br>

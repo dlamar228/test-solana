@@ -30,6 +30,7 @@ pub struct SetAuthorityManagerAdminEvent {
 pub struct InitializeFaucetClaimEvent {
     #[index]
     pub faucet_claim_id: Pubkey,
+    pub mint_id: Pubkey,
     pub total_faucet_amount: u64,
 }
 
