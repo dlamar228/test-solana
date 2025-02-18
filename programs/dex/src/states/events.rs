@@ -109,7 +109,7 @@ pub struct SwapEvent {
     pub output_transfer_fee: u64,
     pub remaining_tokens: u64,
     pub base_input: bool,
-    pub trade_direction: bool,
+    pub zero_to_one: bool,
 }
 
 #[event]

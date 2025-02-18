@@ -310,7 +310,7 @@ The Dex contract allows swaps using SPL and Token2022 interfaces. Only mints wit
          pub output_transfer_fee: u64,
          pub remaining_tokens: u64,
          pub base_input: bool,
-         pub trade_direction: bool,
+         pub zero_to_one: bool,
       }
       pub struct DexIsReadyToLaunchEvent {
          #[index]
@@ -334,7 +334,7 @@ The Dex contract allows swaps using SPL and Token2022 interfaces. Only mints wit
          pub output_transfer_fee: u64,
          pub remaining_tokens: u64,
          pub base_input: bool,
-         pub trade_direction: bool,
+         pub zero_to_one: bool,
       }
       pub struct DexIsReadyToLaunchEvent {
          #[index]
