@@ -30,8 +30,6 @@ pub struct SetAuthorityManagerAdminEvent {
 pub struct InitializeFaucetClaimEvent {
     #[index]
     pub faucet_claim_id: Pubkey,
-    #[index]
-    pub mint_id: Pubkey,
     pub total_faucet_amount: u64,
 }
 
@@ -40,8 +38,6 @@ pub struct InitializeFaucetClaimEvent {
 pub struct WithdrawExpiredFaucetClaimEvent {
     #[index]
     pub faucet_claim_id: Pubkey,
-    #[index]
-    pub mint_id: Pubkey,
     pub amount: u64,
 }
 
@@ -49,16 +45,12 @@ pub struct WithdrawExpiredFaucetClaimEvent {
 #[cfg_attr(feature = "client", derive(Debug))]
 pub struct DestroyFaucetClaimEvent {
     #[index]
-    pub admin_id: Pubkey,
-    #[index]
     pub faucet_claim_id: Pubkey,
 }
 
 #[event]
 #[cfg_attr(feature = "client", derive(Debug))]
 pub struct InitializeFaucetClaimShardEvent {
-    #[index]
-    pub admin_id: Pubkey,
     #[index]
     pub faucet_claim_id: Pubkey,
     pub faucet_claim_shard_id: Pubkey,
@@ -69,17 +61,15 @@ pub struct InitializeFaucetClaimShardEvent {
 #[cfg_attr(feature = "client", derive(Debug))]
 pub struct ClaimEvent {
     #[index]
+    pub faucet_claim_id: Pubkey,
+    pub faucet_claim_shard_id: Pubkey,
     pub address_id: Pubkey,
-    #[index]
-    pub mint_id: Pubkey,
     pub amount: u64,
 }
 
 #[event]
 #[cfg_attr(feature = "client", derive(Debug))]
 pub struct DestroyFaucetClaimShardEvent {
-    #[index]
-    pub admin_id: Pubkey,
     #[index]
     pub faucet_claim_id: Pubkey,
     pub faucet_claim_shard_id: Pubkey,

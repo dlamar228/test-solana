@@ -22,7 +22,6 @@ pub fn initialize_faucet_claim_shard(
     faucet_claim.shards += 1;
 
     emit!(InitializeFaucetClaimShardEvent {
-        admin_id: ctx.accounts.admin.key(),
         faucet_claim_id: ctx.accounts.faucet_claim.key(),
         faucet_claim_shard_id,
         merkle_root
@@ -109,9 +108,10 @@ pub fn claim(ctx: Context<Claim>, proofs: Vec<[u8; 32]>, index: u16, amount: u64
     )?;
 
     emit!(ClaimEvent {
-        address_id: ctx.accounts.payer.key(),
-        mint_id: ctx.accounts.mint.key(),
-        amount
+        faucet_claim_id: ctx.accounts.faucet_claim.key(),
+        faucet_claim_shard_id: ctx.accounts.faucet_claim_shard.key(),
+        address_id: ctx.accounts.payer_vault.key(),
+        amount,
     });
 
     Ok(())
@@ -173,7 +173,6 @@ pub struct Claim<'info> {
 
 pub fn destroy_faucet_claim_shard(ctx: Context<DestroyFaucetClaimShard>) -> Result<()> {
     emit!(DestroyFaucetClaimShardEvent {
-        admin_id: ctx.accounts.payer.key(),
         faucet_claim_id: ctx.accounts.faucet_claim.key(),
         faucet_claim_shard_id: ctx.accounts.faucet_claim_shard.key(),
     });

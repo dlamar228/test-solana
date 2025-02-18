@@ -27,7 +27,6 @@ pub fn initialize_faucet_claim(ctx: Context<InitializeFaucetClaim>) -> Result<()
 
     emit!(InitializeFaucetClaimEvent {
         faucet_claim_id,
-        mint_id: ctx.accounts.mint.key(),
         total_faucet_amount: faucet_amount
     });
 
@@ -119,7 +118,6 @@ pub fn withdraw_expired_faucet_claim(ctx: Context<WithdrawExpiredFaucetClaim>) -
 
     emit!(WithdrawExpiredFaucetClaimEvent {
         faucet_claim_id: ctx.accounts.faucet_claim.key(),
-        mint_id: ctx.accounts.mint.key(),
         amount,
     });
 
@@ -172,7 +170,6 @@ pub struct WithdrawExpiredFaucetClaim<'info> {
 
 pub fn destroy_faucet_claim(ctx: Context<DestroyFaucetClaim>) -> Result<()> {
     emit!(DestroyFaucetClaimEvent {
-        admin_id: ctx.accounts.payer.key(),
         faucet_claim_id: ctx.accounts.faucet_claim.key(),
     });
     Ok(())

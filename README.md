@@ -422,8 +422,6 @@ The Faucet contract does not store used mints, created faucet claims, or faucet 
     pub struct InitializeFaucetClaimEvent {
         #[index]
         pub faucet_claim_id: Pubkey,
-        #[index]
-        pub mint_id: Pubkey,
         pub total_faucet_amount: u64,
     }
    ```
@@ -435,8 +433,6 @@ The Faucet contract does not store used mints, created faucet claims, or faucet 
    ```rust
     pub struct DestroyFaucetClaimEvent {
         #[index]
-        pub admin_id: Pubkey,
-        #[index]
         pub faucet_claim_id: Pubkey,
     }
    ```
@@ -447,8 +443,6 @@ The Faucet contract does not store used mints, created faucet claims, or faucet 
    **Event** :
    ```rust
     pub struct InitializeFaucetClaimShardEvent {
-        #[index]
-        pub admin_id: Pubkey,
         #[index]
         pub faucet_claim_id: Pubkey,
         pub faucet_claim_shard_id: Pubkey,
@@ -463,8 +457,6 @@ The Faucet contract does not store used mints, created faucet claims, or faucet 
    ```rust
     pub struct DestroyFaucetClaimShardEvent {
         #[index]
-        pub admin_id: Pubkey,
-        #[index]
         pub faucet_claim_id: Pubkey,
         pub faucet_claim_shard_id: Pubkey,
     }
@@ -477,9 +469,9 @@ The Faucet contract does not store used mints, created faucet claims, or faucet 
    ```rust
     pub struct ClaimEvent {
         #[index]
+        pub faucet_claim_id: Pubkey,
+        pub faucet_claim_shard_id: Pubkey,
         pub address_id: Pubkey,
-        #[index]
-        pub mint_id: Pubkey,
         pub amount: u64,
     }
    ```
@@ -492,8 +484,6 @@ The Faucet contract does not store used mints, created faucet claims, or faucet 
     pub struct WithdrawExpiredFaucetClaimEvent {
         #[index]
         pub faucet_claim_id: Pubkey,
-        #[index]
-        pub mint_id: Pubkey,
         pub amount: u64,
     }
    ```
