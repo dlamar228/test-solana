@@ -32,6 +32,8 @@ pub struct InitializeFaucetClaimEvent {
     pub faucet_claim_id: Pubkey,
     pub mint_id: Pubkey,
     pub total_faucet_amount: u64,
+    pub starts: u64,
+    pub ends: u64,
 }
 
 #[event]

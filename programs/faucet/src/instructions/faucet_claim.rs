@@ -28,7 +28,9 @@ pub fn initialize_faucet_claim(ctx: Context<InitializeFaucetClaim>) -> Result<()
     emit!(InitializeFaucetClaimEvent {
         faucet_claim_id,
         mint_id: ctx.accounts.mint.key(),
-        total_faucet_amount: faucet_amount
+        total_faucet_amount: faucet_amount,
+        starts: claim_starts,
+        ends: claim_ends,
     });
 
     Ok(())
