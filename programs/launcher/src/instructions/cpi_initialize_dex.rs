@@ -441,7 +441,6 @@ impl<'info> DexInitializer<'info> {
             cpi_context,
             rest_token_amount,
             sorted_mints.vault_for_reserve_bound,
-            true,
         )?;
 
         if self.faucet_vault.is_some() {

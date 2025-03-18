@@ -20,8 +20,6 @@ pub struct DexState {
     pub is_ready_to_launch: bool,
     // if false for vault_0 , true for vault_1
     pub vault_for_reserve_bound: bool,
-    // if else amount le reserve, true amount ge reserve,
-    pub reserve_bound_ge: bool,
     // if false condition gte , true for vault_1
     pub vault_reserve_bound: u64,
 
@@ -57,7 +55,6 @@ impl DexState {
         token_0_mint: &InterfaceAccount<Mint>,
         token_1_mint: &InterfaceAccount<Mint>,
         vault_for_reserve_bound: bool,
-        reserve_bound_ge: bool,
         vault_reserve_bound: u64,
     ) {
         self.pool_creator = pool_creator.key();
@@ -66,7 +63,6 @@ impl DexState {
         self.is_launched = false;
         self.vault_reserve_bound = vault_reserve_bound;
         self.vault_for_reserve_bound = vault_for_reserve_bound;
-        self.reserve_bound_ge = reserve_bound_ge;
         self.token_0_mint = token_0_mint.key();
         self.token_1_mint = token_1_mint.key();
         self.token_0_program = *token_0_mint.to_account_info().owner;
@@ -110,22 +106,12 @@ impl DexState {
     }
 
     pub fn is_reached_reserve_bound(&self, amount: u64) -> bool {
-        if self.reserve_bound_ge {
-            amount >= self.vault_reserve_bound
-        } else {
-            amount <= self.vault_reserve_bound
-        }
+        amount >= self.vault_reserve_bound
     }
 
     pub fn get_remaining_tokens(&self, vault_reserve_amount: u64) -> u64 {
-        if self.reserve_bound_ge {
-            self.vault_reserve_bound
-                .checked_sub(vault_reserve_amount)
-                .unwrap_or_default()
-        } else {
-            vault_reserve_amount
-                .checked_sub(self.vault_reserve_bound)
-                .unwrap_or_default()
-        }
+        vault_reserve_amount
+            .checked_sub(self.vault_reserve_bound)
+            .unwrap_or_default()
     }
 }

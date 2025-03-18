@@ -36,7 +36,6 @@ pub fn initialize_dex(
     ctx: Context<InitializeDex>,
     init_amount: u64,
     vault_for_reserve_bound: bool,
-    reserve_bound_ge: bool,
 ) -> Result<()> {
     if !(is_supported_mint(&ctx.accounts.mint_zero).unwrap()
         && is_supported_mint(&ctx.accounts.mint_one).unwrap())
@@ -85,7 +84,6 @@ pub fn initialize_dex(
         &ctx.accounts.system_program.to_account_info(),
     )?;
     let dex_state = &mut dex_state_loader.load_init()?;
-
     let (init_amount_zero, init_amount_one) = if vault_for_reserve_bound {
         (init_amount, ctx.accounts.config.initial_reserve)
     } else {
@@ -142,7 +140,6 @@ pub fn initialize_dex(
         &ctx.accounts.mint_zero,
         &ctx.accounts.mint_one,
         vault_for_reserve_bound,
-        reserve_bound_ge,
         vault_reserve_bound,
     );
 

@@ -75,9 +75,8 @@ pub mod dex {
         ctx: Context<InitializeDex>,
         init_amount: u64,
         vault_for_reserve_bound: bool,
-        reserve_bound_ge: bool,
     ) -> Result<()> {
-        instructions::initialize_dex(ctx, init_amount, vault_for_reserve_bound, reserve_bound_ge)
+        instructions::initialize_dex(ctx, init_amount, vault_for_reserve_bound)
     }
 
     /// Swap the tokens in the pool base input amount
