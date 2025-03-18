@@ -110,8 +110,8 @@ impl DexState {
     }
 
     pub fn get_remaining_tokens(&self, vault_reserve_amount: u64) -> u64 {
-        vault_reserve_amount
-            .checked_sub(self.vault_reserve_bound)
+        self.vault_reserve_bound
+            .checked_sub(vault_reserve_amount)
             .unwrap_or_default()
     }
 }
