@@ -7,7 +7,7 @@ pub mod utils;
 
 use instructions::*;
 
-declare_id!("6yVS7ahq8DptF32N5LDcgjRi78xCWhPV8URQ4Eg6Ftk7");
+declare_id!("8HNvSuyri9SbZs61bB45HF8TASRXELMYvybLM4Ljg3Mq");
 
 #[program]
 pub mod faucet {

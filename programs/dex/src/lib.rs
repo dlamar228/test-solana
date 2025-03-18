@@ -7,7 +7,7 @@ pub mod utils;
 use anchor_lang::prelude::*;
 use instructions::*;
 
-declare_id!("8PTUyQsde4zDXUcAStXJFHkAUtcWnDJsPgGRZGp4PMCb");
+declare_id!("8454oEni7sVVVjS4be7V7d92ShgcjtiRcyDb82vcRmDQ");
 
 #[program]
 pub mod dex {
