@@ -100,6 +100,46 @@ describe("dex.swap.test", () => {
         ).to.deep.equal(
           swapTest.swapInputExpected.swapResult.protocolFee.toString()
         );
+
+        let actual = await dexUtils.dexIsReadyToLaunch(
+          swapTest.dexAccounts.dex
+        );
+        expect(actual, "Dex ready to launch!").equal(false);
+      });
+
+      it("Should swap 5 times base input with fee", async () => {
+        let swapTest = await swapInputTemplate.setupSwapBaseInput(signer);
+
+        for (let i = 0; i < 5; i++) {
+          let swapFeeBefore = await swapInputTemplate.getDexSwapFees(
+            swapTest.dexAccounts,
+            swapTest.zeroToOne
+          );
+
+          let swapTx = await dexUtils.swapBaseInput(
+            signer,
+            swapTest.swapBaseInputArgs
+          );
+
+          let SwapFeeAfter = await swapInputTemplate.getDexSwapFees(
+            swapTest.dexAccounts,
+            swapTest.zeroToOne
+          );
+
+          let actualSwapFee = SwapFeeAfter.sub(swapFeeBefore);
+
+          expect(
+            actualSwapFee.toString(),
+            "Swap fee calculation mismatch!"
+          ).to.deep.equal(
+            swapTest.swapInputExpected.swapResult.protocolFee.toString()
+          );
+
+          let actual = await dexUtils.dexIsReadyToLaunch(
+            swapTest.dexAccounts.dex
+          );
+          expect(actual, "Dex ready to launch!").equal(false);
+        }
       });
 
       it("Should swap base input with fee and launch", async () => {
@@ -137,6 +177,7 @@ describe("dex.swap.test", () => {
         ).to.deep.equal(
           swapTest.swapInputExpected.swapResult.protocolFee.toString()
         );
+
         expect(
           await dexUtils.dexIsReadyToLaunch(swapTest.dexAccounts.dex),
           "Dex not ready to launch!"
@@ -180,16 +221,7 @@ describe("dex.swap.test", () => {
         ).not.to.be.null;
       });
 
-      // it("Should swap base output", async () => {
-      //   let swapTest = await swapOutputTemplate.setupSwapBaseOutput(signer);
-
-      //   let swapTx = await dexUtils.swapBaseOutput(
-      //     signer,
-      //     swapTest.swapBaseOutputArgs
-      //   );
-      // });
-
-      /*  it("Should swap base output with fee", async () => {
+      it("Should swap base output", async () => {
         let swapTest = await swapOutputTemplate.setupSwapBaseOutput(signer);
 
         let swapTx = await dexUtils.swapBaseOutput(
@@ -197,14 +229,37 @@ describe("dex.swap.test", () => {
           swapTest.swapBaseOutputArgs
         );
 
-        let actualSwapFee = (
-          await dexUtils.getDexState(swapTest.dexAccounts.dex)
-        ).swapFeesToken0.toNumber();
-
-        expect(actualSwapFee, "Swap fee calculation mismatch!").eq(
-          swapTest.swapOutputExpected.swapResult.protocolFee.toNumber()
+        let actual = await dexUtils.dexIsReadyToLaunch(
+          swapTest.dexAccounts.dex
         );
+        expect(actual, "Dex ready to launch!").equal(false);
       });
+
+      it("Should swap base output with fee", async () => {
+        let swapTest = await swapOutputTemplate.setupSwapBaseOutput(signer);
+
+        let swapTx = await dexUtils.swapBaseOutput(
+          signer,
+          swapTest.swapBaseOutputArgs
+        );
+
+        let actualSwapFee = await swapOutputTemplate.getDexSwapFees(
+          swapTest.dexAccounts,
+          swapTest.zeroToOne
+        );
+
+        expect(
+          actualSwapFee.toString(),
+          "Swap fee calculation mismatch!"
+        ).equal(swapTest.swapOutputExpected.swapResult.protocolFee.toString());
+
+        let actual = await dexUtils.dexIsReadyToLaunch(
+          swapTest.dexAccounts.dex
+        );
+        expect(actual, "Dex ready to launch!").equal(false);
+      });
+
+      /*
 
       it("Should swap base output and prepared to launch", async () => {
         let swapTest = await swapOutputTemplate.setupSwapBaseOutput(

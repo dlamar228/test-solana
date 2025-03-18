@@ -37,6 +37,7 @@ export interface SetupOutputSwap {
   swapOutputExpected: SwapBaseResult;
   atas: Atas;
   vaultForReserveBound: boolean;
+  zeroToOne: boolean;
 }
 
 export class SetupSwapTest {
@@ -203,10 +204,18 @@ export class SetupSwapTest {
       this.tokenUtils.getEpoch(),
     ]);
 
+    let inputProtocolFee = zeroToOne
+      ? dexState.swapFeesToken0
+      : dexState.swapFeesToken1;
+
+    let outputProtocolFee = zeroToOne
+      ? dexState.swapFeesToken1
+      : dexState.swapFeesToken0;
+
     let result = calculator.swapBaseInput({
       swapFeeRate: configState.swapFeeRate,
-      inputProtocolFee: dexState.swapFeesToken0,
-      outputProtocolFee: dexState.swapFeesToken1,
+      inputProtocolFee,
+      outputProtocolFee,
       inputMintConfig,
       outputMintConfig,
       inputVault: inputVaultBalance,
@@ -219,7 +228,7 @@ export class SetupSwapTest {
     return result;
   }
 
-  async getPairK(dexAccounts: DexAccounts, zeroToOne: boolean) {
+  async getPairK(dexAccounts: DexAccounts) {
     let dexState = await this.dexUtils.getDexState(dexAccounts.dex);
     let vaultZeroBalance = await this.tokenUtils.getBalance(
       dexAccounts.vaultZero.address
@@ -231,7 +240,7 @@ export class SetupSwapTest {
     vaultZeroBalance = vaultZeroBalance.sub(dexState.swapFeesToken0);
     vaultOneBalance = vaultOneBalance.sub(dexState.swapFeesToken1);
 
-    if (zeroToOne) {
+    if (vaultZeroBalance.gte(vaultOneBalance)) {
       return vaultZeroBalance.div(vaultOneBalance);
     }
 
@@ -256,19 +265,14 @@ export class SetupSwapTest {
 
   async getSwapOutputParams(
     atas: Atas,
+    pairK: BN,
     launch: boolean,
     zeroToOne: boolean
   ): Promise<[BN, BN]> {
-    // let pairK = await this.getPairK();
-    // let vaultBalance = await this.getAtaBalance(atas, zeroToOne);
-    // let vaultBalance = await this.getAtaBalance(atas, zeroToOne);
-    // let maxAmountIn = vaultBalance;
-    // let amountOutLessFee = vaultBalance.div(new BN(10));
-    // if (launch) {
-    //   amountOutLessFee = vaultBalance;
-    // }
-    // return [maxAmountIn, amountOutLessFee];
-    return [new BN(0), new BN(0)];
+    let maxAmountIn = await this.getAtaBalance(atas, zeroToOne);
+    let amountOutLessFee = new BN(10).mul(pairK);
+
+    return [maxAmountIn, amountOutLessFee];
   }
 
   async getAtaBalance(atas: Atas, zeroToOne: boolean) {
@@ -404,10 +408,18 @@ export class SetupSwapTest {
       this.tokenUtils.getEpoch(),
     ]);
 
+    let inputProtocolFee = zeroToOne
+      ? dexState.swapFeesToken0
+      : dexState.swapFeesToken1;
+
+    let outputProtocolFee = zeroToOne
+      ? dexState.swapFeesToken1
+      : dexState.swapFeesToken0;
+
     let result = calculator.swapBaseOutput({
       swapFeeRate: dexConfig.swapFeeRate,
-      inputProtocolFee: dexState.swapFeesToken0,
-      outputProtocolFee: dexState.swapFeesToken1,
+      inputProtocolFee,
+      outputProtocolFee,
       inputMintConfig,
       outputMintConfig,
       inputVault: inputVaultBalance,
@@ -430,13 +442,18 @@ export class SetupSwapTest {
       await this.dexUtils.getDexState(dexAccounts.dex)
     ).vaultForReserveBound;
 
+    let zeroToOne = !vaultForReserveBound;
+
+    let pairK = await this.getPairK(dexAccounts);
+
     let [maxAmountIn, amountOutLessFee] = await this.getSwapOutputParams(
       atas,
+      pairK,
       launch,
-      vaultForReserveBound
+      zeroToOne
     );
 
-    let swapBaseOutputArgs = vaultForReserveBound
+    let swapBaseOutputArgs = zeroToOne
       ? {
           inputToken: dexAccounts.vaultZero.mint.address,
           inputTokenProgram: dexAccounts.vaultZero.mint.program,
@@ -468,7 +485,7 @@ export class SetupSwapTest {
       dexAccounts,
       swapBaseOutputArgs.maxAmountIn,
       swapBaseOutputArgs.amountOutLessFee,
-      vaultForReserveBound
+      zeroToOne
     );
 
     return {
@@ -477,6 +494,7 @@ export class SetupSwapTest {
       swapOutputExpected,
       atas,
       vaultForReserveBound,
+      zeroToOne,
     };
   }
 }
