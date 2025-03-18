@@ -38,82 +38,34 @@ describe("dex.swap.test", () => {
   );
   const swapCalculator = new SwapCalculator();
 
-  describe("Spl token", () => {
-    describe("SwapBaseInput", () => {
-      let swapInputTemplate = new SetupSwapTest(
-        tokenUtils,
-        dexUtils,
-        faucetUtils,
-        launcherUtils
-      );
-      let swapOutputTemplate = new SetupSwapTest(
-        tokenUtils,
-        dexUtils,
-        faucetUtils,
-        launcherUtils
-      );
-
-      it("Should swap base input", async () => {
-        let swapTest = await swapInputTemplate.setupSwapBaseInput(signer);
-
-        let swapTx = await dexUtils.swapBaseInput(
-          signer,
-          swapTest.swapBaseInputArgs
+  describe("dex.swap.test", () => {
+    describe("Spl Token", () => {
+      describe("SwapBaseInput", () => {
+        let swapInputTemplate = new SetupSwapTest(
+          tokenUtils,
+          dexUtils,
+          faucetUtils,
+          launcherUtils
         );
 
-        let actual = await dexUtils.dexIsReadyToLaunch(
-          swapTest.dexAccounts.dex
-        );
-        expect(actual, "Dex ready to launch!").equal(false);
-      });
+        it("Should swap base input", async () => {
+          let swapTest = await swapInputTemplate.setupSwapBaseInput(signer);
 
-      it("Should swap base input and prepared to launch", async () => {
-        let swapTest = await swapInputTemplate.setupSwapBaseInput(signer, true);
+          let swapTx = await dexUtils.swapBaseInput(
+            signer,
+            swapTest.swapBaseInputArgs
+          );
 
-        let swapTx = await dexUtils.swapBaseInput(
-          signer,
-          swapTest.swapBaseInputArgs
-        );
+          let actual = await dexUtils.dexIsReadyToLaunch(
+            swapTest.dexAccounts.dex
+          );
+          expect(actual, "Dex ready to launch!").equal(false);
+        });
 
-        let actual = await dexUtils.dexIsReadyToLaunch(
-          swapTest.dexAccounts.dex
-        );
-        expect(actual, "Dex not ready to launch!").equal(true);
-      });
-
-      it("Should swap base input with fee", async () => {
-        let swapTest = await swapInputTemplate.setupSwapBaseInput(signer);
-
-        let swapTx = await dexUtils.swapBaseInput(
-          signer,
-          swapTest.swapBaseInputArgs
-        );
-
-        let actualSwapFee = await swapInputTemplate.getDexSwapFees(
-          swapTest.dexAccounts,
-          swapTest.zeroToOne
-        );
-
-        expect(
-          actualSwapFee.toString(),
-          "Swap fee calculation mismatch!"
-        ).to.deep.equal(
-          swapTest.swapInputExpected.swapResult.protocolFee.toString()
-        );
-
-        let actual = await dexUtils.dexIsReadyToLaunch(
-          swapTest.dexAccounts.dex
-        );
-        expect(actual, "Dex ready to launch!").equal(false);
-      });
-
-      it("Should swap 5 times base input with fee", async () => {
-        let swapTest = await swapInputTemplate.setupSwapBaseInput(signer);
-
-        for (let i = 0; i < 5; i++) {
-          let swapFeeBefore = await swapInputTemplate.getDexSwapFees(
-            swapTest.dexAccounts,
-            swapTest.zeroToOne
+        it("Should swap base input and prepared to launch", async () => {
+          let swapTest = await swapInputTemplate.setupSwapBaseInput(
+            signer,
+            true
           );
 
           let swapTx = await dexUtils.swapBaseInput(
@@ -121,12 +73,24 @@ describe("dex.swap.test", () => {
             swapTest.swapBaseInputArgs
           );
 
-          let SwapFeeAfter = await swapInputTemplate.getDexSwapFees(
+          let actual = await dexUtils.dexIsReadyToLaunch(
+            swapTest.dexAccounts.dex
+          );
+          expect(actual, "Dex not ready to launch!").equal(true);
+        });
+
+        it("Should swap base input with fee", async () => {
+          let swapTest = await swapInputTemplate.setupSwapBaseInput(signer);
+
+          let swapTx = await dexUtils.swapBaseInput(
+            signer,
+            swapTest.swapBaseInputArgs
+          );
+
+          let actualSwapFee = await swapInputTemplate.getDexSwapFees(
             swapTest.dexAccounts,
             swapTest.zeroToOne
           );
-
-          let actualSwapFee = SwapFeeAfter.sub(swapFeeBefore);
 
           expect(
             actualSwapFee.toString(),
@@ -139,708 +103,439 @@ describe("dex.swap.test", () => {
             swapTest.dexAccounts.dex
           );
           expect(actual, "Dex ready to launch!").equal(false);
-        }
+        });
+
+        it("Should swap 5 times base input with fee", async () => {
+          let swapTest = await swapInputTemplate.setupSwapBaseInput(signer);
+
+          for (let i = 0; i < 5; i++) {
+            let swapFeeBefore = await swapInputTemplate.getDexSwapFees(
+              swapTest.dexAccounts,
+              swapTest.zeroToOne
+            );
+
+            let swapTx = await dexUtils.swapBaseInput(
+              signer,
+              swapTest.swapBaseInputArgs
+            );
+
+            let SwapFeeAfter = await swapInputTemplate.getDexSwapFees(
+              swapTest.dexAccounts,
+              swapTest.zeroToOne
+            );
+
+            let actualSwapFee = SwapFeeAfter.sub(swapFeeBefore);
+
+            expect(
+              actualSwapFee.toString(),
+              "Swap fee calculation mismatch!"
+            ).to.deep.equal(
+              swapTest.swapInputExpected.swapResult.protocolFee.toString()
+            );
+
+            let actual = await dexUtils.dexIsReadyToLaunch(
+              swapTest.dexAccounts.dex
+            );
+            expect(actual, "Dex ready to launch!").equal(false);
+          }
+        });
+
+        it("Should swap base input with fee and launch", async () => {
+          let swapTest = await swapInputTemplate.setupSwapBaseInput(
+            signer,
+            true
+          );
+
+          let launchFeeRate = (
+            await dexUtils.getConfigState(swapTest.dexAccounts.config)
+          ).launchFeeRate;
+
+          let initDexVaultAmount = await swapInputTemplate.getDexBalance(
+            swapTest.dexAccounts,
+            swapTest.zeroToOne
+          );
+
+          let expectedLaunchFee = swapCalculator.curve.Fee(
+            swapTest.swapBaseInputArgs.amountIn
+              .add(initDexVaultAmount)
+              .sub(swapTest.swapInputExpected.swapResult.protocolFee),
+            launchFeeRate
+          );
+
+          let swapTx = await dexUtils.swapBaseInput(
+            signer,
+            swapTest.swapBaseInputArgs
+          );
+
+          let actualSwapFee = await swapInputTemplate.getDexSwapFees(
+            swapTest.dexAccounts,
+            swapTest.zeroToOne
+          );
+
+          expect(
+            actualSwapFee.toString(),
+            "Swap fee calculation mismatch!"
+          ).to.deep.equal(
+            swapTest.swapInputExpected.swapResult.protocolFee.toString()
+          );
+
+          expect(
+            await dexUtils.dexIsReadyToLaunch(swapTest.dexAccounts.dex),
+            "Dex not ready to launch!"
+          ).equal(true);
+
+          let [raydiumPool] = raydiumUtils.pdaGetter.getStateAddress(
+            ammConfigAddress,
+            swapTest.dexAccounts.vaultZero.mint.address,
+            swapTest.dexAccounts.vaultOne.mint.address
+          );
+
+          expect(
+            await raydiumUtils.getPoolState(raydiumPool),
+            "Raydium pool already created!"
+          ).to.be.null;
+
+          let launchDexArgs = {
+            cpSwapProgram: raydiumProgram.programId,
+            raydiumAmmConfig: ammConfigAddress,
+            raydiumPdaGetter: raydiumUtils.pdaGetter,
+            dexAccounts: swapTest.dexAccounts,
+            sharedLamports: new BN(LAMPORTS_PER_SOL),
+          };
+
+          let launchTx = await dexUtils.launchDex(signer, launchDexArgs);
+          await sleep(1000);
+
+          let actualLaunchFee = await swapInputTemplate.getDexLaunchFees(
+            swapTest.dexAccounts,
+            swapTest.zeroToOne
+          );
+
+          expect(
+            actualLaunchFee.toString(),
+            "Launch fee calculation mismatch!"
+          ).to.deep.equal(expectedLaunchFee.toString());
+
+          expect(
+            await raydiumUtils.getPoolState(raydiumPool),
+            "Raydium pool wasn't created!"
+          ).not.to.be.null;
+        });
       });
 
-      it("Should swap base input with fee and launch", async () => {
-        let swapTest = await swapInputTemplate.setupSwapBaseInput(signer, true);
-
-        let launchFeeRate = (
-          await dexUtils.getConfigState(swapTest.dexAccounts.config)
-        ).launchFeeRate;
-
-        let initDexVaultAmount = await swapInputTemplate.getDexBalance(
-          swapTest.dexAccounts,
-          swapTest.zeroToOne
+      describe("SwapBaseOutput", () => {
+        let swapOutputTemplate = new SetupSwapTest(
+          tokenUtils,
+          dexUtils,
+          faucetUtils,
+          launcherUtils
         );
 
-        let expectedLaunchFee = swapCalculator.curve.Fee(
-          swapTest.swapBaseInputArgs.amountIn
-            .add(initDexVaultAmount)
-            .sub(swapTest.swapInputExpected.swapResult.protocolFee),
-          launchFeeRate
-        );
+        it("Should swap base output", async () => {
+          let swapTest = await swapOutputTemplate.setupSwapBaseOutput(signer);
 
-        let swapTx = await dexUtils.swapBaseInput(
-          signer,
-          swapTest.swapBaseInputArgs
-        );
+          let swapTx = await dexUtils.swapBaseOutput(
+            signer,
+            swapTest.swapBaseOutputArgs
+          );
 
-        let actualSwapFee = await swapInputTemplate.getDexSwapFees(
-          swapTest.dexAccounts,
-          swapTest.zeroToOne
-        );
+          let actual = await dexUtils.dexIsReadyToLaunch(
+            swapTest.dexAccounts.dex
+          );
+          expect(actual, "Dex ready to launch!").equal(false);
+        });
 
-        expect(
-          actualSwapFee.toString(),
-          "Swap fee calculation mismatch!"
-        ).to.deep.equal(
-          swapTest.swapInputExpected.swapResult.protocolFee.toString()
-        );
+        it("Should swap base output with fee", async () => {
+          let swapTest = await swapOutputTemplate.setupSwapBaseOutput(signer);
 
-        expect(
-          await dexUtils.dexIsReadyToLaunch(swapTest.dexAccounts.dex),
-          "Dex not ready to launch!"
-        ).equal(true);
+          let swapTx = await dexUtils.swapBaseOutput(
+            signer,
+            swapTest.swapBaseOutputArgs
+          );
 
-        let [raydiumPool] = raydiumUtils.pdaGetter.getStateAddress(
-          ammConfigAddress,
-          swapTest.dexAccounts.vaultZero.mint.address,
-          swapTest.dexAccounts.vaultOne.mint.address
-        );
+          let actualSwapFee = await swapOutputTemplate.getDexSwapFees(
+            swapTest.dexAccounts,
+            swapTest.zeroToOne
+          );
 
-        expect(
-          await raydiumUtils.getPoolState(raydiumPool),
-          "Raydium pool already created!"
-        ).to.be.null;
+          expect(
+            actualSwapFee.toString(),
+            "Swap fee calculation mismatch!"
+          ).equal(
+            swapTest.swapOutputExpected.swapResult.protocolFee.toString()
+          );
 
-        let launchDexArgs = {
-          cpSwapProgram: raydiumProgram.programId,
-          raydiumAmmConfig: ammConfigAddress,
-          raydiumPdaGetter: raydiumUtils.pdaGetter,
-          dexAccounts: swapTest.dexAccounts,
-          sharedLamports: new BN(LAMPORTS_PER_SOL),
-        };
-
-        let launchTx = await dexUtils.launchDex(signer, launchDexArgs);
-        await sleep(1000);
-
-        let actualLaunchFee = await swapInputTemplate.getDexLaunchFees(
-          swapTest.dexAccounts,
-          swapTest.zeroToOne
-        );
-
-        expect(
-          actualLaunchFee.toString(),
-          "Launch fee calculation mismatch!"
-        ).to.deep.equal(expectedLaunchFee.toString());
-
-        expect(
-          await raydiumUtils.getPoolState(raydiumPool),
-          "Raydium pool wasn't created!"
-        ).not.to.be.null;
-      });
-
-      it("Should swap base output", async () => {
-        let swapTest = await swapOutputTemplate.setupSwapBaseOutput(signer);
-
-        let swapTx = await dexUtils.swapBaseOutput(
-          signer,
-          swapTest.swapBaseOutputArgs
-        );
-
-        let actual = await dexUtils.dexIsReadyToLaunch(
-          swapTest.dexAccounts.dex
-        );
-        expect(actual, "Dex ready to launch!").equal(false);
-      });
-
-      it("Should swap base output with fee", async () => {
-        let swapTest = await swapOutputTemplate.setupSwapBaseOutput(signer);
-
-        let swapTx = await dexUtils.swapBaseOutput(
-          signer,
-          swapTest.swapBaseOutputArgs
-        );
-
-        let actualSwapFee = await swapOutputTemplate.getDexSwapFees(
-          swapTest.dexAccounts,
-          swapTest.zeroToOne
-        );
-
-        expect(
-          actualSwapFee.toString(),
-          "Swap fee calculation mismatch!"
-        ).equal(swapTest.swapOutputExpected.swapResult.protocolFee.toString());
-
-        let actual = await dexUtils.dexIsReadyToLaunch(
-          swapTest.dexAccounts.dex
-        );
-        expect(actual, "Dex ready to launch!").equal(false);
-      });
-
-      /*
-
-      it("Should swap base output and prepared to launch", async () => {
-        let swapTest = await swapOutputTemplate.setupSwapBaseOutput(
-          signer,
-          new BN(2000),
-          new BN(500)
-        );
-
-        let swapTx = await dexUtils.swapBaseOutput(
-          signer,
-          swapTest.swapBaseOutputArgs
-        );
-
-        let actual = await dexUtils.dexIsReadyToLaunch(
-          swapTest.dexAccounts.dex
-        );
-        expect(actual, "Dex not ready to launch!").equal(true);
-      });
-
-      it("Should swap base output with fee and launch", async () => {
-        let swapTest = await swapOutputTemplate.setupSwapBaseOutput(
-          signer,
-          new BN(2000),
-          new BN(500)
-        );
-
-        let launchFeeRate = (
-          await dexUtils.getConfigState(swapTest.dexAccounts.config)
-        ).launchFeeRate;
-
-        let initAmountZero = await tokenUtils.getBalance(
-          swapTest.dexAccounts.vault_zero.address
-        );
-
-        let expectedLaunchFee = swapCalculator.curve.Fee(
-          swapTest.swapOutputExpected.swapResult.sourceAmountSwapped
-            .add(initAmountZero)
-            .sub(swapTest.swapOutputExpected.swapResult.protocolFee),
-          launchFeeRate
-        );
-
-        let swapTx = await dexUtils.swapBaseOutput(
-          signer,
-          swapTest.swapBaseOutputArgs
-        );
-
-        let actualSwapFee = (
-          await dexUtils.getDexState(swapTest.dexAccounts.dex)
-        ).swapFeesToken0;
-
-        expect(
-          actualSwapFee.toNumber(),
-          "Swap fee calculation mismatch!"
-        ).equal(swapTest.swapOutputExpected.swapResult.protocolFee.toNumber());
-        expect(
-          await dexUtils.dexIsReadyToLaunch(swapTest.dexAccounts.dex),
-          "Dex not ready to launch!"
-        ).equal(true);
-
-        let [raydiumPool] = raydiumUtils.pdaGetter.getStateAddress(
-          ammConfigAddress,
-          swapTest.dexAccounts.vault_zero.mint.address,
-          swapTest.dexAccounts.vault_one.mint.address
-        );
-
-        expect(
-          await raydiumUtils.getPoolState(raydiumPool),
-          "Raydium pool already created!"
-        ).to.be.null;
-
-        let launchDexArgs = {
-          cpSwapProgram: raydiumProgram.programId,
-          raydiumAmmConfig: ammConfigAddress,
-          raydiumPdaGetter: raydiumUtils.pdaGetter,
-          dexAccounts: swapTest.dexAccounts,
-          sharedLamports: new BN(LAMPORTS_PER_SOL),
-        };
-
-        let launchTx = await dexUtils.launchDex(signer, launchDexArgs);
-        await sleep(1000);
-
-        let actualLaunchFee = (
-          await dexUtils.getDexState(swapTest.dexAccounts.dex)
-        ).launchFeesToken0;
-
-        expect(
-          actualLaunchFee.toNumber(),
-          "Launch fee calculation mismatch!"
-        ).equal(expectedLaunchFee.toNumber());
-
-        expect(
-          await raydiumUtils.getPoolState(raydiumPool),
-          "Raydium pool wasn't created!"
-        ).not.to.be.null;
-      }); */
-    });
-
-    /*     describe("Swap, vault reserve zero, trade one to zero", () => {
-      let swapInputTemplate = new SetupSwapTest(
-        tokenUtils,
-        dexUtils,
-        faucetUtils,
-        launcherUtils
-      );
-      swapInputTemplate.zeroToOne = false;
-
-      let swapOutputTemplate = new SetupSwapTest(
-        tokenUtils,
-        dexUtils,
-        faucetUtils,
-        launcherUtils
-      );
-      swapOutputTemplate.zeroToOne = false;
-
-      it("Should swap base input", async () => {
-        let swapTest = await swapInputTemplate.setupSwapBaseInput(signer);
-
-        let swapTx = await dexUtils.swapBaseInput(
-          signer,
-          swapTest.swapBaseInputArgs
-        );
-      });
-
-      it("Should swap base input and not prepared to launch", async () => {
-        let swapTest = await swapInputTemplate.setupSwapBaseInput(signer);
-
-        let swapTx = await dexUtils.swapBaseInput(
-          signer,
-          swapTest.swapBaseInputArgs
-        );
-
-        let actual = await dexUtils.dexIsReadyToLaunch(
-          swapTest.dexAccounts.dex
-        );
-        expect(actual, "Dex ready to launch!").equal(false);
-      });
-
-      it("Should swap base input with fee", async () => {
-        let swapTest = await swapInputTemplate.setupSwapBaseInput(signer);
-
-        let swapTx = await dexUtils.swapBaseInput(
-          signer,
-          swapTest.swapBaseInputArgs
-        );
-
-        let actualSwapFee = (
-          await dexUtils.getDexState(swapTest.dexAccounts.dex)
-        ).swapFeesToken1.toNumber();
-
-        expect(actualSwapFee, "Swap fee calculation mismatch!").eq(
-          swapTest.swapInputExpected.swapResult.protocolFee.toNumber()
-        );
-      });
-
-      it("Should swap base output", async () => {
-        let swapTest = await swapOutputTemplate.setupSwapBaseOutput(signer);
-
-        let swapTx = await dexUtils.swapBaseOutput(
-          signer,
-          swapTest.swapBaseOutputArgs
-        );
-      });
-
-      it("Should swap base output with fee", async () => {
-        let swapTest = await swapOutputTemplate.setupSwapBaseOutput(
-          signer,
-          new BN(2000),
-          new BN(500)
-        );
-
-        let swapTx = await dexUtils.swapBaseOutput(
-          signer,
-          swapTest.swapBaseOutputArgs
-        );
-
-        let actualSwapFee = (
-          await dexUtils.getDexState(swapTest.dexAccounts.dex)
-        ).swapFeesToken1.toNumber();
-
-        expect(actualSwapFee, "Swap fee calculation mismatch!").eq(
-          swapTest.swapOutputExpected.swapResult.protocolFee.toNumber()
-        );
-      });
-
-      it("Should swap base output and not prepared to launch", async () => {
-        let swapTest = await swapOutputTemplate.setupSwapBaseOutput(
-          signer,
-          new BN(2000),
-          new BN(500)
-        );
-
-        let swapTx = await dexUtils.swapBaseOutput(
-          signer,
-          swapTest.swapBaseOutputArgs
-        );
-
-        let actual = await dexUtils.dexIsReadyToLaunch(
-          swapTest.dexAccounts.dex
-        );
-        expect(actual, "Dex ready to launch!").equal(false);
+          let actual = await dexUtils.dexIsReadyToLaunch(
+            swapTest.dexAccounts.dex
+          );
+          expect(actual, "Dex ready to launch!").equal(false);
+        });
       });
     });
 
-    describe("Swap, vault reserve one, trade zero to one", () => {
-      let swapInputTemplate = new SetupSwapTest(
-        tokenUtils,
-        dexUtils,
-        faucetUtils,
-        launcherUtils
-      );
-      swapInputTemplate.vaultForReserveBound = true;
-      swapInputTemplate.reserveBoundGe = false;
-
-      it("Should swap base input and prepared to launch", async () => {
-        let swapTest = await swapInputTemplate.setupSwapBaseInput(
-          signer,
-          new BN(1500),
-          new BN(250)
+    describe("Token 2022", () => {
+      describe("SwapBaseInput", () => {
+        let swapInputTemplate = new SetupSwapTest(
+          tokenUtils,
+          dexUtils,
+          faucetUtils,
+          launcherUtils
         );
 
-        await dexUtils.swapBaseInput(signer, swapTest.swapBaseInputArgs);
-        await sleep(1000);
+        it("Should swap base input", async () => {
+          let swapTest = await swapInputTemplate.setupSwapBaseInput(
+            signer,
+            false,
+            false
+          );
 
-        await dexUtils.swapBaseInput(signer, swapTest.swapBaseInputArgs);
-        await sleep(1000);
+          let swapTx = await dexUtils.swapBaseInput(
+            signer,
+            swapTest.swapBaseInputArgs
+          );
 
-        let actual = await dexUtils.dexIsReadyToLaunch(
-          swapTest.dexAccounts.dex
-        );
-        expect(actual, "Dex not ready to launch!").equal(true);
+          let actual = await dexUtils.dexIsReadyToLaunch(
+            swapTest.dexAccounts.dex
+          );
+          expect(actual, "Dex ready to launch!").equal(false);
+        });
+
+        it("Should swap base input and prepared to launch", async () => {
+          let swapTest = await swapInputTemplate.setupSwapBaseInput(
+            signer,
+            true,
+            false
+          );
+
+          let swapTx = await dexUtils.swapBaseInput(
+            signer,
+            swapTest.swapBaseInputArgs
+          );
+
+          let actual = await dexUtils.dexIsReadyToLaunch(
+            swapTest.dexAccounts.dex
+          );
+          expect(actual, "Dex not ready to launch!").equal(true);
+        });
+
+        it("Should swap base input with fee", async () => {
+          let swapTest = await swapInputTemplate.setupSwapBaseInput(
+            signer,
+            false,
+            false
+          );
+
+          let swapTx = await dexUtils.swapBaseInput(
+            signer,
+            swapTest.swapBaseInputArgs
+          );
+
+          let actualSwapFee = await swapInputTemplate.getDexSwapFees(
+            swapTest.dexAccounts,
+            swapTest.zeroToOne
+          );
+
+          expect(
+            actualSwapFee.toString(),
+            "Swap fee calculation mismatch!"
+          ).to.deep.equal(
+            swapTest.swapInputExpected.swapResult.protocolFee.toString()
+          );
+
+          let actual = await dexUtils.dexIsReadyToLaunch(
+            swapTest.dexAccounts.dex
+          );
+          expect(actual, "Dex ready to launch!").equal(false);
+        });
+
+        it("Should swap 5 times base input with fee", async () => {
+          let swapTest = await swapInputTemplate.setupSwapBaseInput(
+            signer,
+            false,
+            false
+          );
+
+          for (let i = 0; i < 5; i++) {
+            let swapFeeBefore = await swapInputTemplate.getDexSwapFees(
+              swapTest.dexAccounts,
+              swapTest.zeroToOne
+            );
+
+            let swapTx = await dexUtils.swapBaseInput(
+              signer,
+              swapTest.swapBaseInputArgs
+            );
+
+            let SwapFeeAfter = await swapInputTemplate.getDexSwapFees(
+              swapTest.dexAccounts,
+              swapTest.zeroToOne
+            );
+
+            let actualSwapFee = SwapFeeAfter.sub(swapFeeBefore);
+
+            expect(
+              actualSwapFee.toString(),
+              "Swap fee calculation mismatch!"
+            ).to.deep.equal(
+              swapTest.swapInputExpected.swapResult.protocolFee.toString()
+            );
+
+            let actual = await dexUtils.dexIsReadyToLaunch(
+              swapTest.dexAccounts.dex
+            );
+            expect(actual, "Dex ready to launch!").equal(false);
+          }
+        });
+
+        it("Should swap base input with fee and launch", async () => {
+          let swapTest = await swapInputTemplate.setupSwapBaseInput(
+            signer,
+            true,
+            false
+          );
+
+          let launchFeeRate = (
+            await dexUtils.getConfigState(swapTest.dexAccounts.config)
+          ).launchFeeRate;
+
+          let initDexVaultAmount = await swapInputTemplate.getDexBalance(
+            swapTest.dexAccounts,
+            swapTest.zeroToOne
+          );
+
+          let transferFee = swapCalculator.calculateTransferFee(
+            swapTest.swapInputExpected.args.inputMintConfig,
+            swapTest.swapInputExpected.args.epoch,
+            swapTest.swapBaseInputArgs.amountIn
+              .add(initDexVaultAmount)
+              .sub(swapTest.swapInputExpected.swapResult.protocolFee)
+          );
+
+          let expectedLaunchFee = swapCalculator.curve.Fee(
+            swapTest.swapBaseInputArgs.amountIn
+              .add(initDexVaultAmount)
+              .sub(swapTest.swapInputExpected.swapResult.protocolFee)
+              .sub(transferFee.fee),
+            launchFeeRate
+          );
+
+          let swapTx = await dexUtils.swapBaseInput(
+            signer,
+            swapTest.swapBaseInputArgs
+          );
+
+          let actualSwapFee = await swapInputTemplate.getDexSwapFees(
+            swapTest.dexAccounts,
+            swapTest.zeroToOne
+          );
+
+          expect(
+            actualSwapFee.toString(),
+            "Swap fee calculation mismatch!"
+          ).to.deep.equal(
+            swapTest.swapInputExpected.swapResult.protocolFee.toString()
+          );
+
+          expect(
+            await dexUtils.dexIsReadyToLaunch(swapTest.dexAccounts.dex),
+            "Dex not ready to launch!"
+          ).equal(true);
+
+          let [raydiumPool] = raydiumUtils.pdaGetter.getStateAddress(
+            ammConfigAddress,
+            swapTest.dexAccounts.vaultZero.mint.address,
+            swapTest.dexAccounts.vaultOne.mint.address
+          );
+
+          expect(
+            await raydiumUtils.getPoolState(raydiumPool),
+            "Raydium pool already created!"
+          ).to.be.null;
+
+          let launchDexArgs = {
+            cpSwapProgram: raydiumProgram.programId,
+            raydiumAmmConfig: ammConfigAddress,
+            raydiumPdaGetter: raydiumUtils.pdaGetter,
+            dexAccounts: swapTest.dexAccounts,
+            sharedLamports: new BN(LAMPORTS_PER_SOL),
+          };
+
+          let launchTx = await dexUtils.launchDex(signer, launchDexArgs);
+          await sleep(1000);
+
+          let actualLaunchFee = await swapInputTemplate.getDexLaunchFees(
+            swapTest.dexAccounts,
+            swapTest.zeroToOne
+          );
+
+          expect(
+            actualLaunchFee.toString(),
+            "Launch fee calculation mismatch!"
+          ).to.deep.equal(expectedLaunchFee.toString());
+
+          expect(
+            await raydiumUtils.getPoolState(raydiumPool),
+            "Raydium pool wasn't created!"
+          ).not.to.be.null;
+        });
       });
-    }); */
+
+      describe("SwapBaseOutput", () => {
+        let swapOutputTemplate = new SetupSwapTest(
+          tokenUtils,
+          dexUtils,
+          faucetUtils,
+          launcherUtils
+        );
+
+        it("Should swap base output", async () => {
+          let swapTest = await swapOutputTemplate.setupSwapBaseOutput(
+            signer,
+            false,
+            false
+          );
+
+          let swapTx = await dexUtils.swapBaseOutput(
+            signer,
+            swapTest.swapBaseOutputArgs
+          );
+
+          let actual = await dexUtils.dexIsReadyToLaunch(
+            swapTest.dexAccounts.dex
+          );
+          expect(actual, "Dex ready to launch!").equal(false);
+        });
+
+        it("Should swap base output with fee", async () => {
+          let swapTest = await swapOutputTemplate.setupSwapBaseOutput(
+            signer,
+            false,
+            false
+          );
+
+          let swapTx = await dexUtils.swapBaseOutput(
+            signer,
+            swapTest.swapBaseOutputArgs
+          );
+
+          let actualSwapFee = await swapOutputTemplate.getDexSwapFees(
+            swapTest.dexAccounts,
+            swapTest.zeroToOne
+          );
+
+          expect(
+            actualSwapFee.toString(),
+            "Swap fee calculation mismatch!"
+          ).equal(
+            swapTest.swapOutputExpected.swapResult.protocolFee.toString()
+          );
+
+          let actual = await dexUtils.dexIsReadyToLaunch(
+            swapTest.dexAccounts.dex
+          );
+          expect(actual, "Dex ready to launch!").equal(false);
+        });
+      });
+    });
   });
-
-  /*   describe("Token 2022", () => {  describe("Token 2022", () => {
-    describe("Swap, vault reserve zero, trade zero to one", () => {
-      let swapInputTemplate = new SetupSwapTest(
-        tokenUtils,
-        dexUtils,
-        faucetUtils,
-        launcherUtils
-      );
-
-      let swapOutputTemplate = new SetupSwapTest(
-        tokenUtils,
-        dexUtils,
-        faucetUtils,
-        launcherUtils
-      );
-
-      it("Should swap base input", async () => {
-        let swapTest = await swapInputTemplate.setupSwapBaseInput(signer);
-
-        let swapTx = await dexUtils.swapBaseInput(
-          signer,
-          swapTest.swapBaseInputArgs
-        );
-      });
-
-      it("Should swap base input and prepared to launch", async () => {
-        let swapTest = await swapInputTemplate.setupSwapBaseInput(signer);
-
-        let swapTx = await dexUtils.swapBaseInput(
-          signer,
-          swapTest.swapBaseInputArgs
-        );
-
-        let actual = await dexUtils.dexIsReadyToLaunch(
-          swapTest.dexAccounts.dex
-        );
-        expect(actual, "Dex not ready to launch!").equal(true);
-      });
-
-      it("Should swap base input with fee", async () => {
-        let swapTest = await swapInputTemplate.setupSwapBaseInput(signer);
-
-        let swapTx = await dexUtils.swapBaseInput(
-          signer,
-          swapTest.swapBaseInputArgs
-        );
-
-        let actualSwapFee = (
-          await dexUtils.getDexState(swapTest.dexAccounts.dex)
-        ).swapFeesToken0.toNumber();
-
-        expect(actualSwapFee, "Swap fee calculation mismatch!").eq(
-          swapTest.swapInputExpected.swapResult.protocolFee.toNumber()
-        );
-      });
-
-      it("Should swap base input with fee and launch", async () => {
-        let swapTest = await swapInputTemplate.setupSwapBaseInput(signer);
-
-        let initAmountZero = await tokenUtils.getBalance(
-          swapTest.dexAccounts.vault_zero.address
-        );
-
-        let launchFeeRate = (
-          await dexUtils.getConfigState(swapTest.dexAccounts.config)
-        ).launchFeeRate;
-
-        let expectedLaunchFee = swapCalculator.curve.Fee(
-          swapTest.swapBaseInputArgs.amountIn
-            .add(initAmountZero)
-            .sub(swapTest.swapInputExpected.swapResult.protocolFee),
-          launchFeeRate
-        );
-
-        let [raydiumPool] = raydiumUtils.pdaGetter.getStateAddress(
-          ammConfigAddress,
-          swapTest.dexAccounts.vault_zero.mint.address,
-          swapTest.dexAccounts.vault_one.mint.address
-        );
-
-        expect(
-          await raydiumUtils.getPoolState(raydiumPool),
-          "Raydium pool already created!"
-        ).to.be.null;
-
-        let swapTx = await dexUtils.swapBaseInput(
-          signer,
-          swapTest.swapBaseInputArgs
-        );
-
-        let actualSwapFee = (
-          await dexUtils.getDexState(swapTest.dexAccounts.dex)
-        ).swapFeesToken0;
-
-        expect(
-          actualSwapFee.toNumber(),
-          "Swap fee calculation mismatch!"
-        ).equal(swapTest.swapInputExpected.swapResult.protocolFee.toNumber());
-        expect(
-          await dexUtils.dexIsReadyToLaunch(swapTest.dexAccounts.dex),
-          "Dex not ready to launch!"
-        ).equal(true);
-
-        let launchDexArgs = {
-          cpSwapProgram: raydiumProgram.programId,
-          raydiumAmmConfig: ammConfigAddress,
-          raydiumPdaGetter: raydiumUtils.pdaGetter,
-          dexAccounts: swapTest.dexAccounts,
-          sharedLamports: new BN(LAMPORTS_PER_SOL),
-        };
-
-        let launchTx = await dexUtils.launchDex(signer, launchDexArgs);
-        await sleep(1000);
-
-        let actualLaunchFee = (
-          await dexUtils.getDexState(swapTest.dexAccounts.dex)
-        ).launchFeesToken0;
-
-        expect(
-          actualLaunchFee.toNumber(),
-          "Launch fee calculation mismatch!"
-        ).equal(expectedLaunchFee.toNumber());
-
-        expect(
-          await raydiumUtils.getPoolState(raydiumPool),
-          "Raydium pool wasn't created!"
-        ).not.to.be.null;
-      });
-
-      it("Should swap base output", async () => {
-        let swapTest = await swapOutputTemplate.setupSwapBaseOutput(signer);
-
-        let swapTx = await dexUtils.swapBaseOutput(
-          signer,
-          swapTest.swapBaseOutputArgs
-        );
-      });
-
-      it("Should swap base output with fee", async () => {
-        let swapTest = await swapOutputTemplate.setupSwapBaseOutput(signer);
-
-        let swapTx = await dexUtils.swapBaseOutput(
-          signer,
-          swapTest.swapBaseOutputArgs
-        );
-
-        let actualSwapFee = (
-          await dexUtils.getConfigState(swapTest.dexAccounts.config)
-        ).swapFeeRate.toNumber();
-
-        expect(actualSwapFee, "Swap fee calculation mismatch!").eq(
-          swapTest.swapOutputExpected.swapResult.protocolFee.toNumber()
-        );
-      });
-
-      it("Should swap base output and prepared to launch", async () => {
-        let swapTest = await swapOutputTemplate.setupSwapBaseOutput(
-          signer,
-          new BN(2000),
-          new BN(500)
-        );
-
-        let swapTx = await dexUtils.swapBaseOutput(
-          signer,
-          swapTest.swapBaseOutputArgs
-        );
-
-        let actual = await dexUtils.dexIsReadyToLaunch(
-          swapTest.dexAccounts.dex
-        );
-        expect(actual, "Dex not ready to launch!").equal(true);
-      });
-
-      it("Should swap base output with fee and launch", async () => {
-        let swapTest = await swapOutputTemplate.setupSwapBaseOutput(
-          signer,
-          new BN(2000),
-          new BN(500)
-        );
-
-        let initAmountZero = await tokenUtils.getBalance(
-          swapTest.dexAccounts.vault_zero.address
-        );
-
-        let launchFeeRate = (
-          await dexUtils.getConfigState(swapTest.dexAccounts.config)
-        ).launchFeeRate;
-
-        let expectedLaunchFee = swapCalculator.curve.Fee(
-          swapTest.swapOutputExpected.swapResult.sourceAmountSwapped
-            .add(initAmountZero)
-            .sub(swapTest.swapOutputExpected.swapResult.protocolFee),
-          launchFeeRate
-        );
-
-        let [raydiumPool] = raydiumUtils.pdaGetter.getStateAddress(
-          ammConfigAddress,
-          swapTest.dexAccounts.vault_zero.mint.address,
-          swapTest.dexAccounts.vault_one.mint.address
-        );
-
-        expect(
-          await raydiumUtils.getPoolState(raydiumPool),
-          "Raydium pool already created!"
-        ).to.be.null;
-
-        let swapTx = await dexUtils.swapBaseOutput(
-          signer,
-          swapTest.swapBaseOutputArgs
-        );
-
-        let actualSwapFee = (
-          await dexUtils.getDexState(swapTest.dexAccounts.dex)
-        ).swapFeesToken0;
-
-        expect(
-          actualSwapFee.toNumber(),
-          "Swap fee calculation mismatch!"
-        ).equal(swapTest.swapOutputExpected.swapResult.protocolFee.toNumber());
-        expect(
-          await dexUtils.dexIsReadyToLaunch(swapTest.dexAccounts.dex),
-          "Dex not ready to launch!"
-        ).equal(true);
-
-        let launchDexArgs = {
-          cpSwapProgram: raydiumProgram.programId,
-          raydiumAmmConfig: ammConfigAddress,
-          raydiumPdaGetter: raydiumUtils.pdaGetter,
-          dexAccounts: swapTest.dexAccounts,
-          sharedLamports: new BN(LAMPORTS_PER_SOL),
-        };
-
-        let launchTx = await dexUtils.launchDex(signer, launchDexArgs);
-        await sleep(1000);
-
-        let actualLaunchFee = (
-          await dexUtils.getDexState(swapTest.dexAccounts.dex)
-        ).launchFeesToken0;
-
-        expect(
-          actualLaunchFee.toNumber(),
-          "Launch fee calculation mismatch!"
-        ).equal(expectedLaunchFee.toNumber());
-
-        expect(
-          await raydiumUtils.getPoolState(raydiumPool),
-          "Raydium pool wasn't created!"
-        ).not.to.be.null;
-      });
-    });
-
-    describe("Swap, vault reserve zero, trade one to zero", () => {
-      let swapInputTemplate = new SetupSwapTest(
-        tokenUtils,
-        dexUtils,
-        faucetUtils,
-        launcherUtils
-      );
-      swapInputTemplate.zeroToOne = false;
-
-      let swapOutputTemplate = new SetupSwapTest(
-        tokenUtils,
-        dexUtils,
-        faucetUtils,
-        launcherUtils
-      );
-      swapOutputTemplate.zeroToOne = false;
-
-      it("Should swap base input", async () => {
-        let swapTest = await swapInputTemplate.setupSwapBaseInput(signer);
-
-        let swapTx = await dexUtils.swapBaseInput(
-          signer,
-          swapTest.swapBaseInputArgs
-        );
-      });
-
-      it("Should swap base input and not prepared to launch", async () => {
-        let swapTest = await swapInputTemplate.setupSwapBaseInput(signer);
-
-        let swapTx = await dexUtils.swapBaseInput(
-          signer,
-          swapTest.swapBaseInputArgs
-        );
-
-        let actual = await dexUtils.dexIsReadyToLaunch(
-          swapTest.dexAccounts.dex
-        );
-        expect(actual, "Dex ready to launch!").equal(false);
-      });
-
-      it("Should swap base input with fee", async () => {
-        let swapTest = await swapInputTemplate.setupSwapBaseInput(signer);
-
-        let swapTx = await dexUtils.swapBaseInput(
-          signer,
-          swapTest.swapBaseInputArgs
-        );
-
-        let actualSwapFee = (
-          await dexUtils.getDexState(swapTest.dexAccounts.dex)
-        ).swapFeesToken1.toNumber();
-
-        expect(actualSwapFee, "Swap fee calculation mismatch!").eq(
-          swapTest.swapInputExpected.swapResult.protocolFee.toNumber()
-        );
-      });
-
-      it("Should swap base output", async () => {
-        let swapTest = await swapOutputTemplate.setupSwapBaseOutput(signer);
-
-        let swapTx = await dexUtils.swapBaseOutput(
-          signer,
-          swapTest.swapBaseOutputArgs
-        );
-      });
-
-      it("Should swap base output with fee", async () => {
-        let swapTest = await swapOutputTemplate.setupSwapBaseOutput(signer);
-
-        let swapTx = await dexUtils.swapBaseOutput(
-          signer,
-          swapTest.swapBaseOutputArgs
-        );
-
-        let actualSwapFee = (
-          await dexUtils.getDexState(swapTest.dexAccounts.dex)
-        ).swapFeesToken1.toNumber();
-
-        expect(actualSwapFee, "Swap fee calculation mismatch!").eq(
-          swapTest.swapOutputExpected.swapResult.protocolFee.toNumber()
-        );
-      });
-
-      it("Should swap base output and not prepared to launch", async () => {
-        let swapTest = await swapOutputTemplate.setupSwapBaseOutput(signer);
-
-        let swapTx = await dexUtils.swapBaseOutput(
-          signer,
-          swapTest.swapBaseOutputArgs
-        );
-
-        let actual = await dexUtils.dexIsReadyToLaunch(
-          swapTest.dexAccounts.dex
-        );
-        expect(actual, "Dex ready to launch!").equal(false);
-      });
-    });
-  }); */
 });

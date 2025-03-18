@@ -58,11 +58,13 @@ export class SetupSwapTest {
     this.launcherUtils = launcherUtils;
   }
 
-  async setupDex(signer: Signer): Promise<[DexAccounts, Atas]> {
-    let tokenVault = await this.tokenUtils.initializeSplMint(
-      signer,
-      210_000_000 * 10 ** 9
-    );
+  async setupDex(
+    signer: Signer,
+    splToken = true
+  ): Promise<[DexAccounts, Atas]> {
+    let tokenVault = splToken
+      ? await this.tokenUtils.initializeSplMint(signer, 210_000_000 * 10 ** 9)
+      : await this.tokenUtils.initialize2022Mint(signer, 210_000_000 * 10 ** 9);
 
     const [faucetAuthority] = this.faucetUtils.pdaGetter.getAuthorityAddress();
     const [cpiAuthority] = this.launcherUtils.pdaGetter.getAuthorityAddress();
@@ -305,17 +307,19 @@ export class SetupSwapTest {
 
   async getDexLaunchFees(dexAccounts: DexAccounts, zeroToOne: boolean) {
     let dexState = await this.dexUtils.getDexState(dexAccounts.dex);
-    let swapFees = zeroToOne
+
+    let fees = zeroToOne
       ? dexState.launchFeesToken0
       : dexState.launchFeesToken1;
-    return swapFees;
+    return fees;
   }
 
   async setupSwapBaseInput(
     signer: Signer,
-    launch: boolean = false
+    launch: boolean = false,
+    splToken: boolean = true
   ): Promise<SetupInputSwap> {
-    let [dexAccounts, atas] = await this.setupDex(signer);
+    let [dexAccounts, atas] = await this.setupDex(signer, splToken);
 
     let vaultForReserveBound = (
       await this.dexUtils.getDexState(dexAccounts.dex)
@@ -434,9 +438,10 @@ export class SetupSwapTest {
 
   async setupSwapBaseOutput(
     signer: Signer,
-    launch: boolean = false
+    launch: boolean = false,
+    splToken: boolean = true
   ): Promise<SetupOutputSwap> {
-    let [dexAccounts, atas] = await this.setupDex(signer);
+    let [dexAccounts, atas] = await this.setupDex(signer, splToken);
 
     let vaultForReserveBound = (
       await this.dexUtils.getDexState(dexAccounts.dex)

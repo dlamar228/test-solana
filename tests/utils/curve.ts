@@ -255,6 +255,7 @@ export interface SwapBaseResult {
   outputAmountFee: MintFeeCalculation;
   swapCalculation: SwapCalculation;
   swapResult: SwapResult;
+  args: SwapBaseInputArgs;
 }
 
 export interface SwapBaseInputArgs {
@@ -333,7 +334,7 @@ export class SwapCalculator {
     }
 
     let epochFee = new BN(
-      calculateEpochFee(config, epoch, BigInt(amount.toNumber())).toString()
+      calculateEpochFee(config, epoch, BigInt(amount.toString())).toString()
     );
 
     if (epochFee.gt(amount)) {
@@ -459,6 +460,7 @@ export class SwapCalculator {
       outputAmountFee: outputFeeCalculation,
       swapCalculation: swapCalculation,
       swapResult: result,
+      args,
     };
   }
 

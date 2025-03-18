@@ -261,6 +261,34 @@ export class TokenUtils {
     };
   }
 
+  async initialize2022Mint(
+    signer: Signer,
+    amount: number
+  ): Promise<TokenVault> {
+    let mint = await this.create2022MintWithTransferFee(
+      signer,
+      9,
+      50,
+      BigInt(500)
+    );
+
+    let ata = await this.createAta(
+      signer,
+      signer.publicKey,
+      mint.address,
+      false,
+      mint.program,
+      this.confirmOptions.commitment
+    );
+
+    await this.mintTo(signer, signer, mint.address, ata, amount, mint.program);
+
+    return {
+      mint,
+      address: ata,
+    };
+  }
+
   async initialize2022MintPair(
     signer: Signer,
     amount0: number,
