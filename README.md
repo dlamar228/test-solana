@@ -4,7 +4,11 @@ The purpose of the project is to create a faucet and a DEX to collect liquidity 
 2. **Dex**: This is the main contract that enables anyone to create a Dex with a pair of two token mints. It mints tokens for teams and the faucet, while the remaining tokens are supplied to the Dex.
 3. **Faucet**: This contract provides an option for airdrops.
 
-To run on localhost for test with deployed contract do: `./localhost_solana_test_validator.sh`. Script will build contract, load raydium and token meta accounts and run solana test validator with logs in `validator.log` and `transaction.log` files. 
+To run on localhost for test with deployed contract do: 
+```
+./localhost_solana_test_validator.sh
+```
+ Script will build contract, load raydium and token meta accounts and run solana test validator with logs in `validator.log` and `transaction.log` files. 
 
 # LAUNCHER
 The Launcher contract manage Dex creation, token mint creation for Dex and how much tokens will get Dex, team and Faucet. The passed tokens will be sorted. Contract does not store used mints, created Dex. Instead, someone must parse events to obtain this data.
@@ -490,8 +494,43 @@ The Faucet contract does not store used mints, created faucet claims, or faucet 
     }
    ```
    **Returns** : None.</br>
+   
+## ENVIRONMENT SETUP
+### INSTALL RUST 
+```
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+and set version 
+```
+rustup default 1.79.0
+```
+### INSTALL SOLANA
+```
+sh -c "$(curl -sSfL https://release.solana.com/v1.17.0/install)"
+``` 
+and generate key payer if needed
+```
+solana-keygen new
+```
+### ISNTALL ANCHOR 
+```
+cargo install --git https://github.com/coral-xyz/anchor avm --locked --force
+``` 
+and then 
+```
+avm install 0.29.0
+```
 
 ## DEPLOY
-Sync program keys run: `anchor keys sync` </br>
-Create *.so files in target/deploy run: `cargo build-sbf` </br>
-Deploy Faucet contract run: `solana program deploy --program-id ./target/deploy/faucet-keypair.json ./target/deploy/faucet.so --url localhost`
+Sync program keys run: 
+```
+anchor keys sync
+```
+Create *.so files in target/deploy run: 
+```
+cargo build-sbf
+```
+Deploy Faucet contract run: 
+```
+solana program deploy --program-id ./target/deploy/faucet-keypair.json ./target/deploy/faucet.so --url localhost
+```
